@@ -11,8 +11,24 @@ export class PixiRenderer {
   particlesContainer: Container;
 
   stars: { x: number; y: number; z: number; sz: number; sp: number; a: number; sprite: Graphics }[];
-  particles: { x: number; y: number; vx: number; vy: number; col: string; life: number; sprite: Graphics }[];
-  confetti: { x: number; y: number; vx: number; vy: number; col: string; life: number; sprite: Graphics }[];
+  particles: {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    col: string;
+    life: number;
+    sprite: Graphics;
+  }[];
+  confetti: {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    col: string;
+    life: number;
+    sprite: Graphics;
+  }[];
 
   enemyMap: Map<number, { container: Container; text: Text; icon: Text }>;
   powerupMap: Map<string, { container: Container; text: Text }>;
@@ -127,9 +143,10 @@ export class PixiRenderer {
         // Create new enemy
         const container = new Container();
 
-        const iconStyle = this.iconStyle.clone();
-        iconStyle.fill = enemy.type.color;
-        const icon = new Text({ text: enemy.type.icon, style: iconStyle });
+        const icon = new Text({
+          text: enemy.type.icon,
+          style: { ...this.iconStyle, fill: enemy.type.color },
+        });
         icon.anchor.set(0.5);
 
         const text = new Text({ text: enemy.word, style: this.enemyStyle });
@@ -165,7 +182,7 @@ export class PixiRenderer {
         const entry = this.powerupMap.get(key);
         if (entry) {
           this.uiContainer.removeChild(entry.container);
-          entry.container.destroy({ children: true });
+          entry.container.destroy();
           this.powerupMap.delete(key);
         }
       }
@@ -176,7 +193,10 @@ export class PixiRenderer {
       let entry = this.powerupMap.get(key);
       if (!entry) {
         const container = new Container();
-        const text = new Text({ text: pu.icon, style: { fontSize: 24, fill: pu.color, fontFamily: 'Arial' } });
+        const text = new Text({
+          text: pu.icon,
+          style: { fontSize: 24, fill: pu.color, fontFamily: 'Arial' },
+        });
         text.anchor.set(0.5);
         container.addChild(text);
         this.uiContainer.addChild(container);
@@ -188,7 +208,6 @@ export class PixiRenderer {
       entry.text.text = pu.icon; // update icon just in case
       entry.text.style.fill = pu.color;
     });
-
 
     // Particles
     // Update and draw existing particles
@@ -227,24 +246,47 @@ export class PixiRenderer {
       }
     }
 
+    // Boss
+    if (state.boss) {
+      if (!this.bossGraphics) {
+        this.bossGraphics = new Graphics();
+        this.gameContainer.addChild(this.bossGraphics);
+      }
+      this.bossGraphics.clear();
+
+      // Draw boss
+      // Use text for boss to match original style: 👾
+      // Actually, I can't easily draw text with Graphics.
+      // I should manage a boss text sprite.
+      // For now, I'll draw a red box placeholder if I can't do text easily here,
+      // but wait, I can just add a Text to this.bossGraphics if it was a Container.
+      // Let's change bossGraphics to bossContainer later if needed.
+      // For now, let's just use a simple red square as fallback if text is hard,
+      // BUT I can use Text.
+
+      // Better: let's just make a boss text instance on the fly if needed or cache it.
+      // Since boss is unique, I'll add a member `bossText`.
+    }
+
     // Simplified Boss Rendering
     if (state.boss) {
-       // Ideally would render the 👾 emoji here
-       // I will leave it for now as "Boss logic" handles it, but visual is missing.
-       // Let's add a quick text for boss.
-       let bossText = this.gameContainer.getChildByName('bossText') as Text;
-       if (!bossText) {
-         bossText = new Text({ text: '👾', style: { fontSize: 48, fill: '#e74c3c' } });
-         bossText.label = 'bossText';
-         bossText.anchor.set(0.5);
-         this.gameContainer.addChild(bossText);
-       }
-       bossText.x = state.boss.x;
-       bossText.y = state.boss.y;
-       bossText.visible = true;
+      // Ideally would render the 👾 emoji here
+      // I will leave it for now as "Boss logic" handles it, but visual is missing.
+      // Let's add a quick text for boss.
+      let bossText = this.gameContainer.getChildByName('bossText') as Text;
+      if (!bossText) {
+        bossText = new Text({ text: '👾', style: { fontSize: 48, fill: '#e74c3c' } });
+        bossText.label = 'bossText';
+        (bossText as any).name = 'bossText';
+        bossText.anchor.set(0.5);
+        this.gameContainer.addChild(bossText);
+      }
+      bossText.x = state.boss.x;
+      bossText.y = state.boss.y;
+      bossText.visible = true;
     } else {
-       const bossText = this.gameContainer.getChildByName('bossText');
-       if (bossText) bossText.visible = false;
+      const bossText = this.gameContainer.getChildByName('bossText');
+      if (bossText) bossText.visible = false;
     }
 
     // Flash
@@ -267,19 +309,22 @@ export class PixiRenderer {
       this.particlesContainer.addChild(g);
 
       this.particles.push({
-        x, y,
+        x,
+        y,
         vx: (Math.random() - 0.5) * 3,
         vy: -Math.random() * 3 - 2,
         col: color,
         life: 30,
-        sprite: g
+        sprite: g,
       });
     }
   }
 
   spawnConfetti(x: number, y: number) {
     for (let i = 0; i < 60; i++) {
-      const col = ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'][Math.floor(Math.random() * 5)];
+      const col = ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'][
+        Math.floor(Math.random() * 5)
+      ];
       const g = new Graphics();
       g.rect(-3, -3, 6, 6);
       g.fill(col);
@@ -288,12 +333,13 @@ export class PixiRenderer {
       this.particlesContainer.addChild(g);
 
       this.confetti.push({
-        x, y,
+        x,
+        y,
         vx: (Math.random() - 0.5) * 8,
         vy: -Math.random() * 10 - 5,
         col,
         life: 100,
-        sprite: g
+        sprite: g,
       });
     }
   }

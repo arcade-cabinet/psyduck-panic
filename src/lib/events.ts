@@ -3,7 +3,7 @@ import type { Enemy, PowerUpInstance } from './types';
 export type GameEvent =
   | { type: 'SFX'; name: string; args?: any[] }
   | { type: 'PARTICLE'; x: number; y: number; color: string }
-  | { type: 'CONFETTI'; x: number; y: number }
+  | { type: 'CONFETTI'; x: number; y: number; color: string }
   | { type: 'FEED'; handle: string; text: string; stat: string }
   | { type: 'GAME_OVER'; score: number; win: boolean }
   | { type: 'WAVE_START'; wave: number; title: string; sub: string }
@@ -41,5 +41,4 @@ export type WorkerMessage =
   | { type: 'NUKE' }
   | { type: 'CLICK'; x: number; y: number };
 
-export type MainMessage =
-  | { type: 'STATE'; state: GameState };
+export type MainMessage = { type: 'STATE'; state: GameState };

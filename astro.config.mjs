@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: {
         name: 'Psyduck Panic: Evolution Deluxe',
         short_name: 'Psyduck Panic',
-        description: 'Counter AI hype thought bubbles before your brother\'s brain melts!',
+        description: "Counter AI hype thought bubbles before your brother's brain melts!",
         theme_color: '#0a0a18',
         background_color: '#0a0a18',
         display: 'standalone',
@@ -21,14 +21,14 @@ export default defineConfig({
           {
             src: 'icon.svg',
             sizes: '192x192 512x512',
-            type: 'image/svg+xml'
-          }
-        ]
+            type: 'image/svg+xml',
+          },
+        ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,mp3,wav}']
-      }
-    })
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,mp3,wav}'],
+      },
+    }),
   ],
   site: 'https://arcade-cabinet.github.io',
   base: '/psyduck-panic',

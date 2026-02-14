@@ -220,7 +220,6 @@ export class GameLogic {
     const pu = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
     this.powerups.push({
       ...pu,
-      instanceId: Date.now() + Math.random(), // Add a unique ID for each instance
       x: 100 + Math.random() * (W - 200),
       y: -30,
       vy: 0.6 + Math.random() * 0.4,
@@ -266,8 +265,8 @@ export class GameLogic {
         this.bossPhase = false;
         this.fl = 0.4;
         this.flCol = '#2ecc71';
-        this.events.push({ type: 'CONFETTI', x: W/2, y: 120, color: 'random' });
-        this.events.push({ type: 'CONFETTI', x: W/2, y: 120, color: 'random' });
+        this.events.push({ type: 'CONFETTI', x: W / 2, y: 120, color: 'random' });
+        setTimeout(() => this.nextWave(), 1500);
       }
     }
     for (let i = this.enemies.length - 1; i >= 0; i--) {

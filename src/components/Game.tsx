@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { SFX } from '../lib/audio';
 import { GAME_HEIGHT, GAME_WIDTH, WAVES } from '../lib/constants';
 import type { GameState } from '../lib/events';
@@ -72,7 +72,6 @@ function uiReducer(state: UIState, action: Action): UIState {
         wave: action.state.wave,
         panic: action.state.panic,
         combo: action.state.combo,
-        maxCombo: Math.max(state.maxCombo, action.state.combo),
         time: action.state.waveTime,
         nukeCd: action.state.nukeCd,
         nukeMax: action.state.nukeMax,
@@ -91,11 +90,17 @@ function uiReducer(state: UIState, action: Action): UIState {
     case 'HIDE_WAVE':
       return { ...state, showWave: false };
     case 'ADD_FEED':
-      return { ...state, feed: [{ ...action.item, id: Date.now() }, ...state.feed.slice(0, 2)] };
+      return {
+        ...state,
+        feed: [{ ...action.item, id: Date.now() + Math.random() }, ...state.feed.slice(0, 2)],
+      };
     case 'BOSS_START':
       return { ...state, boss: { name: action.name, hp: action.hp, maxHp: action.hp } };
     case 'BOSS_HIT':
-      return { ...state, boss: state.boss ? { ...state.boss, hp: action.hp, maxHp: action.maxHp } : null };
+      return {
+        ...state,
+        boss: state.boss ? { ...state.boss, hp: action.hp, maxHp: action.maxHp } : null,
+      };
     case 'BOSS_DIE':
       return { ...state, boss: null };
     default:
@@ -120,6 +125,20 @@ export default function Game() {
   useEffect(() => {
     sfxRef.current = new SFX();
     sfxRef.current.init();
+  }, []);
+
+  // Handler using passed state from ref
+  const handleStartRef = useCallback((currentState: UIState) => {
+    sfxRef.current?.resume();
+    if (currentState.win && currentState.screen === 'gameover') {
+      // Continue to endless
+      dispatch({ type: 'START_ENDLESS' });
+      workerRef.current?.postMessage({ type: 'START', endless: true });
+    } else {
+      // New Game
+      dispatch({ type: 'START_GAME' });
+      workerRef.current?.postMessage({ type: 'START', endless: false });
+    }
   }, []);
 
   // Initialize Game (Renderer & Worker)
@@ -151,7 +170,7 @@ export default function Game() {
         for (const event of state.events) {
           switch (event.type) {
             case 'SFX':
-              // @ts-ignore
+              // @ts-expect-error
               sfxRef.current?.[event.name]?.(...(event.args || []));
               break;
             case 'PARTICLE':
@@ -162,16 +181,17 @@ export default function Game() {
               break;
             case 'GAME_OVER':
               dispatch({ type: 'GAME_OVER', score: event.score, win: event.win });
-              saveScore(event.score).catch((err) => {
-                console.error('Failed to save score:', err);
-              });
+              saveScore(event.score);
               break;
             case 'WAVE_START':
               dispatch({ type: 'WAVE_START', title: event.title, sub: event.sub });
               setTimeout(() => dispatch({ type: 'HIDE_WAVE' }), 3000);
               break;
             case 'FEED':
-              dispatch({ type: 'ADD_FEED', item: { handle: event.handle, text: event.text, stat: event.stat } });
+              dispatch({
+                type: 'ADD_FEED',
+                item: { handle: event.handle, text: event.text, stat: event.stat },
+              });
               break;
             case 'BOSS_START':
               dispatch({ type: 'BOSS_START', name: event.name, hp: event.hp });
@@ -196,7 +216,7 @@ export default function Game() {
         e.preventDefault();
 
         if (currentUI.screen === 'start' || currentUI.screen === 'gameover') {
-           handleStartRef(currentUI);
+          handleStartRef(currentUI);
         }
       } else {
         worker.postMessage({ type: 'INPUT', key: e.key });
@@ -225,23 +245,20 @@ export default function Game() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', resizeGame);
     };
-  }, []);
+  }, [handleStartRef]);
 
-  const handleStart = (currentState: UIState) => {
+  // Wrapper for button click which has closure access to latest state (unlike event listener)
+  // Actually button click handler in render will use latest closure, so direct handleStart is fine if defined in render scope.
+  const handleStartButton = () => {
     sfxRef.current?.resume();
-    if (currentState.win && currentState.screen === 'gameover') {
-        // Continue to endless
-        dispatch({ type: 'START_ENDLESS' });
-        workerRef.current?.postMessage({ type: 'START', endless: true });
+    if (ui.win && ui.screen === 'gameover') {
+      dispatch({ type: 'START_ENDLESS' });
+      workerRef.current?.postMessage({ type: 'START', endless: true });
     } else {
-        // New Game
-        dispatch({ type: 'START_GAME' });
-        workerRef.current?.postMessage({ type: 'START', endless: false });
+      dispatch({ type: 'START_GAME' });
+      workerRef.current?.postMessage({ type: 'START', endless: false });
     }
   };
-
-  // You can now use `handleStart(uiRef.current)` in your keydown listener
-  // and `onClick={() => handleStart(ui)}` on your button.
 
   const handleAbility = (type: 'reality' | 'history' | 'logic') => {
     workerRef.current?.postMessage({ type: 'ABILITY', ability: type });
@@ -272,134 +289,199 @@ export default function Game() {
 
         {/* HUD Layer */}
         <div id="ui-layer" className={ui.screen === 'playing' ? '' : 'hidden'}>
-            <div id="wave-announce" className={ui.showWave ? 'show' : ''}>
-                <div className="wt" id="wa-title">{ui.waveTitle}</div>
-                <div className="ws" id="wa-sub">{ui.waveSub}</div>
+          <div id="wave-announce" className={ui.showWave ? 'show' : ''}>
+            <div className="wt" id="wa-title">
+              {ui.waveTitle}
             </div>
-
-            {ui.boss && (
-                <div id="boss-hp-container" style={{ display: 'block' }}>
-                    <div className="boss-name" id="boss-name">{ui.boss.name}</div>
-                    <div id="boss-hp-outer">
-                        <div id="boss-hp-bar" style={{ width: `${(ui.boss.hp / ui.boss.maxHp) * 100}%` }}></div>
-                    </div>
-                </div>
-            )}
-
-            <div id="hype-feed">
-                {ui.feed.map(item => (
-                    <div key={item.id} className="feed-item show">
-                        <span className="feed-handle">{item.handle}</span>
-                        <span className="feed-text">{item.text}</span>
-                        <span className="feed-stat">{item.stat}</span>
-                    </div>
-                ))}
+            <div className="ws" id="wa-sub">
+              {ui.waveSub}
             </div>
+          </div>
 
-            <div id="powerup-hud">
-                <div className="pu-icon" id="pu-slow" style={{ opacity: ui.pu.slow > 0 ? 1 : 0.15 }}>⏳</div>
-                <div className="pu-icon" id="pu-shield" style={{ opacity: ui.pu.shield > 0 ? 1 : 0.15 }}>🛡️</div>
-                <div className="pu-icon" id="pu-double" style={{ opacity: ui.pu.double > 0 ? 1 : 0.15 }}>⭐</div>
+          {ui.boss && (
+            <div id="boss-hp-container" style={{ display: 'block' }}>
+              <div className="boss-name" id="boss-name">
+                {ui.boss.name}
+              </div>
+              <div id="boss-hp-outer">
+                <div
+                  id="boss-hp-bar"
+                  style={{ width: `${(ui.boss.hp / ui.boss.maxHp) * 100}%` }}
+                ></div>
+              </div>
             </div>
+          )}
 
-            <div className="hud-top">
-                <div className="hud-left">
-                    <div>PANIC</div>
-                    <div className="meter-container">
-                        <div className="marker" style={{ left: '33%' }}></div>
-                        <div className="marker" style={{ left: '66%' }}></div>
-                        <div id="panic-bar" style={{ width: `${ui.panic}%` }}></div>
-                    </div>
-                    <div id="combo-display">COMBO: x{ui.combo}</div>
-                </div>
-                <div className="hud-center">
-                    <div id="wave-display">
-                        {ui.wave >= WAVES.length ? `ENDLESS ${ui.wave - (WAVES.length - 1)}` : `WAVE ${ui.wave + 1}`}
-                    </div>
-                </div>
-                <div className="hud-right">
-                    <div>TIME: <span id="time-display">{Math.ceil(ui.time)}</span>s</div>
-                    <div>SCORE: <span id="score-display">{ui.score}</span></div>
-                </div>
-            </div>
+          <div id="hype-feed">
+            {ui.feed.map((item) => (
+              <div key={item.id} className="feed-item show">
+                <span className="feed-handle">{item.handle}</span>
+                <span className="feed-text">{item.text}</span>
+                <span className="feed-stat">{item.stat}</span>
+              </div>
+            ))}
+          </div>
 
-            <div id="controls">
-                <button type="button" className="btn reality" id="btn-reality" onClick={() => handleAbility('reality')}>
-                    <div className="key-hint">1</div>REALITY<span>🦠 HYPE</span>
-                    <div className="cooldown-bar" id="cd-reality" style={{ width: `${(ui.abilityCd.reality / ui.abilityMax.reality) * 100}%` }}></div>
-                </button>
-                <button type="button" className="btn history" id="btn-history" onClick={() => handleAbility('history')}>
-                    <div className="key-hint">2</div>HISTORY<span>📈 GROWTH</span>
-                    <div className="cooldown-bar" id="cd-history" style={{ width: `${(ui.abilityCd.history / ui.abilityMax.history) * 100}%` }}></div>
-                </button>
-                <button type="button" className="btn logic" id="btn-logic" onClick={() => handleAbility('logic')}>
-                    <div className="key-hint">3</div>LOGIC<span>🤖 DEMOS</span>
-                    <div className="cooldown-bar" id="cd-logic" style={{ width: `${(ui.abilityCd.logic / ui.abilityMax.logic) * 100}%` }}></div>
-                </button>
-                <button type="button" className="btn special" id="btn-special" onClick={handleNuke}>
-                    <div className="key-hint">Q</div>NUKE<span>💥 ALL</span>
-                    <div className="cooldown-bar" id="cd-special" style={{ width: `${(ui.nukeCd / ui.nukeMax) * 100}%` }}></div>
-                </button>
+          <div id="powerup-hud">
+            <div className="pu-icon" id="pu-slow" style={{ opacity: ui.pu.slow > 0 ? 1 : 0.15 }}>
+              ⏳
             </div>
+            <div
+              className="pu-icon"
+              id="pu-shield"
+              style={{ opacity: ui.pu.shield > 0 ? 1 : 0.15 }}
+            >
+              🛡️
+            </div>
+            <div
+              className="pu-icon"
+              id="pu-double"
+              style={{ opacity: ui.pu.double > 0 ? 1 : 0.15 }}
+            >
+              ⭐
+            </div>
+          </div>
+
+          <div className="hud-top">
+            <div className="hud-left">
+              <div>PANIC</div>
+              <div className="meter-container">
+                <div className="marker" style={{ left: '33%' }}></div>
+                <div className="marker" style={{ left: '66%' }}></div>
+                <div id="panic-bar" style={{ width: `${ui.panic}%` }}></div>
+              </div>
+              <div id="combo-display">COMBO: x{ui.combo}</div>
+            </div>
+            <div className="hud-center">
+              <div id="wave-display">
+                {ui.wave >= WAVES.length
+                  ? `ENDLESS ${ui.wave - (WAVES.length - 1)}`
+                  : `WAVE ${ui.wave + 1}`}
+              </div>
+            </div>
+            <div className="hud-right">
+              <div>
+                TIME: <span id="time-display">{Math.ceil(ui.time)}</span>s
+              </div>
+              <div>
+                SCORE: <span id="score-display">{ui.score}</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="controls">
+            <button
+              type="button"
+              className="btn reality"
+              id="btn-reality"
+              onClick={() => handleAbility('reality')}
+            >
+              <div className="key-hint">1</div>REALITY<span>🦠 HYPE</span>
+              <div
+                className="cooldown-bar"
+                id="cd-reality"
+                style={{ width: `${(ui.abilityCd.reality / ui.abilityMax.reality) * 100}%` }}
+              ></div>
+            </button>
+            <button
+              type="button"
+              className="btn history"
+              id="btn-history"
+              onClick={() => handleAbility('history')}
+            >
+              <div className="key-hint">2</div>HISTORY<span>📈 GROWTH</span>
+              <div
+                className="cooldown-bar"
+                id="cd-history"
+                style={{ width: `${(ui.abilityCd.history / ui.abilityMax.history) * 100}%` }}
+              ></div>
+            </button>
+            <button
+              type="button"
+              className="btn logic"
+              id="btn-logic"
+              onClick={() => handleAbility('logic')}
+            >
+              <div className="key-hint">3</div>LOGIC<span>🤖 DEMOS</span>
+              <div
+                className="cooldown-bar"
+                id="cd-logic"
+                style={{ width: `${(ui.abilityCd.logic / ui.abilityMax.logic) * 100}%` }}
+              ></div>
+            </button>
+            <button type="button" className="btn special" id="btn-special" onClick={handleNuke}>
+              <div className="key-hint">Q</div>NUKE<span>💥 ALL</span>
+              <div
+                className="cooldown-bar"
+                id="cd-special"
+                style={{ width: `${(ui.nukeCd / ui.nukeMax) * 100}%` }}
+              ></div>
+            </button>
+          </div>
         </div>
 
         {/* Overlay Layer */}
         <div id="overlay" className={ui.screen !== 'playing' ? '' : 'hidden'}>
-            <h1 id="overlay-title">
-                {ui.screen === 'gameover'
-                    ? (ui.win ? 'CRISIS AVERTED' : 'FULL PSYCHOSIS')
-                    : 'PSYDUCK PANIC'}
-                <br />
-                {ui.screen === 'gameover' ? '' : 'EVOLUTION'}
-            </h1>
-            <div className="subtitle">{ui.screen === 'gameover' ? '' : 'D E L U X E'}</div>
+          <h1 id="overlay-title">
+            {ui.screen === 'gameover'
+              ? ui.win
+                ? 'CRISIS AVERTED'
+                : 'FULL PSYCHOSIS'
+              : 'PSYDUCK PANIC'}
+            <br />
+            {ui.screen === 'gameover' ? '' : 'EVOLUTION'}
+          </h1>
+          <div className="subtitle">{ui.screen === 'gameover' ? '' : 'D E L U X E'}</div>
 
-            <p id="overlay-desc">
-                {ui.screen === 'start' && (
-                    <>
-                        Your brother is doomscrolling AI hype.
-                        <br />
-                        Counter thought bubbles before PANIC hits 100%.
-                        <br />
-                        Survive 5 waves + bosses to save his brain.
-                    </>
-                )}
-                {ui.screen === 'gameover' && ui.win && (
-                    <>
-                        His brain is safe... for now.
-                        <br /><br />
-                        Press SPACE to continue into ENDLESS MODE
-                    </>
-                )}
-                {ui.screen === 'gameover' && !ui.win && (
-                    <>
-                        His brain melted. Game over.
-                        <br /><br />
-                        Press SPACE to retry
-                    </>
-                )}
-            </p>
-
+          <p id="overlay-desc">
             {ui.screen === 'start' && (
-                <p>
-                    <b style={{ color: '#e67e22' }}>1</b> Reality &nbsp;
-                    <b style={{ color: '#2ecc71' }}>2</b> History &nbsp;
-                    <b style={{ color: '#9b59b6' }}>3</b> Logic &nbsp;
-                    <b style={{ color: '#e74c3c' }}>Q</b> Nuke
-                </p>
+              <>
+                Your brother is doomscrolling AI hype.
+                <br />
+                Counter thought bubbles before PANIC hits 100%.
+                <br />
+                Survive 5 waves + bosses to save his brain.
+              </>
             )}
-
-            {ui.screen === 'gameover' && (
-                <div id="end-stats">
-                    SCORE: {ui.score}<br/>
-                    {/* Accuracy calculation omitted for brevity unless tracked in state */ }
-                    MAX COMBO: x{ui.maxCombo}
-                </div>
+            {ui.screen === 'gameover' && ui.win && (
+              <>
+                His brain is safe... for now.
+                <br />
+                <br />
+                Press SPACE to continue into ENDLESS MODE
+              </>
             )}
+            {ui.screen === 'gameover' && !ui.win && (
+              <>
+                His brain melted. Game over.
+                <br />
+                <br />
+                Press SPACE to retry
+              </>
+            )}
+          </p>
 
-            <button type="button" className="start-btn" id="start-btn" onClick={handleStartButton}>
-                {ui.screen === 'start' ? 'START DEBATE' : (ui.win ? 'CONTINUE ENDLESS' : 'RETRY')}
-            </button>
+          {ui.screen === 'start' && (
+            <p>
+              <b style={{ color: '#e67e22' }}>1</b> Reality &nbsp;
+              <b style={{ color: '#2ecc71' }}>2</b> History &nbsp;
+              <b style={{ color: '#9b59b6' }}>3</b> Logic &nbsp;
+              <b style={{ color: '#e74c3c' }}>Q</b> Nuke
+            </p>
+          )}
+
+          {ui.screen === 'gameover' && (
+            <div id="end-stats">
+              SCORE: {ui.score}
+              <br />
+              {/* Accuracy calculation omitted for brevity unless tracked in state */}
+              MAX COMBO: x{ui.maxCombo}
+            </div>
+          )}
+
+          <button type="button" className="start-btn" id="start-btn" onClick={handleStartButton}>
+            {ui.screen === 'start' ? 'START DEBATE' : ui.win ? 'CONTINUE ENDLESS' : 'RETRY'}
+          </button>
         </div>
       </div>
     </div>
