@@ -127,19 +127,24 @@ export default function Game() {
     sfxRef.current.init();
   }, []);
 
-  // Handler using passed state from ref
-  const handleStartRef = useCallback((currentState: UIState) => {
+  // Consolidate start logic
+  // This logic works for both Spacebar (via listener) and Click (via button)
+  // `currentState` arg allows the event listener to pass the ref value
+  const handleStartLogic = useCallback((currentState: UIState) => {
     sfxRef.current?.resume();
     if (currentState.win && currentState.screen === 'gameover') {
-      // Continue to endless
       dispatch({ type: 'START_ENDLESS' });
       workerRef.current?.postMessage({ type: 'START', endless: true });
     } else {
-      // New Game
       dispatch({ type: 'START_GAME' });
       workerRef.current?.postMessage({ type: 'START', endless: false });
     }
   }, []);
+
+  // Button click handler - uses current state from closure
+  const handleStartButton = () => {
+    handleStartLogic(ui);
+  };
 
   // Initialize Game (Renderer & Worker)
   useEffect(() => {
@@ -216,7 +221,7 @@ export default function Game() {
         e.preventDefault();
 
         if (currentUI.screen === 'start' || currentUI.screen === 'gameover') {
-          handleStartRef(currentUI);
+          handleStartLogic(currentUI);
         }
       } else {
         worker.postMessage({ type: 'INPUT', key: e.key });
@@ -229,11 +234,18 @@ export default function Game() {
     const resizeGame = () => {
       const scaler = document.getElementById('game-scaler');
       if (scaler) {
-        const scale =
-          window.innerWidth / window.innerHeight < 800 / 600
-            ? window.innerWidth / 800
-            : window.innerHeight / 600;
+        // Enforce contain logic for mobile
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+        const scale = Math.min(winW / 800, winH / 600);
         scaler.style.transform = `scale(${scale})`;
+
+        // Center the game on larger screens
+        if (winW > 800 * scale) {
+          scaler.style.left = `${(winW - 800 * scale) / 2}px`;
+        } else {
+          scaler.style.left = '0px';
+        }
       }
     };
     window.addEventListener('resize', resizeGame);
@@ -245,20 +257,7 @@ export default function Game() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', resizeGame);
     };
-  }, [handleStartRef]);
-
-  // Wrapper for button click which has closure access to latest state (unlike event listener)
-  // Actually button click handler in render will use latest closure, so direct handleStart is fine if defined in render scope.
-  const handleStartButton = () => {
-    sfxRef.current?.resume();
-    if (ui.win && ui.screen === 'gameover') {
-      dispatch({ type: 'START_ENDLESS' });
-      workerRef.current?.postMessage({ type: 'START', endless: true });
-    } else {
-      dispatch({ type: 'START_GAME' });
-      workerRef.current?.postMessage({ type: 'START', endless: false });
-    }
-  };
+  }, [handleStartLogic]);
 
   const handleAbility = (type: 'reality' | 'history' | 'logic') => {
     workerRef.current?.postMessage({ type: 'ABILITY', ability: type });
@@ -277,7 +276,7 @@ export default function Game() {
   };
 
   return (
-    <div id="game-scaler">
+    <div id="game-scaler" style={{ touchAction: 'none' }}>
       <div id="game-container">
         <canvas
           ref={canvasRef}
@@ -285,6 +284,7 @@ export default function Game() {
           width={GAME_WIDTH}
           height={GAME_HEIGHT}
           onPointerDown={handleCanvasPointerDown}
+          style={{ touchAction: 'none' }}
         ></canvas>
 
         {/* HUD Layer */}
