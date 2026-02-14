@@ -127,7 +127,9 @@ export class PixiRenderer {
         // Create new enemy
         const container = new Container();
 
-        const icon = new Text({ text: enemy.type.icon, style: { ...this.iconStyle, fill: enemy.type.color } });
+        const iconStyle = this.iconStyle.clone();
+        iconStyle.fill = enemy.type.color;
+        const icon = new Text({ text: enemy.type.icon, style: iconStyle });
         icon.anchor.set(0.5);
 
         const text = new Text({ text: enemy.word, style: this.enemyStyle });
