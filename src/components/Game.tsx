@@ -96,8 +96,8 @@ export default function Game() {
     const gameInstance = gameInstanceRef.current;
     if (!gameInstance || !gameInstance.running || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 800;
-    const y = ((e.clientY - rect.top) / rect.height) * 600;
+    const x = ((e.clientX - rect.left) / rect.width) * GAME_WIDTH;
+    const y = ((e.clientY - rect.top) / rect.height) * GAME_HEIGHT;
     const enemy = gameInstance.findEnemyAt(x, y);
     if (enemy && !enemy.encrypted) {
       gameInstance.triggerAbility(enemy.type.counter);
