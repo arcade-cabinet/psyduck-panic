@@ -1,7 +1,7 @@
 // Complete game logic extracted and converted to TypeScript
 import { SFX } from './audio';
 import { FEED, GAME_HEIGHT, GAME_WIDTH, POWERUPS, TYPES, WAVES } from './constants';
-import type { Boss, Enemy, EnemyType, GameState, Wave } from './types';
+import type { Boss, Enemy } from './types';
 
 const W = GAME_WIDTH;
 const H = GAME_HEIGHT;

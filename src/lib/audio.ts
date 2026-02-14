@@ -1,5 +1,5 @@
 export class SFX {
-  private ctx: AudioContext | null = null;
+  public ctx: AudioContext | null = null;
   private musicInterval: number | null = null;
 
   init(): void {
