@@ -266,7 +266,7 @@ export class GameLogic {
         this.fl = 0.4;
         this.flCol = '#2ecc71';
         this.events.push({ type: 'CONFETTI', x: W/2, y: 120, color: 'random' });
-        setTimeout(() => this.nextWave(), 1500);
+        this.events.push({ type: 'CONFETTI', x: W/2, y: 120, color: 'random' });
       }
     }
     for (let i = this.enemies.length - 1; i >= 0; i--) {
