@@ -28,8 +28,12 @@ export const initDB = async () => {
 };
 
 export const saveScore = async (score: number) => {
-  const db = await initDB();
-  await db.add('scores', { score, date: Date.now() });
+  try {
+    const db = await initDB();
+    await db.add('scores', { score, date: Date.now() });
+  } catch (error) {
+    console.error('Failed to save score:', error);
+  }
 };
 
 export const getHighScores = async (limit = 10): Promise<HighScore[]> => {
