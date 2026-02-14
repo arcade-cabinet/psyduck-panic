@@ -61,7 +61,9 @@ test.describe('Psyduck Panic Game', () => {
   test('should respond to keyboard controls', async ({ page }) => {
     await page.goto('/psyduck-panic/');
     await page.locator('#start-btn').click({ force: true });
-    await page.waitForTimeout(500);
+    await page.locator('#start-btn').click({ force: true });
+    // Wait for game to actually start (overlay hidden)
+    await expect(page.locator('#overlay')).toHaveClass(/hidden/);
 
     // Press ability keys
     await page.keyboard.press('1');
