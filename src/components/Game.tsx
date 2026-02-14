@@ -86,7 +86,7 @@ export default function Game() {
       if (canvasRef.current) {
         canvasRef.current.addEventListener('pointerdown', (e) => {
           if (!gameInstance || !gameInstance.running) return;
-          const rect = canvasRef.current!.getBoundingClientRect();
+          const rect = canvasRef.current?.getBoundingClientRect();
           const x = ((e.clientX - rect.left) / rect.width) * 800;
           const y = ((e.clientY - rect.top) / rect.height) * 600;
           const enemy = gameInstance.findEnemyAt(x, y);
@@ -100,7 +100,7 @@ export default function Game() {
       const preventMultiTouch = (e: TouchEvent) => {
         if (e.touches.length > 1) e.preventDefault();
       };
-      
+
       document.addEventListener('touchstart', preventMultiTouch, { passive: false });
 
       return () => {

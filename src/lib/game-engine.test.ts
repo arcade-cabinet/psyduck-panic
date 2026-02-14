@@ -36,7 +36,8 @@ class MockAudioContext {
   destination = {};
 }
 
-global.AudioContext = MockAudioContext as any;
+// Mock AudioContext for testing - cast through unknown for type safety
+global.AudioContext = MockAudioContext as unknown as typeof AudioContext;
 
 describe('GameEngine', () => {
   let canvas: HTMLCanvasElement;

@@ -1,7 +1,17 @@
 // Complete game logic extracted and converted to TypeScript
 import { SFX } from './audio';
 import { FEED, GAME_HEIGHT, GAME_WIDTH, POWERUPS, TYPES, WAVES } from './constants';
-import type { Boss, BossConfig, Confetti, Enemy, MomentumPerks, Particle, PowerUpInstance, Star, Trail } from './types';
+import type {
+  Boss,
+  BossConfig,
+  Confetti,
+  Enemy,
+  MomentumPerks,
+  Particle,
+  PowerUpInstance,
+  Star,
+  Trail,
+} from './types';
 
 const W = GAME_WIDTH;
 const H = GAME_HEIGHT;
@@ -52,6 +62,8 @@ export class GameEngine {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
+    // In browsers, getContext('2d') always returns a valid context for HTMLCanvasElement
+    // Non-null assertion is safe here as we know the element supports 2D context
     this.c = canvas.getContext('2d')!;
     this.sfx = new SFX();
     this.stars = [];
