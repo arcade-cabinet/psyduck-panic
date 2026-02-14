@@ -90,7 +90,7 @@ function uiReducer(state: UIState, action: Action): UIState {
     case 'HIDE_WAVE':
       return { ...state, showWave: false };
     case 'ADD_FEED':
-      return { ...state, feed: [{ ...action.item, id: Date.now() }, ...state.feed.slice(0, 2)] };
+      return { ...state, feed: [{ ...action.item, id: Date.now() + Math.random() }, ...state.feed.slice(0, 2)] };
     case 'BOSS_START':
       return { ...state, boss: { name: action.name, hp: action.hp, maxHp: action.hp } };
     case 'BOSS_HIT':
