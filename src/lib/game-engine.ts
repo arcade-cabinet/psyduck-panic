@@ -162,6 +162,29 @@ export class GameEngine {
     this.momPerks = { spawnDelay: 0, scoreBonus: 0, cdReduction: 0 };
   }
 
+  startOrContinue(): void {
+    if (this.running) return;
+
+    const title = document.getElementById('overlay-title')?.textContent;
+    if (title === 'CRISIS AVERTED') {
+      this.startEndlessMode();
+    } else {
+      this.start();
+    }
+  }
+
+  startEndlessMode(): void {
+    this.endless = true;
+    const overlay = document.getElementById('overlay');
+    if (overlay) overlay.classList.add('hidden');
+    this.running = true;
+    if (!this.sfx.ctx) this.sfx.init();
+    this.sfx.resume();
+    this.startWave(this.wave + 1);
+    this.lastFrame = performance.now();
+    requestAnimationFrame(this.loop.bind(this));
+  }
+
   start(): void {
     this.reset();
     this.running = true;
