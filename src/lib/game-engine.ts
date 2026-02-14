@@ -1,4 +1,3 @@
-/* eslint-disable */
 // Complete game logic extracted and converted to TypeScript
 import { SFX } from './audio';
 import { FEED, GAME_HEIGHT, GAME_WIDTH, POWERUPS, TYPES, WAVES } from './constants';
