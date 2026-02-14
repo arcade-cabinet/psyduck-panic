@@ -62,9 +62,12 @@ export class GameEngine {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    // In browsers, getContext('2d') always returns a valid context for HTMLCanvasElement
-    // Non-null assertion is safe here as we know the element supports 2D context
-    this.c = canvas.getContext('2d')!;
+    // Get 2D rendering context - required for canvas operations
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Unable to get 2D rendering context from canvas');
+    }
+    this.c = context;
     this.sfx = new SFX();
     this.stars = [];
     for (let i = 0; i < 80; i++) {
