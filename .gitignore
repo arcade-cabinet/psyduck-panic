@@ -1,3 +1,6 @@
+# Astro
+.astro/
+
 # Logs
 logs
 *.log
@@ -106,6 +109,14 @@ dist
 
 # Docusaurus cache and generated files
 .docusaurus
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Vitest
+coverage/
 
 # Serverless directories
 .serverless/
