@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { GAME_HEIGHT, GAME_WIDTH } from '../lib/constants';
 import { GameEngine } from '../lib/game-engine';
 import '../styles/game.css';
 
@@ -45,22 +46,7 @@ export default function Game() {
       else if (e.key === 'q' || e.key === 'Q') gameInstance.triggerNuke();
       else if (e.key === ' ') {
         e.preventDefault();
-        if (!gameInstance.running) {
-          const title = document.getElementById('overlay-title')?.textContent;
-          if (title === 'CRISIS AVERTED') {
-            gameInstance.endless = true;
-            const overlay = document.getElementById('overlay');
-            if (overlay) overlay.classList.add('hidden');
-            gameInstance.running = true;
-            if (!gameInstance.sfx.ctx) gameInstance.sfx.init();
-            gameInstance.sfx.resume();
-            gameInstance.startWave(gameInstance.wave + 1);
-            gameInstance.lastFrame = performance.now();
-            requestAnimationFrame(gameInstance.loop.bind(gameInstance));
-          } else {
-            gameInstance.start();
-          }
-        }
+        gameInstance.startOrContinue();
       }
     };
 
@@ -81,22 +67,7 @@ export default function Game() {
   }, []);
 
   const handleStart = () => {
-    const gameInstance = gameInstanceRef.current;
-    if (!gameInstance) return;
-    const title = document.getElementById('overlay-title')?.textContent;
-    if (title === 'CRISIS AVERTED') {
-      gameInstance.endless = true;
-      const overlay = document.getElementById('overlay');
-      if (overlay) overlay.classList.add('hidden');
-      gameInstance.running = true;
-      if (!gameInstance.sfx.ctx) gameInstance.sfx.init();
-      gameInstance.sfx.resume();
-      gameInstance.startWave(gameInstance.wave + 1);
-      gameInstance.lastFrame = performance.now();
-      requestAnimationFrame(gameInstance.loop.bind(gameInstance));
-    } else {
-      gameInstance.start();
-    }
+    gameInstanceRef.current?.startOrContinue();
   };
 
   const handleAbility = (type: 'reality' | 'history' | 'logic') => {
@@ -111,8 +82,8 @@ export default function Game() {
     const gameInstance = gameInstanceRef.current;
     if (!gameInstance || !gameInstance.running || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * GAME_WIDTH;
-    const y = ((e.clientY - rect.top) / rect.height) * GAME_HEIGHT;
+    const x = ((e.clientX - rect.left) / rect.width) * 800;
+    const y = ((e.clientY - rect.top) / rect.height) * 600;
     const enemy = gameInstance.findEnemyAt(x, y);
     if (enemy && !enemy.encrypted) {
       gameInstance.triggerAbility(enemy.type.counter);

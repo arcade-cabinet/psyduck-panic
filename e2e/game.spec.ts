@@ -1,6 +1,19 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Psyduck Panic Game', () => {
+  // Disable CSS animations/transitions for all tests
+  test.beforeEach(async ({ page }) => {
+    // Inject styles to disable animations
+    await page.addStyleTag({
+      content: `
+        *, *::before, *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      `,
+    });
+  });
+
   test('should load the game page', async ({ page }) => {
     await page.goto('/psyduck-panic/');
     await expect(page.locator('#game-container')).toBeVisible();
@@ -51,8 +64,22 @@ test.describe('Psyduck Panic Game', () => {
     const overlay = page.locator('#overlay');
     await expect(overlay).toBeVisible();
 
-    // Use force: true to click animating button
-    await page.locator('#start-btn').click({ force: true });
+    const startBtn = page.locator('#start-btn');
+    // Ensure button is visible and enabled
+    await expect(startBtn).toBeVisible();
+    await expect(startBtn).toBeEnabled();
+
+    // Evaluate to ensure animations are truly stopped or gone
+    await page.evaluate(() => {
+      const btn = document.querySelector('#start-btn');
+      if (btn instanceof HTMLElement) {
+        btn.style.animation = 'none';
+        btn.style.transition = 'none';
+      }
+    });
+
+    // Click without force
+    await startBtn.click();
 
     // Overlay should be hidden after starting
     await expect(overlay).toHaveClass(/hidden/);
@@ -60,9 +87,25 @@ test.describe('Psyduck Panic Game', () => {
 
   test('should respond to keyboard controls', async ({ page }) => {
     await page.goto('/psyduck-panic/');
-    await page.locator('#start-btn').click({ force: true });
-    await page.locator('#start-btn').click({ force: true });
-    // Wait for game to actually start (overlay hidden)
+    const startBtn = page.locator('#start-btn');
+
+    // Ensure button is visible and enabled
+    await expect(startBtn).toBeVisible();
+    await expect(startBtn).toBeEnabled();
+
+    // Force remove animations via JS just in case
+    await page.evaluate(() => {
+      const btn = document.querySelector('#start-btn');
+      if (btn instanceof HTMLElement) {
+        btn.style.animation = 'none';
+        btn.style.transition = 'none';
+      }
+    });
+
+    // Click without force
+    await startBtn.click();
+
+    // Wait for the overlay to be hidden (game started)
     await expect(page.locator('#overlay')).toHaveClass(/hidden/);
 
     // Press ability keys
