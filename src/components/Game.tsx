@@ -110,8 +110,8 @@ export default function Game() {
         <canvas
           ref={canvasRef}
           id="gameCanvas"
-          width="800"
-          height="600"
+          width={GAME_WIDTH}
+          height={GAME_HEIGHT}
           onPointerDown={handleCanvasPointerDown}
         ></canvas>
         <div id="wave-announce">
