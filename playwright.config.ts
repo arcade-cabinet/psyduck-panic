@@ -9,9 +9,9 @@ export default defineConfig({
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:4321/psyduck-panic',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    trace: 'on',
+    screenshot: 'on',
+    video: 'on',
   },
   projects: [
     {

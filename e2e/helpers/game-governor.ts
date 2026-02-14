@@ -104,14 +104,14 @@ export class GameGovernor {
       const nukeBtn = document.getElementById('btn-special');
 
       const panicWidth = panicBar?.style.width || '0%';
-      const panic = Number.parseFloat(panicWidth);
+      const panic = Number.parseFloat(panicWidth.replace('%', ''));
 
       const score = Number.parseInt(scoreDisplay?.textContent || '0', 10);
       const time = Number.parseInt(timeDisplay?.textContent || '0', 10);
 
       const nukeCd = nukeBtn?.querySelector('.cooldown-bar');
       const nukeCdWidth = (nukeCd as HTMLElement)?.style.width || '0%';
-      const nukeReady = Number.parseFloat(nukeCdWidth) === 0;
+      const nukeReady = Number.parseFloat(nukeCdWidth.replace('%', '')) === 0;
 
       return { panic, score, time, nukeReady };
     });

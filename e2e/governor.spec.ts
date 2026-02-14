@@ -36,10 +36,10 @@ test.describe('Automated Playthrough with Governor', () => {
     // Wait for playthrough to complete (with timeout)
     const result = await Promise.race([
       playthroughPromise,
-      new Promise<{ result: 'timeout'; score: 0 }>((resolve) =>
+      new Promise<{ result: 'win' | 'loss'; score: number }>((resolve) =>
         setTimeout(() => {
           governor.stop();
-          resolve({ result: 'timeout', score: 0 });
+          resolve({ result: 'loss', score: number });
         }, 60000) // 60 second timeout
       ),
     ]);
@@ -71,10 +71,10 @@ test.describe('Automated Playthrough with Governor', () => {
 
     const result = await Promise.race([
       playthroughPromise,
-      new Promise<{ result: 'timeout'; score: 0 }>((resolve) =>
+      new Promise<{ result: 'loss'; score: number }>((resolve) =>
         setTimeout(() => {
           governor.stop();
-          resolve({ result: 'timeout', score: 0 });
+          resolve({ result: 'loss', score: number });
         }, 60000)
       ),
     ]);
@@ -102,10 +102,10 @@ test.describe('Automated Playthrough with Governor', () => {
 
     const result = await Promise.race([
       playthroughPromise,
-      new Promise<{ result: 'timeout'; score: 0 }>((resolve) =>
+      new Promise<{ result: 'loss'; score: number }>((resolve) =>
         setTimeout(() => {
           governor.stop();
-          resolve({ result: 'timeout', score: 0 });
+          resolve({ result: 'loss', score: number });
         }, 60000)
       ),
     ]);
