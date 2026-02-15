@@ -1,15 +1,12 @@
-name: CI
+name: CI - Fast Quality Checks
 
 on:
-  push:
-    branches: [main, copilot/**]
   pull_request:
     branches: [main]
+  workflow_call: # Allow CD to call this workflow
 
 permissions:
   contents: read
-  pull-requests: write # For Jules action to comment
-  issues: write # For Jules action to create issues
 
 jobs:
   # Matrix job for parallel quality checks
@@ -52,11 +49,12 @@ jobs:
               ;;
           esac
 
-  # Simplified E2E: Only run on 3 core devices during PR (matrix for parallelization)
+  # Quick smoke test: Only 3 core devices for fast feedback on PRs
   e2e-smoke:
-    name: E2E - ${{ matrix.device }}
+    name: E2E Smoke - ${{ matrix.device }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    needs: [quality-checks]
     strategy:
       fail-fast: false
       matrix:
@@ -91,7 +89,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: playwright-${{ matrix.device }}-report
+          name: playwright-smoke-${{ matrix.device }}-report
           path: playwright-report/
           retention-days: 3
 
@@ -126,31 +124,4 @@ jobs:
           name: dist
           path: dist/
           retention-days: 1
-
-  # Jules Action: Auto-fix any CI failures
-  auto-fix-failures:
-    name: Auto-fix CI Failures
-    runs-on: ubuntu-latest
-    if: failure() && github.event_name == 'pull_request'
-    needs: [quality-checks, e2e-smoke, build]
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-    steps:
-      - uses: google-labs-code/jules-action@main
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          google-jules-api-key: ${{ secrets.GOOGLE_JULES_API_KEY }}
-          task: |
-            The CI pipeline has failed. Please analyze the failures and fix them:
-            
-            1. Check linting errors and apply auto-fixes
-            2. Fix TypeScript compilation errors
-            3. Fix failing unit tests
-            4. Fix failing E2E tests
-            5. Ensure the build succeeds
-            
-            Run all CI checks locally to verify fixes before committing.
-
 
