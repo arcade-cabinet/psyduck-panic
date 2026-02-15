@@ -426,7 +426,7 @@ canvas {
   }
 }
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /* Wave announce */
