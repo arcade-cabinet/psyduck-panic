@@ -96,6 +96,9 @@ canvas {
   justify-content: space-between;
   z-index: 60;
 }
+#ui-layer.hidden {
+  display: none;
+}
 
 .hud-top {
   display: flex;
@@ -363,6 +366,9 @@ canvas {
   text-align: center;
   z-index: 100;
   color: white;
+}
+#overlay.hidden {
+  display: none;
 }
 #overlay h1 {
   color: #f1c40f;
