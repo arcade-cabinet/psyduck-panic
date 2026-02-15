@@ -2,18 +2,6 @@ import { expect, test } from '@playwright/test';
 import { GameGovernor } from './helpers/game-governor';
 
 test.describe('Automated Playthrough with Governor', () => {
-  test.beforeEach(async ({ page }) => {
-    // Disable CSS animations for stable testing
-    await page.addStyleTag({
-      content: `
-        *, *::before, *::after {
-          animation: none !important;
-          transition: none !important;
-        }
-      `,
-    });
-  });
-
   test('should run automated playthrough with default settings', async ({ page }) => {
     await page.goto('/game');
 
