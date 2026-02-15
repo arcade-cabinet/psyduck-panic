@@ -265,3 +265,42 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+
+  # Collector job that waits for all CD checks to complete
+  # Ensures CI, E2E matrix, and deployment all succeeded
+  cd-success:
+    name: CD Success
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [ci, e2e-full-matrix, release-please, build-pages, deploy-pages]
+    steps:
+      - name: Check CD status
+        run: |
+          # Check if all required jobs succeeded
+          if [[ "${{ needs.ci.result }}" != "success" ]]; then
+            echo "❌ CI checks failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.e2e-full-matrix.result }}" != "success" ]]; then
+            echo "❌ E2E matrix tests failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.release-please.result }}" != "success" ]]; then
+            echo "❌ Release Please failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.build-pages.result }}" != "success" ]]; then
+            echo "❌ Build pages failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.deploy-pages.result }}" != "success" ]]; then
+            echo "❌ Deploy pages failed"
+            exit 1
+          fi
+          
+          echo "✅ All CD checks passed"
+

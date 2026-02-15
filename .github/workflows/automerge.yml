@@ -19,6 +19,45 @@ jobs:
     name: Automerge PR
     runs-on: ubuntu-latest
     steps:
+      # Wait for CI workflow to complete by checking for the ci-success job
+      - name: Wait for CI checks
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "⏳ Waiting for CI checks to complete..."
+          
+          # Wait up to 30 minutes for CI to complete
+          max_attempts=180
+          attempt=0
+          
+          while [ $attempt -lt $max_attempts ]; do
+            # Get all check runs for this commit
+            check_runs=$(gh api "/repos/$REPO/commits/$PR_SHA/check-runs" --jq '.check_runs')
+            
+            # Look for the ci-success check
+            ci_success=$(echo "$check_runs" | jq -r '.[] | select(.name == "CI Success") | .status')
+            ci_conclusion=$(echo "$check_runs" | jq -r '.[] | select(.name == "CI Success") | .conclusion')
+            
+            if [[ "$ci_success" == "completed" ]]; then
+              if [[ "$ci_conclusion" == "success" ]]; then
+                echo "✅ CI checks passed"
+                exit 0
+              else
+                echo "❌ CI checks failed with conclusion: $ci_conclusion"
+                exit 1
+              fi
+            fi
+            
+            echo "CI status: $ci_success (attempt $((attempt + 1))/$max_attempts)"
+            sleep 10
+            attempt=$((attempt + 1))
+          done
+          
+          echo "❌ Timeout waiting for CI checks"
+          exit 1
+      
       # Validate PR author using GitHub API (not forgeable context)
       - name: Validate PR Author
         id: validate-author
@@ -74,10 +113,6 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # Note: CI/CD checks are enforced via branch protection rules
-      # The automerge will only proceed once all required checks pass
-      # No explicit wait step needed as GitHub handles this automatically
-      
       # Auto-approve Dependabot patch/minor updates
       - name: Auto-approve Dependabot PR
         if: |

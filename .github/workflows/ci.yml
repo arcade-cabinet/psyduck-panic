@@ -157,3 +157,32 @@ jobs:
           path: dist/
           retention-days: 1
 
+  # Collector job that waits for all CI checks to complete
+  # Used by automerge workflow to ensure all checks pass before merging
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [quality-checks, e2e-smoke, build]
+    steps:
+      - name: Check CI status
+        run: |
+          # Check if all required jobs succeeded
+          if [[ "${{ needs.quality-checks.result }}" != "success" ]]; then
+            echo "❌ Quality checks failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+          
+          # E2E smoke tests can be skipped, so check for success or skipped
+          if [[ "${{ needs.e2e-smoke.result }}" != "success" && "${{ needs.e2e-smoke.result }}" != "skipped" ]]; then
+            echo "❌ E2E smoke tests failed"
+            exit 1
+          fi
+          
+          echo "✅ All CI checks passed"
+
