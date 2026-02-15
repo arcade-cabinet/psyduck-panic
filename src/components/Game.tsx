@@ -196,7 +196,7 @@ export default function Game() {
     const worker = new GameWorker();
     workerRef.current = worker;
 
-    worker.onmessage = (e) => {
+    worker.onmessage = (e: MessageEvent) => {
       const msg = e.data;
       if (msg.type === 'STATE') {
         const state = msg.state as GameState;
@@ -306,29 +306,32 @@ export default function Game() {
   const handleCanvasPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    
+
     // Convert viewport coordinates to game coordinates using responsive viewport
-    const x = ((e.clientX - rect.left - viewport.offsetX) / viewport.scale);
-    const y = ((e.clientY - rect.top - viewport.offsetY) / viewport.scale);
-    
+    const x = (e.clientX - rect.left - viewport.offsetX) / viewport.scale;
+    const y = (e.clientY - rect.top - viewport.offsetY) / viewport.scale;
+
     workerRef.current?.postMessage({ type: 'CLICK', x, y });
   };
 
   return (
     <div id="game-scaler" style={{ touchAction: 'none' }}>
-      <div id="game-container" style={{
-        width: `${viewport.width}px`,
-        height: `${viewport.height}px`,
-        position: 'relative',
-        margin: '0 auto',
-      }}>
+      <div
+        id="game-container"
+        style={{
+          width: `${viewport.width}px`,
+          height: `${viewport.height}px`,
+          position: 'relative',
+          margin: '0 auto',
+        }}
+      >
         <canvas
           ref={canvasRef}
           id="gameCanvas"
           width={GAME_WIDTH}
           height={GAME_HEIGHT}
           onPointerDown={handleCanvasPointerDown}
-          style={{ 
+          style={{
             touchAction: 'none',
             width: '100%',
             height: '100%',

@@ -1,13 +1,13 @@
 /* Landing Page Styles - Immersive Brand Experience */
 
-@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Space+Mono:wght@400;700&family=Bungee&family=VT323&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Righteous&family=Space+Mono:wght@400;700&family=Bungee&family=VT323&display=swap");
 
 :root {
-  --font-display: 'Righteous', sans-serif;
-  --font-body: 'Space Mono', monospace;
-  --font-accent: 'Bungee', sans-serif;
-  --font-mono: 'VT323', monospace;
-  
+  --font-display: "Righteous", sans-serif;
+  --font-body: "Space Mono", monospace;
+  --font-accent: "Bungee", sans-serif;
+  --font-mono: "VT323", monospace;
+
   --color-primary: #f1c40f;
   --color-secondary: #9b59b6;
   --color-accent: #00ffff;
@@ -48,7 +48,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     linear-gradient(rgba(241, 196, 15, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(241, 196, 15, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
@@ -75,26 +75,8 @@
 .bubble {
   position: absolute;
   font-size: 2rem;
-  animation: float linear infinite;
-  opacity: 0.3;
-  filter: blur(0.5px);
-}
-
-@keyframes float {
-  0% {
-    transform: translateY(100vh) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.3;
-  }
-  90% {
-    opacity: 0.3;
-  }
-  100% {
-    transform: translateY(-100px) rotate(360deg);
-    opacity: 0;
-  }
+  will-change: transform, opacity;
+  pointer-events: none;
 }
 
 /* Hero Section */
@@ -125,7 +107,7 @@
   font-size: clamp(3rem, 10vw, 8rem);
   font-weight: 900;
   color: var(--color-primary);
-  text-shadow: 
+  text-shadow:
     0 0 20px rgba(241, 196, 15, 0.5),
     4px 4px 0 rgba(231, 76, 60, 0.3),
     -4px -4px 0 rgba(52, 152, 219, 0.3);
@@ -135,7 +117,8 @@
 }
 
 @keyframes titlePulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -170,7 +153,8 @@
 }
 
 @keyframes glitch-1 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0);
   }
   20% {
@@ -188,7 +172,8 @@
 }
 
 @keyframes glitch-2 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0);
   }
   20% {
@@ -283,7 +268,7 @@
 
 .cta-button.primary {
   background: linear-gradient(135deg, var(--color-primary) 0%, #e67e22 100%);
-  box-shadow: 
+  box-shadow:
     0 10px 30px rgba(241, 196, 15, 0.3),
     0 0 20px rgba(241, 196, 15, 0.2);
 }
@@ -327,7 +312,8 @@
 }
 
 @keyframes iconPulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -341,12 +327,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   transition: left 0.5s ease;
 }
 
@@ -435,7 +416,8 @@
 }
 
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
   25% {
@@ -451,7 +433,8 @@
 }
 
 @keyframes glow {
-  0%, 100% {
+  0%,
+  100% {
     filter: drop-shadow(0 0 10px rgba(241, 196, 15, 0.5));
   }
   50% {
@@ -483,7 +466,8 @@
 }
 
 @keyframes panicPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -498,7 +482,8 @@
 }
 
 @keyframes arrowBounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
   50% {
@@ -534,12 +519,7 @@ section {
 
 /* Story Section */
 .story {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(26, 26, 46, 0.5) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg, transparent 0%, rgba(26, 26, 46, 0.5) 50%, transparent 100%);
 }
 
 .story-content {

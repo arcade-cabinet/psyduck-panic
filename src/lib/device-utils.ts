@@ -133,9 +133,9 @@ function detectFoldable(): boolean {
  */
 function detectFoldState(): 'folded' | 'unfolded' | 'tent' | 'book' {
   // Try to use Device Posture API if available
-  // @ts-ignore - experimental API
+  // @ts-ignore experimental API
   if ('devicePosture' in navigator) {
-    // @ts-ignore - experimental API
+    // @ts-ignore experimental API
     const posture = navigator.devicePosture.type;
     if (posture === 'folded') return 'folded';
     if (posture === 'continuous') return 'unfolded';
@@ -325,9 +325,9 @@ export function createResizeObserver(
   }
 
   // Foldable-specific events
-  // @ts-ignore - experimental API
+  // @ts-ignore experimental API
   if (window.screen?.orientation) {
-    // @ts-ignore - experimental API
+    // @ts-ignore experimental API
     window.screen.orientation.addEventListener('change', handleOrientationChange);
   }
 
@@ -344,9 +344,9 @@ export function createResizeObserver(
       window.visualViewport.removeEventListener('resize', handleResize);
     }
 
-    // @ts-ignore - experimental API
+    // @ts-ignore experimental API
     if (window.screen?.orientation) {
-      // @ts-ignore - experimental API
+      // @ts-ignore experimental API
       window.screen.orientation.removeEventListener('change', handleOrientationChange);
     }
   };

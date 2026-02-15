@@ -1,6 +1,6 @@
 /**
  * Device Responsive Tests
- * 
+ *
  * Tests game responsiveness across different device types and orientations.
  * Verifies viewport adaptation, character rendering, and touch controls.
  */
@@ -8,7 +8,7 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Responsive Device Tests', () => {
-  test('should render game canvas on all devices', async ({ page, browserName }) => {
+  test('should render game canvas on all devices', async ({ page }) => {
     await page.goto('/');
 
     // Wait for game container
@@ -22,8 +22,8 @@ test.describe('Responsive Device Tests', () => {
     // Get canvas dimensions
     const canvasBox = await canvas.boundingBox();
     expect(canvasBox).not.toBeNull();
-    expect(canvasBox!.width).toBeGreaterThan(0);
-    expect(canvasBox!.height).toBeGreaterThan(0);
+    expect(canvasBox?.width).toBeGreaterThan(0);
+    expect(canvasBox?.height).toBeGreaterThan(0);
 
     // Take screenshot for visual verification
     const deviceName = test.info().project.name.replace(/\s+/g, '-').toLowerCase();
@@ -43,7 +43,7 @@ test.describe('Responsive Device Tests', () => {
     expect(canvasBox).not.toBeNull();
 
     // Calculate aspect ratio (should be close to 4:3 = 1.333...)
-    const aspectRatio = canvasBox!.width / canvasBox!.height;
+    const aspectRatio = canvasBox?.width / canvasBox?.height;
 
     // Allow some tolerance for rounding
     expect(aspectRatio).toBeGreaterThan(1.2);
@@ -123,12 +123,7 @@ test.describe('Phone-Specific Tests', () => {
     await page.waitForTimeout(1000);
 
     // Check button sizes are adequate for touch (min 44x44 iOS, 48x48 Android)
-    const buttons = [
-      '#btn-reality',
-      '#btn-history',
-      '#btn-logic',
-      '#btn-special',
-    ];
+    const buttons = ['#btn-reality', '#btn-history', '#btn-logic', '#btn-special'];
 
     for (const selector of buttons) {
       const btn = page.locator(selector);
@@ -136,8 +131,8 @@ test.describe('Phone-Specific Tests', () => {
       expect(box).not.toBeNull();
 
       // Buttons should be at least 40px in both dimensions for touch
-      expect(box!.height).toBeGreaterThanOrEqual(40);
-      expect(box!.width).toBeGreaterThanOrEqual(40);
+      expect(box?.height).toBeGreaterThanOrEqual(40);
+      expect(box?.width).toBeGreaterThanOrEqual(40);
     }
   });
 
@@ -179,7 +174,7 @@ test.describe('Tablet-Specific Tests', () => {
     const canvasBox = await canvas.boundingBox();
 
     // On tablets, canvas should be larger than phone sizes
-    expect(canvasBox!.width).toBeGreaterThan(500);
+    expect(canvasBox?.width).toBeGreaterThan(500);
   });
 
   test('should show comfortable UI spacing on tablets', async ({ page, viewport }) => {
@@ -199,7 +194,7 @@ test.describe('Tablet-Specific Tests', () => {
 
     const controlsBox = await controls.boundingBox();
     expect(controlsBox).not.toBeNull();
-    expect(controlsBox!.width).toBeGreaterThan(300);
+    expect(controlsBox?.width).toBeGreaterThan(300);
   });
 });
 
@@ -219,7 +214,7 @@ test.describe('Foldable-Specific Tests', () => {
     expect(canvasBox).not.toBeNull();
 
     // Canvas should fit within narrow viewport
-    expect(canvasBox!.width).toBeLessThanOrEqual(viewport!.width);
+    expect(canvasBox?.width).toBeLessThanOrEqual(viewport?.width);
   });
 
   test('should utilize unfolded screen space', async ({ page, viewport }) => {
@@ -233,7 +228,7 @@ test.describe('Foldable-Specific Tests', () => {
     const canvasBox = await canvas.boundingBox();
 
     // Should use more of the unfolded screen
-    expect(canvasBox!.width).toBeGreaterThan(600);
+    expect(canvasBox?.width).toBeGreaterThan(600);
   });
 });
 
@@ -304,11 +299,11 @@ test.describe('Orientation Change Tests', () => {
       // Canvas should adapt
       const newBox = await canvas.boundingBox();
       expect(newBox).not.toBeNull();
-      expect(newBox!.width).toBeGreaterThan(0);
-      expect(newBox!.height).toBeGreaterThan(0);
+      expect(newBox?.width).toBeGreaterThan(0);
+      expect(newBox?.height).toBeGreaterThan(0);
 
       // Aspect ratio should still be maintained
-      const aspectRatio = newBox!.width / newBox!.height;
+      const aspectRatio = newBox?.width / newBox?.height;
       expect(aspectRatio).toBeGreaterThan(1.2);
       expect(aspectRatio).toBeLessThan(1.5);
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { initializePlatform } from './lib/capacitor-device';
 import Game from './components/Game';
 import Landing from './components/Landing';
+import { initializePlatform } from './lib/capacitor-device';
 
 function App() {
   const [platformReady, setPlatformReady] = useState(false);
@@ -23,16 +23,18 @@ function App() {
 
   if (!platformReady) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        background: '#0a0a18',
-        color: '#f1c40f',
-        fontFamily: "'Space Mono', monospace",
-        fontSize: '1.5rem',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          background: '#0a0a18',
+          color: '#f1c40f',
+          fontFamily: "'Space Mono', monospace",
+          fontSize: '1.5rem',
+        }}
+      >
         Loading...
       </div>
     );

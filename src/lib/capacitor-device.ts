@@ -383,7 +383,7 @@ export function addOrientationListener(
   }
 
   // Native orientation listener
-  let listenerHandle: any = null;
+  let listenerHandle: { remove: () => void } | null = null;
 
   ScreenOrientation.addListener('screenOrientationChange', (result) => {
     const orientation = result.type.includes('portrait') ? 'portrait' : 'landscape';

@@ -1,31 +1,70 @@
+import anime from 'animejs';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/landing.css';
 
 export default function Landing() {
   const navigate = useNavigate();
+  const bubblesRef = useRef<HTMLDivElement>(null);
 
   const startGame = () => {
     navigate('/game');
   };
 
+  // Animate bubbles with anime.js
+  useEffect(() => {
+    if (!bubblesRef.current) return;
+
+    const bubbles = bubblesRef.current.querySelectorAll('.bubble');
+
+    // Animate each bubble independently
+    bubbles.forEach((bubble, index) => {
+      // Random initial position
+      anime.set(bubble, {
+        left: `${Math.random() * 100}%`,
+        bottom: '-5%',
+        opacity: 0,
+      });
+
+      // Create floating animation with anime.js
+      anime({
+        targets: bubble,
+        translateY: [{ value: -window.innerHeight - 100, duration: 15000 + Math.random() * 10000 }],
+        translateX: [
+          { value: () => (Math.random() - 0.5) * 200, duration: 3000, easing: 'easeInOutQuad' },
+          { value: () => (Math.random() - 0.5) * 200, duration: 3000, easing: 'easeInOutQuad' },
+          { value: () => (Math.random() - 0.5) * 200, duration: 3000, easing: 'easeInOutQuad' },
+        ],
+        rotate: [{ value: 360, duration: 8000 + Math.random() * 4000 }],
+        opacity: [
+          { value: 0.4, duration: 1000, easing: 'easeInQuad' },
+          { value: 0.4, duration: 12000 },
+          { value: 0, duration: 2000, easing: 'easeOutQuad' },
+        ],
+        scale: [
+          { value: 1, duration: 0 },
+          { value: 1.2, duration: 7000, easing: 'easeInOutSine' },
+          { value: 0.8, duration: 7000, easing: 'easeInOutSine' },
+        ],
+        loop: true,
+        delay: index * 800 + Math.random() * 2000,
+        easing: 'linear',
+      });
+    });
+  }, []);
+
   return (
     <div className="landing-container">
       {/* Animated Background */}
       <div className="animated-bg">
-        <div className="floating-bubbles">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div 
-              key={i}
-              className="bubble" 
-              style={{
-                left: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${15 + Math.random() * 10}s`,
-              }}
-            >
-              {['🦠', '📈', '🤖', '💭', '⚡'][Math.floor(Math.random() * 5)]}
-            </div>
-          ))}
+        <div className="floating-bubbles" ref={bubblesRef}>
+          {Array.from({ length: 20 }, (_, i) => `bubble-${Date.now()}-${i}-${Math.random()}`).map(
+            (id) => (
+              <div key={id} className="bubble">
+                {['🦠', '📈', '🤖', '💭', '⚡'][Math.floor(Math.random() * 5)]}
+              </div>
+            )
+          )}
         </div>
         <div className="grid-overlay"></div>
       </div>
@@ -39,19 +78,20 @@ export default function Landing() {
             </h1>
             <div className="subtitle-wrapper">
               <p className="subtitle">EVOLUTION DELUXE</p>
-              <div className="version-tag">v1.0 // NOW PLAYING</div>
+              <div className="version-tag">v1.0 {'//'} NOW PLAYING</div>
             </div>
           </div>
 
           <div className="tagline">
             <p className="tagline-text">
-              <span className="accent">Counter AI hype</span> thought bubbles before your brother's brain
+              <span className="accent">Counter AI hype</span> thought bubbles before your brother's
+              brain
               <span className="highlight"> transforms into Psyduck</span>
             </p>
           </div>
 
           <div className="cta-container">
-            <button onClick={startGame} className="cta-button primary">
+            <button type="button" onClick={startGame} className="cta-button primary">
               <span className="button-inner">
                 <span className="button-icon">🎮</span>
                 <span className="button-text">START GAME</span>
@@ -115,13 +155,13 @@ export default function Landing() {
           <h2 className="section-title">THE CRISIS</h2>
           <div className="section-subtitle">A Tale of Tech Hype Gone Wrong</div>
         </div>
-        
+
         <div className="story-content">
           <div className="story-card">
             <div className="card-icon">🌐</div>
             <h3>The Setup</h3>
             <p>
-              Your brother is doom-scrolling tech Twitter. Every post is more hyped than the last. 
+              Your brother is doom-scrolling tech Twitter. Every post is more hyped than the last.
               "AGI next week!" "This changes everything!" "We're all gonna make it!"
             </p>
           </div>
@@ -130,8 +170,8 @@ export default function Landing() {
             <div className="card-icon">🧠</div>
             <h3>The Problem</h3>
             <p>
-              His brain can't handle it. The panic meter rises. Reality distorts. 
-              Logic crumbles. He's transforming... into a Psyduck.
+              His brain can't handle it. The panic meter rises. Reality distorts. Logic crumbles.
+              He's transforming... into a Psyduck.
             </p>
           </div>
 
@@ -139,9 +179,8 @@ export default function Landing() {
             <div className="card-icon">⚔️</div>
             <h3>Your Mission</h3>
             <p>
-              Counter the AI hype thought bubbles before it's too late. 
-              Use REALITY, HISTORY, and LOGIC to restore sanity. Fight the Hype Train. 
-              Face The Singularity itself.
+              Counter the AI hype thought bubbles before it's too late. Use REALITY, HISTORY, and
+              LOGIC to restore sanity. Fight the Hype Train. Face The Singularity itself.
             </p>
           </div>
         </div>
@@ -158,7 +197,9 @@ export default function Landing() {
           <div className="feature-card">
             <div className="feature-icon">🎮</div>
             <h3>Arcade Action</h3>
-            <p>Fast-paced gameplay with increasing difficulty. Master the three counter abilities.</p>
+            <p>
+              Fast-paced gameplay with increasing difficulty. Master the three counter abilities.
+            </p>
           </div>
 
           <div className="feature-card">
@@ -233,7 +274,7 @@ export default function Landing() {
         <div className="cta-content">
           <h2 className="cta-title">Ready to Save Your Brother?</h2>
           <p className="cta-text">The panic meter is rising. Every second counts.</p>
-          <button onClick={startGame} className="cta-button mega">
+          <button type="button" onClick={startGame} className="cta-button mega">
             <span className="button-inner">
               <span className="button-icon pulse">🎮</span>
               <span className="button-text">PLAY NOW</span>
@@ -252,7 +293,13 @@ export default function Landing() {
             <p>Evolution Deluxe Edition</p>
           </div>
           <div className="footer-links">
-            <a href="https://github.com/arcade-cabinet/psyduck-panic" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a
+              href="https://github.com/arcade-cabinet/psyduck-panic"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub
+            </a>
             <a href="#story">About</a>
           </div>
           <div className="footer-credits">
