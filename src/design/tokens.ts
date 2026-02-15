@@ -118,31 +118,34 @@ export const colors = {
 // =============================================================================
 
 export const typography = {
-  // Font Families
+  // Font Families - Vision-aligned for Psyduck Panic
   fonts: {
-    primary: '"Press Start 2P", cursive',
-    fallback: 'monospace',
-    emoji: 'Arial', // For emoji rendering
+    display: '"Righteous", sans-serif', // Bold, playful headers - perfect for Psyduck
+    body: '"Space Mono", monospace', // Readable, tech aesthetic for gameplay
+    accent: '"Bungee", sans-serif', // Extra punch for special elements
+    mono: '"VT323", monospace', // Terminal/retro for stats and technical info
   },
 
   // Font Sizes
   sizes: {
-    tiny: '5px',
-    xxs: '6px',
-    xs: '7px',
-    sm: '8px',
-    base: '9px',
-    md: '10px',
-    lg: '13px',
-    xl: '22px',
-    xxl: '26px',
-    '3xl': '28px',
-    '4xl': '48px',
+    tiny: '10px',
+    xxs: '12px',
+    xs: '14px',
+    sm: '16px',
+    base: '18px',
+    md: '20px',
+    lg: '24px',
+    xl: '32px',
+    xxl: '40px',
+    '3xl': '48px',
+    '4xl': '64px',
+    '5xl': '80px',
+    '6xl': '96px',
     icon: {
-      sm: '16px',
-      md: '24px',
-      lg: '32px',
-      xl: '48px',
+      sm: '24px',
+      md: '32px',
+      lg: '48px',
+      xl: '64px',
     },
   },
 
