@@ -1,5 +1,9 @@
 name: Auto-Fix CI Failures
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   workflow_run:
     workflows: ["CI", "CD"]
