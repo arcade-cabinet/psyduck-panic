@@ -50,10 +50,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:coverage
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: failure()
+        if: always()
         with:
-          name: unit-test-reports
-          path: coverage/
+          name: coverage-reports
+          path: |
+            coverage/
+            test-results/
           retention-days: 7
 
   build:
@@ -78,10 +80,21 @@ jobs:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    needs: [unit]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+      - name: Download coverage reports
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: coverage-reports
+      - name: List coverage files
+        run: |
+          echo "Coverage directory contents:"
+          ls -la coverage/ || echo "coverage directory not found"
+          echo "Test results directory contents:"
+          ls -la test-results/ || echo "test-results directory not found"
       - name: SonarCloud Scan
         uses: sonarsource/sonarqube-scan-action@884b79409bbd464b2a59edc326a4b77dc56b2195 # v3.0.0
         env:
