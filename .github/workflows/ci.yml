@@ -127,7 +127,16 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium webkit firefox
       - name: Run E2E comprehensive tests
-        run: pnpm exec playwright test --project="${{ matrix.project }}" --workers=1
+        run: pnpm exec playwright test --project="${{ matrix.project }}" --workers=1 --reporter=junit,line
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: junit-${{ matrix.project }}.xml
+      - name: Upload JUnit test results
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: e2e-comprehensive-junit-${{ matrix.project }}
+          path: junit-${{ matrix.project }}.xml
+          retention-days: 7
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: failure()
         with:
@@ -135,12 +144,52 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  e2e-comprehensive-collector:
+    name: E2E Comprehensive - Collector
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [e2e-comprehensive]
+    steps:
+      - name: Download all JUnit artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: e2e-comprehensive-junit-*
+          path: junit-results/
+          merge-multiple: true
+      - name: Combine JUnit reports
+        run: |
+          mkdir -p combined-junit
+          if [ -d "junit-results" ] && [ "$(ls -A junit-results/*.xml 2>/dev/null)" ]; then
+            cat junit-results/*.xml > combined-junit/junit-combined.xml
+            echo "✅ Combined JUnit reports successfully"
+            echo "Reports found:"
+            ls -la junit-results/
+          else
+            echo "⚠️ No JUnit reports found to combine"
+          fi
+      - name: Upload combined JUnit results
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: e2e-comprehensive-junit-combined
+          path: combined-junit/
+          retention-days: 7
+      - name: Check E2E comprehensive results
+        run: |
+          echo "E2E Comprehensive Test Results:"
+          echo "Desktop Chrome: ${{ needs.e2e-comprehensive.result }}"
+          if [[ "${{ needs.e2e-comprehensive.result }}" == "failure" ]]; then
+            echo "❌ E2E comprehensive tests failed"
+            exit 1
+          fi
+          echo "✅ All E2E comprehensive tests passed"
+
   # Collector job that ensures all checks pass
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, typecheck, unit, build, e2e-smoke, e2e-comprehensive]
+    needs: [lint, typecheck, unit, build, e2e-smoke, e2e-comprehensive-collector]
     steps:
       - name: Check CI status
         run: |
@@ -165,7 +214,7 @@ jobs:
             echo "❌ E2E smoke tests failed"
             exit 1
           fi
-          if [[ "${{ needs.e2e-comprehensive.result }}" != "success" && "${{ needs.e2e-comprehensive.result }}" != "skipped" ]]; then
+          if [[ "${{ needs.e2e-comprehensive-collector.result }}" != "success" && "${{ needs.e2e-comprehensive-collector.result }}" != "skipped" ]]; then
             echo "❌ E2E comprehensive tests failed"
             exit 1
           fi
