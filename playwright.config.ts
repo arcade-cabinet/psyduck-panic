@@ -162,7 +162,7 @@ export default defineConfig({
     {
       name: 'Samsung Galaxy Fold Unfolded Portrait',
       use: {
-        viewport: { width: 717, height: 512 },
+        viewport: { width: 512, height: 717 },
         userAgent:
           'Mozilla/5.0 (Linux; Android 11; SM-F916U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36',
         deviceScaleFactor: 3,
@@ -174,7 +174,7 @@ export default defineConfig({
     {
       name: 'Samsung Galaxy Fold Unfolded Landscape',
       use: {
-        viewport: { width: 512, height: 717 },
+        viewport: { width: 717, height: 512 },
         userAgent:
           'Mozilla/5.0 (Linux; Android 11; SM-F916U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36',
         deviceScaleFactor: 3,
