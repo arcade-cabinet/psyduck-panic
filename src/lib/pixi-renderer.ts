@@ -277,7 +277,8 @@ export class PixiRenderer {
       if (!bossText) {
         bossText = new Text({ text: '👾', style: { fontSize: 48, fill: '#e74c3c' } });
         bossText.label = 'bossText';
-        (bossText as any).name = 'bossText';
+        // Set name property for identification
+        Object.assign(bossText, { name: 'bossText' });
         bossText.anchor.set(0.5);
         this.gameContainer.addChild(bossText);
       }

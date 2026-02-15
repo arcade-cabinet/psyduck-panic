@@ -16,13 +16,13 @@ test.describe('Automated Playthrough with Governor', () => {
 
   test('should run automated playthrough with default settings', async ({ page }) => {
     await page.goto('/psyduck-panic/');
-    
+
     // Take screenshot before starting
     await page.screenshot({ path: 'test-results/screenshots/governor-01-start.png' });
 
     // Create governor with default settings
     const governor = new GameGovernor(page);
-    
+
     // Start automated playthrough (non-blocking)
     const playthroughPromise = governor.playthrough();
 
@@ -36,11 +36,12 @@ test.describe('Automated Playthrough with Governor', () => {
     // Wait for playthrough to complete (with timeout)
     const result = await Promise.race([
       playthroughPromise,
-      new Promise<{ result: 'win' | 'loss'; score: number }>((resolve) =>
-        setTimeout(() => {
-          governor.stop();
-          resolve({ result: 'loss', score: number });
-        }, 60000) // 60 second timeout
+      new Promise<{ result: 'win' | 'loss'; score: number }>(
+        (resolve) =>
+          setTimeout(() => {
+            governor.stop();
+            resolve({ result: 'loss', score: number });
+          }, 60000) // 60 second timeout
       ),
     ]);
 
@@ -120,11 +121,11 @@ test.describe('Automated Playthrough with Governor', () => {
     await page.goto('/psyduck-panic/');
 
     const governor = new GameGovernor(page);
-    
+
     // Start gameplay
     const startBtn = page.locator('#start-btn');
     await startBtn.click();
-    
+
     await page.waitForTimeout(2000);
 
     // Verify overlay is hidden
@@ -133,26 +134,26 @@ test.describe('Automated Playthrough with Governor', () => {
 
     // Let governor play for a bit
     await governor.start();
-    
+
     await page.waitForTimeout(5000);
 
     // Verify game is still running
     await expect(overlay).toHaveClass(/hidden/);
     await expect(page.locator('#ui-layer')).not.toHaveClass(/hidden/);
-    
+
     // Verify HUD elements are updating
     const timeDisplay = page.locator('#time-display');
     const time1 = await timeDisplay.textContent();
-    
+
     await page.waitForTimeout(2000);
-    
+
     const time2 = await timeDisplay.textContent();
-    
+
     // Time should be changing (decreasing)
     expect(time1).not.toBe(time2);
 
     governor.stop();
-    
+
     await page.screenshot({ path: 'test-results/screenshots/governor-verify-running.png' });
   });
 });
