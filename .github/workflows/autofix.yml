@@ -1,0 +1,38 @@
+name: Auto-Fix Workflow Failures
+
+on:
+  workflow_run:
+    workflows: ["CI", "Deploy", "Release Please"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  fix-failure:
+    name: Auto-Fix Workflow Failure
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+      - name: Invoke Jules for Auto-Fix
+        uses: google-labs-code/jules-action@bff7875eaa123cac6742b7cfc51005b95ba4d566 # v1.0.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          google-jules-api-key: ${{ secrets.GOOGLE_JULES_API_KEY }}
+          task: |
+            The "${{ github.event.workflow_run.name }}" workflow failed on branch ${{ github.event.workflow_run.head_branch }}.
+            
+            Analyze the failure and apply minimal fixes:
+            1. Review job logs, test reports, and artifacts
+            2. Identify root causes (lint errors, type issues, test failures, build errors, deployment issues)
+            3. Apply targeted fixes to code, configs, dependencies, or workflow files
+            4. Verify fixes work by running checks locally
+            5. Create a PR with changes only if fixes succeed
+            
+            Focus on automated fixes that don't require human judgment.
+            Be thorough in analyzing all failed jobs and their logs.
