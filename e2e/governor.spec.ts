@@ -123,8 +123,8 @@ test.describe('Automated Playthrough with Governor', () => {
     const overlay = page.locator('#overlay');
     await expect(overlay).toHaveClass(/hidden/);
 
-    // Let governor play for a bit
-    await governor.start();
+    // Let governor play for a bit (don't await - it runs until stopped)
+    governor.start();
 
     await page.waitForTimeout(5000);
 
