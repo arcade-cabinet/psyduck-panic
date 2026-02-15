@@ -295,15 +295,22 @@ export function createResizeObserver(
   callback: (viewport: ViewportDimensions, deviceInfo: DeviceInfo) => void
 ): () => void {
   let resizeTimeout: number;
+import { GAME_WIDTH, GAME_HEIGHT } from './constants';
 
+export function createResizeObserver(
+  callback: (viewport: ViewportDimensions, deviceInfo: DeviceInfo) => void
+): () => void {
+  // ...existing code...
+  
   const handleResize = () => {
     // Debounce rapid resize events
     clearTimeout(resizeTimeout);
     resizeTimeout = window.setTimeout(() => {
       const deviceInfo = detectDevice();
-      const viewport = calculateViewport(800, 600, deviceInfo);
+      const viewport = calculateViewport(GAME_WIDTH, GAME_HEIGHT, deviceInfo);
       callback(viewport, deviceInfo);
     }, 150);
+  // ...rest of function...
   };
 
   const handleOrientationChange = () => {
