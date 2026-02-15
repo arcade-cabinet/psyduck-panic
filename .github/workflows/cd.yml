@@ -1,4 +1,4 @@
-name: CD - Deploy to GitHub Pages
+name: CD - Continuous Deployment
 
 on:
   push:
@@ -6,12 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   pages: write
   id-token: write
 
 concurrency:
-  group: 'pages'
+  group: 'cd-${{ github.ref }}'
   cancel-in-progress: true
 
 jobs:
@@ -87,10 +88,34 @@ jobs:
       - name: Run Vitest
         run: pnpm test:coverage
 
-  build:
+  # Release Please - Creates release PRs based on conventional commits
+  release-please:
+    name: Create Release PR
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test]
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@7987652d64b4581673a76e33ad5e98e3dd56832f # v4.1.3
+        id: release
+        with:
+          release-type: node
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Build and deploy to GitHub Pages
+  build-pages:
     name: Build for GitHub Pages
     runs-on: ubuntu-latest
     needs: [lint, typecheck, test]
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -112,22 +137,22 @@ jobs:
       
       - name: Build Vite project
         run: pnpm build
-        env:
-          # Set base path for GitHub Pages if needed
-          # BASE_URL: /${{ github.event.repository.name }}/
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: './dist'
 
-  deploy:
+  deploy-pages:
     name: Deploy to GitHub Pages
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-pages
+    permissions:
+      pages: write
+      id-token: write
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

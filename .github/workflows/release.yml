@@ -1,38 +1,41 @@
-name: Release
+name: Release - Build Android APKs
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build'
+        required: true
+        type: string
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
-  release-please:
+  prepare-android:
     runs-on: ubuntu-latest
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-      version: ${{ steps.release.outputs.version }}
-    steps:
-      - uses: googleapis/release-please-action@7987652d64b4581673a76e33ad5e98e3dd56832f # v4.1.3
-        id: release
-        with:
-          release-type: node
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-  prepare-android:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
-    runs-on: ubuntu-latest
+      version: ${{ steps.get-version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+
+      - name: Get version from tag
+        id: get-version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ inputs.tag }}"
+          else
+            VERSION="${{ github.event.release.tag_name }}"
+          fi
+          # Remove 'v' prefix if present
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
 
       - name: Setup Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
@@ -76,11 +79,9 @@ jobs:
       - name: Check for Release Signing Configuration
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "HAS_SIGNING=true" >> $GITHUB_ENV
             echo "SIGNING_TYPE=provided" >> $GITHUB_ENV
             echo "✅ Release signing secrets detected"
           else
-            echo "HAS_SIGNING=true" >> $GITHUB_ENV
             echo "SIGNING_TYPE=generated" >> $GITHUB_ENV
             echo "⚠️  No signing secrets configured - generating throwaway keystore"
             echo "ℹ️  This is suitable for testing only, not production releases"
@@ -90,7 +91,6 @@ jobs:
       - name: Generate Throwaway Keystore
         if: env.SIGNING_TYPE == 'generated'
         run: |
-          # Generate a throwaway keystore for testing
           keytool -genkey -v \
             -keystore android/app/release.keystore \
             -alias psyduck-panic-test \
@@ -101,7 +101,6 @@ jobs:
             -keypass android \
             -dname "CN=Test, OU=Test, O=Test, L=Test, S=Test, C=US"
           
-          # Create gradle.properties with throwaway credentials
           cat > android/gradle.properties << EOF
           android.useAndroidX=true
           android.enableJetifier=true
@@ -116,10 +115,8 @@ jobs:
       - name: Configure Release Signing
         if: env.SIGNING_TYPE == 'provided'
         run: |
-          # Decode and save provided keystore
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
           
-          # Create gradle.properties with signing config
           cat > android/gradle.properties << EOF
           android.useAndroidX=true
           android.enableJetifier=true
@@ -133,7 +130,6 @@ jobs:
 
       - name: Configure Gradle Signing
         run: |
-          # Update app/build.gradle to add signing config if not present
           if ! grep -q "signingConfigs" android/app/build.gradle; then
             sed -i '/android {/a\    signingConfigs {\n        release {\n            storeFile file(RELEASE_STORE_FILE)\n            storePassword RELEASE_STORE_PASSWORD\n            keyAlias RELEASE_KEY_ALIAS\n            keyPassword RELEASE_KEY_PASSWORD\n        }\n    }' android/app/build.gradle
             
@@ -149,11 +145,10 @@ jobs:
             android
             dist
             node_modules
-          key: android-build-${{ github.sha }}-${{ needs.release-please.outputs.version }}
+          key: android-build-${{ github.sha }}-${{ steps.get-version.outputs.version }}
 
   build-android-apks:
-    needs: [release-please, prepare-android]
-    if: ${{ needs.release-please.outputs.release_created }}
+    needs: prepare-android
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -175,12 +170,11 @@ jobs:
             android
             dist
             node_modules
-          key: android-build-${{ github.sha }}-${{ needs.release-please.outputs.version }}
+          key: android-build-${{ github.sha }}-${{ needs.prepare-android.outputs.version }}
           fail-on-cache-miss: true
 
       - name: Configure Android build for ${{ matrix.arch }}
         run: |
-          # Update build.gradle to target specific architecture
           sed -i "s/abiFilters.*/abiFilters '${{ matrix.arch }}'/" android/app/build.gradle || true
 
       - name: Build Android APK (${{ matrix.arch }})
@@ -193,12 +187,12 @@ jobs:
         run: |
           mkdir -p dist-android
           cp android/app/build/outputs/apk/release/app-release.apk \
-             dist-android/psyduck-panic-${{ needs.release-please.outputs.version }}-${{ matrix.arch }}.apk
+             dist-android/psyduck-panic-${{ needs.prepare-android.outputs.version }}-${{ matrix.arch }}.apk
 
       - name: Upload APK to Release
         uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # v2.2.0
         with:
-          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          tag_name: ${{ github.event.release.tag_name || inputs.tag }}
           files: dist-android/*.apk
           draft: false
           prerelease: false
@@ -206,8 +200,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-universal-apk:
-    needs: [release-please, prepare-android]
-    if: ${{ needs.release-please.outputs.release_created }}
+    needs: prepare-android
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -226,7 +219,7 @@ jobs:
             android
             dist
             node_modules
-          key: android-build-${{ github.sha }}-${{ needs.release-please.outputs.version }}
+          key: android-build-${{ github.sha }}-${{ needs.prepare-android.outputs.version }}
           fail-on-cache-miss: true
 
       - name: Build Universal Android APK
@@ -239,12 +232,12 @@ jobs:
         run: |
           mkdir -p dist-android
           cp android/app/build/outputs/apk/release/app-release.apk \
-             dist-android/psyduck-panic-${{ needs.release-please.outputs.version }}-universal.apk
+             dist-android/psyduck-panic-${{ needs.prepare-android.outputs.version }}-universal.apk
 
       - name: Upload Universal APK to Release
         uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # v2.2.0
         with:
-          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          tag_name: ${{ github.event.release.tag_name || inputs.tag }}
           files: dist-android/*.apk
           draft: false
           prerelease: false
