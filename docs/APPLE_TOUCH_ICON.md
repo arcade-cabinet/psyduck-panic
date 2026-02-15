@@ -1,37 +1,48 @@
-# Apple Touch Icon Generation
+# Apple Touch Icon
 
-The `apple-touch-icon.png` file needs to be generated from the SVG icon.
+The `apple-touch-icon.png` is automatically generated from `icon.svg` using the Sharp library.
 
-## Manual Generation
+## Automatic Generation
 
-If you have ImageMagick installed:
+The icon is generated automatically before each build:
+
+```bash
+pnpm build  # Runs prebuild hook which generates icons
+```
+
+Or generate manually:
+
+```bash
+pnpm generate:icons
+```
+
+## Manual Generation (if needed)
+
+If Sharp isn't available, you can generate manually:
+
+### Using ImageMagick
 
 ```bash
 convert -background none -resize 180x180 public/icon.svg public/apple-touch-icon.png
 ```
 
-## Alternative Methods
+### Using Inkscape
 
-1. **Using an online converter**:
-   - Visit https://cloudconvert.com/svg-to-png
-   - Upload `public/icon.svg`
-   - Set size to 180x180
-   - Download as `apple-touch-icon.png`
+```bash
+inkscape public/icon.svg --export-png=public/apple-touch-icon.png --export-width=180 --export-height=180
+```
 
-2. **Using Inkscape** (if installed):
-   ```bash
-   inkscape public/icon.svg --export-png=public/apple-touch-icon.png --export-width=180 --export-height=180
-   ```
+### Using Online Tools
 
-3. **Using Node.js** (with sharp package):
-   ```bash
-   npm install sharp
-   node -e "require('sharp')('public/icon.svg').resize(180, 180).png().toFile('public/apple-touch-icon.png')"
-   ```
+Visit https://cloudconvert.com/svg-to-png and convert at 180x180px.
 
-## Verification
+## Icon Design
 
-After generation, verify the file:
-- Size: 180x180 pixels
-- Format: PNG
-- Location: `public/apple-touch-icon.png`
+The icon features:
+- **Brand Colors**: Yellow (#ffcc00) for Psyduck, dark background (#0a0a18)
+- **Character**: Simplified Psyduck with panic/confusion expression
+- **Thought Bubble**: Question mark representing AI hype confusion  
+- **Stress Marks**: Red lines showing panic state
+- **Retro Border**: Pixel-style rounded rectangle for gaming aesthetic
+
+The design aligns with the game's branding: retro gaming + Psyduck + AI panic theme.
