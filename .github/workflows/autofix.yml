@@ -56,7 +56,7 @@ jobs:
 
       - name: Save last commit content
         run: |
-          echo -e '\n\nContent of the latest commit (in the format of `git show`):'  >> prompt.txt
+          printf '\n\nContent of the latest commit (in the format of `git show`):\n' >> prompt.txt
           echo '```' >> prompt.txt
           git show   >> prompt.txt
           echo '```' >> prompt.txt
@@ -77,7 +77,7 @@ jobs:
 
       - name: Invoke Jules API
         run: |
-          curl 'https://jules.googleapis.com/v1alpha/sessions' \
+          curl -f 'https://jules.googleapis.com/v1alpha/sessions' \
             -X POST \
             -H "Content-Type: application/json" \
             -H "X-Goog-Api-Key: ${{ secrets.GOOGLE_JULES_API_KEY }}" \
