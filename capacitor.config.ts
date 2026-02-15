@@ -35,7 +35,9 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
     captureInput: true,
-    webContentsDebuggingEnabled: false,
+    // Enable WebView debugging for non-production builds
+    // To enable for local debugging, set NODE_ENV=development or CAPACITOR_DEBUG=true
+    webContentsDebuggingEnabled: process.env.NODE_ENV === 'development' || process.env.CAPACITOR_DEBUG === 'true',
   },
 };
 

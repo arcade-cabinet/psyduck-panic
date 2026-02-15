@@ -1,5 +1,4 @@
 {
-  "bootstrap-sha": "c2ac20b5d8f8e8e8e8e8e8e8e8e8e8e8e8e8e8e8",
   "release-type": "node",
   "packages": {
     ".": {
@@ -12,11 +11,6 @@
       "extra-files": ["package.json", "package-lock.json"]
     }
   },
-  "plugins": [
-    {
-      "type": "node-workspace"
-    }
-  ],
   "release-search-depth": 5,
   "draft": false,
   "prerelease": false,
