@@ -290,7 +290,6 @@ test.describe('Orientation Change Tests', () => {
 
     // Get initial canvas size
     const canvas = page.locator('#gameCanvas');
-    const initialBox = await canvas.boundingBox();
 
     // Resize viewport (simulating orientation change)
     const initialViewport = page.viewportSize();
