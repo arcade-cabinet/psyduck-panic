@@ -409,8 +409,14 @@ canvas {
     0 6px 0 #7b241c,
     0 0 30px rgba(231, 76, 60, 0.3);
   transition: all 0.1s;
-  animation: pulse 1.5s infinite;
   border-radius: 4px;
+}
+
+/* Only animate when user hasn't requested reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  .start-btn {
+    animation: pulse 1.5s infinite;
+  }
 }
 .start-btn:active {
   transform: translateY(6px);
