@@ -160,7 +160,13 @@ jobs:
         run: |
           mkdir -p combined-junit
           if [ -d "junit-results" ] && [ "$(ls -A junit-results/*.xml 2>/dev/null)" ]; then
-            cat junit-results/*.xml > combined-junit/junit-combined.xml
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > combined-junit/junit-combined.xml
+            echo '<testsuites>' >> combined-junit/junit-combined.xml
+            for file in junit-results/*.xml; do
+              # Extract testsuite elements (skip XML declaration and testsuites wrapper)
+              sed -n '/<testsuite/,/<\/testsuite>/p' "$file" >> combined-junit/junit-combined.xml
+            done
+            echo '</testsuites>' >> combined-junit/junit-combined.xml
             echo "✅ Combined JUnit reports successfully"
             echo "Reports found:"
             ls -la junit-results/
@@ -177,12 +183,19 @@ jobs:
       - name: Check E2E comprehensive results
         run: |
           echo "E2E Comprehensive Test Results:"
-          echo "Desktop Chrome: ${{ needs.e2e-comprehensive.result }}"
+          echo "Matrix job result: ${{ needs.e2e-comprehensive.result }}"
+          
+          # Check if any matrix job failed
           if [[ "${{ needs.e2e-comprehensive.result }}" == "failure" ]]; then
-            echo "❌ E2E comprehensive tests failed"
+            echo "❌ One or more E2E comprehensive tests failed"
+            echo "Check individual matrix job results for details"
+            exit 1
+          elif [[ "${{ needs.e2e-comprehensive.result }}" == "cancelled" ]]; then
+            echo "⚠️ E2E comprehensive tests were cancelled"
             exit 1
           fi
-          echo "✅ All E2E comprehensive tests passed"
+          
+          echo "✅ All E2E comprehensive matrix tests passed"
 
   # Collector job that ensures all checks pass
   ci-success:
