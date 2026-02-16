@@ -3,7 +3,7 @@ description: 'Setup pnpm, Node.js, and install dependencies'
 runs:
   using: 'composite'
   steps:
-    - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817f869b687af5214c # v4.0.0
+    - uses: pnpm/action-setup@a325c52d9d8ef147c0eb9bd07343c8a762345c8b # v3.0.0
     - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.3
       with:
         node-version-file: '.nvmrc'
