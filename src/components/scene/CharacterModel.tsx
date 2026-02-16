@@ -53,7 +53,7 @@ export function CharacterModel({ panic }: CharacterModelProps) {
     }
   });
 
-  const state = panic < 33 ? 'normal' : panic < 66 ? 'panic' : 'psyduck';
+  const state: CharacterState = panic < 33 ? 'normal' : panic < 66 ? 'panic' : 'psyduck';
 
   // Interpolated colors using design tokens
   const skinColor = useMemo(() => {
@@ -221,7 +221,9 @@ function PsyduckTuft() {
   );
 }
 
-function Eyes({ state, panic }: { state: string; panic: number }) {
+type CharacterState = 'normal' | 'panic' | 'psyduck';
+
+function Eyes({ state, panic }: { state: CharacterState; panic: number }) {
   const leftPupilRef = useRef<THREE.Mesh>(null);
   const rightPupilRef = useRef<THREE.Mesh>(null);
 
@@ -306,7 +308,7 @@ function Eyes({ state, panic }: { state: string; panic: number }) {
   );
 }
 
-function Arms({ state }: { state: string }) {
+function Arms({ state }: { state: CharacterState }) {
   if (state === 'psyduck') {
     // Wings/flippers — bright Psyduck yellow
     return (

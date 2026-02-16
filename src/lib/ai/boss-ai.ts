@@ -64,6 +64,8 @@ export class BossAI {
   actions: BossAction[];
   state: BossState;
   attackCooldown: number;
+  /** Current frame delta in seconds — updated each frame for goals to use */
+  frameDelta: number;
   private wanderBehavior: WanderBehavior;
   private arriveBehavior: ArriveBehavior;
   private moveTarget: Vector3;
@@ -72,6 +74,7 @@ export class BossAI {
     this.state = state;
     this.actions = [];
     this.attackCooldown = 0;
+    this.frameDelta = 0.016;
 
     // Set up Yuka Vehicle for boss movement
     this.vehicle = new Vehicle();
@@ -114,6 +117,9 @@ export class BossAI {
     if (this.attackCooldown > 0) {
       this.attackCooldown -= delta;
     }
+
+    // Store delta for goals to use
+    this.frameDelta = delta;
 
     // Update vehicle position from game state
     this.vehicle.position.set(state.x, 0, state.y);
@@ -244,7 +250,7 @@ class SweepAttackGoal extends CompositeGoal<Vehicle> {
   }
 
   override execute(): void {
-    this.sweepTimer += 0.016; // Approximate frame
+    this.sweepTimer += this.boss.frameDelta;
 
     const maxSpawns = 5 + Math.floor(this.boss.state.aggression * 4);
     const spawnInterval = this.sweepDuration / maxSpawns;
@@ -306,7 +312,7 @@ class SpiralAttackGoal extends Goal<Vehicle> {
   }
 
   override execute(): void {
-    this.spiralTimer += 0.016;
+    this.spiralTimer += this.boss.frameDelta;
 
     const maxSpawns = 8 + Math.floor(this.boss.state.aggression * 6);
     const spawnInterval = 0.2;
