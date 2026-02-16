@@ -40,7 +40,9 @@ test.describe('Complete Game Playthrough', () => {
 
     // ── Wave announcement ─────────────────────────────
     // Verify wave announcement appears immediately (avoid race condition with screenshot)
-    await expect(page.locator('#wave-announce')).toHaveClass(/show/, { timeout: WAVE_ANNOUNCE_TIMEOUT });
+    await expect(page.locator('#wave-announce')).toHaveClass(/show/, {
+      timeout: WAVE_ANNOUNCE_TIMEOUT,
+    });
 
     await screenshot(page, 'playthrough', '02-game-started');
 
