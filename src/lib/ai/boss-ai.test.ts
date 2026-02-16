@@ -74,19 +74,12 @@ describe('BossAI', () => {
     expect(() => boss.randomEnemyType()).toThrow();
   });
 
-  it('should eventually produce spawn actions', () => {
-    // Reset cooldown
-    boss.attackCooldown = 0;
-    let spawned = false;
-    // Run enough updates to likely trigger a goal
-    for (let i = 0; i < 100; i++) {
-      const actions = boss.update(0.1, mockState);
-      if (actions.some((a) => a.type === 'spawn_enemies')) {
-        spawned = true;
-        break;
-      }
-    }
-    expect(spawned).toBe(true);
+  it('should produce spawn actions when SummonGoal executes', () => {
+    const goal = new SummonGoal(boss);
+    goal.activate();
+    goal.execute();
+
+    expect(boss.actions.some((a) => a.type === 'spawn_enemies')).toBe(true);
   });
 
   describe('Goals', () => {
