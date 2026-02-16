@@ -22,6 +22,10 @@ jobs:
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
+    # Skip CI for Dependabot (CD catches dep issues) and bot fix sub-PRs (parent CI validates)
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      !(github.event.pull_request.user.type == 'Bot' && github.event.pull_request.base.ref != 'main')
     outputs:
       failed_jobs: ${{ steps.results.outputs.failed_jobs }}
       failure_details: ${{ steps.results.outputs.failure_details }}
@@ -416,7 +420,10 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    if: always()
+    if: >-
+      always() &&
+      github.actor != 'dependabot[bot]' &&
+      !(github.event.pull_request.user.type == 'Bot' && github.event.pull_request.base.ref != 'main')
     needs: [code-quality, security, e2e-smoke]
     steps:
       - name: Check CI status
@@ -438,7 +445,10 @@ jobs:
   pr-comment:
     name: Update PR with CI Results
     runs-on: ubuntu-latest
-    if: always()
+    if: >-
+      always() &&
+      github.actor != 'dependabot[bot]' &&
+      !(github.event.pull_request.user.type == 'Bot' && github.event.pull_request.base.ref != 'main')
     needs: [code-quality, security, e2e-smoke, ci-success]
     permissions:
       pull-requests: write
@@ -535,7 +545,10 @@ jobs:
   sonar-pr-comment:
     name: SonarCloud PR Report
     runs-on: ubuntu-latest
-    if: always()
+    if: >-
+      always() &&
+      github.actor != 'dependabot[bot]' &&
+      !(github.event.pull_request.user.type == 'Bot' && github.event.pull_request.base.ref != 'main')
     needs: [security]
     permissions:
       pull-requests: write
