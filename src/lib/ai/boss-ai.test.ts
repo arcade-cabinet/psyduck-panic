@@ -3,7 +3,7 @@ import type { EnemyType } from '../types';
 import { BossAI, type BossState } from './boss-ai';
 
 const mockEnemyType: EnemyType = {
-  name: 'test',
+  icon: '🧪',
   color: '#fff',
   words: ['test'],
   counter: 'reality',

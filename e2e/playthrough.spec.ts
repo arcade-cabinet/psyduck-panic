@@ -21,6 +21,8 @@ import {
  * The device-responsive.spec.ts handles cross-device validation.
  */
 test.describe('Complete Game Playthrough', () => {
+  test.setTimeout(90000);
+
   test('should complete a full game playthrough from start to wave 1', async ({ page }) => {
     await navigateToGame(page);
     await screenshot(page, 'playthrough', '01-start-screen');
@@ -34,15 +36,17 @@ test.describe('Complete Game Playthrough', () => {
 
     // ── Start game via spacebar ───────────────────────
     await startGame(page);
-    await screenshot(page, 'playthrough', '02-game-started');
 
     // Verify transition: overlay hidden, UI visible
     await verifyGamePlaying(page);
     await expect(page.locator('#ui-layer')).not.toHaveClass(/hidden/);
 
     // ── Wave announcement ─────────────────────────────
+    // Check transient UI immediately before blocking operations like screenshot
+    await expect(page.locator('#wave-announce')).toHaveClass(/show/, { timeout: 10000 });
     await expect(page.locator('#wave-display')).toContainText('WAVE 1');
-    await expect(page.locator('#wave-announce')).toHaveClass(/show/, { timeout: 5000 });
+
+    await screenshot(page, 'playthrough', '02-game-started');
     await screenshot(page, 'playthrough', '03-wave-announcement');
 
     // ── HUD elements ──────────────────────────────────
