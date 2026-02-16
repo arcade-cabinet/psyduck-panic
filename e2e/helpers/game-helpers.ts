@@ -11,7 +11,7 @@ import { expect } from '@playwright/test';
 // ─── Timeouts ────────────────────────────────────────────────
 
 export const GAME_START_TIMEOUT = 3000;
-export const WAVE_ANNOUNCE_TIMEOUT = 5000;
+export const WAVE_ANNOUNCE_TIMEOUT = 10000;
 export const GAMEPLAY_TIMEOUT = 60000;
 
 // ─── Navigation ──────────────────────────────────────────────

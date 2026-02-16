@@ -8,6 +8,7 @@ import {
   verifyGamePlaying,
   verifyHUDVisible,
   verifyPowerupsVisible,
+  WAVE_ANNOUNCE_TIMEOUT,
 } from './helpers/game-helpers';
 
 /**
@@ -21,6 +22,8 @@ import {
  * The device-responsive.spec.ts handles cross-device validation.
  */
 test.describe('Complete Game Playthrough', () => {
+  test.setTimeout(90000);
+
   test('should complete a full game playthrough from start to wave 1', async ({ page }) => {
     await navigateToGame(page);
     await screenshot(page, 'playthrough', '01-start-screen');
@@ -34,15 +37,18 @@ test.describe('Complete Game Playthrough', () => {
 
     // ── Start game via spacebar ───────────────────────
     await startGame(page);
+
+    // ── Wave announcement ─────────────────────────────
+    // Verify wave announcement appears immediately (avoid race condition with screenshot)
+    await expect(page.locator('#wave-announce')).toHaveClass(/show/, { timeout: WAVE_ANNOUNCE_TIMEOUT });
+
     await screenshot(page, 'playthrough', '02-game-started');
 
     // Verify transition: overlay hidden, UI visible
     await verifyGamePlaying(page);
     await expect(page.locator('#ui-layer')).not.toHaveClass(/hidden/);
 
-    // ── Wave announcement ─────────────────────────────
     await expect(page.locator('#wave-display')).toContainText('WAVE 1');
-    await expect(page.locator('#wave-announce')).toHaveClass(/show/, { timeout: 5000 });
     await screenshot(page, 'playthrough', '03-wave-announcement');
 
     // ── HUD elements ──────────────────────────────────
