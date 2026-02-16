@@ -21,7 +21,7 @@ import {
  * The device-responsive.spec.ts handles cross-device validation.
  */
 test.describe('Complete Game Playthrough', () => {
-  test.setTimeout(90000);
+  test.setTimeout(PLAYTHROUGH_TEST_TIMEOUT);
 
   test('should complete a full game playthrough from start to wave 1', async ({ page }) => {
     await navigateToGame(page);
