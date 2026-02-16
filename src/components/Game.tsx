@@ -71,6 +71,8 @@ export default function Game() {
     musicRef.current = music;
 
     return () => {
+      sfxRef.current?.stopMusic();
+      sfxRef.current = null;
       music.destroy();
     };
   }, []);
@@ -130,9 +132,35 @@ export default function Game() {
                 musicRef.current?.start((event.args?.[0] as number) ?? 0);
               } else if (event.name === 'stopMusic') {
                 musicRef.current?.stop();
-              } else {
-                // @ts-expect-error dynamic SFX method call
-                sfxRef.current?.[event.name]?.(...(event.args || []));
+              } else if (sfxRef.current) {
+                const sfx = sfxRef.current;
+                const args = event.args || [];
+                switch (event.name) {
+                  case 'counter':
+                    sfx.counter(args[0] as number);
+                    break;
+                  case 'miss':
+                    sfx.miss();
+                    break;
+                  case 'panicHit':
+                    sfx.panicHit();
+                    break;
+                  case 'powerup':
+                    sfx.powerup();
+                    break;
+                  case 'nuke':
+                    sfx.nuke();
+                    break;
+                  case 'bossHit':
+                    sfx.bossHit();
+                    break;
+                  case 'bossDie':
+                    sfx.bossDie();
+                    break;
+                  case 'waveStart':
+                    sfx.waveStart();
+                    break;
+                }
               }
               break;
             case 'PARTICLE':
@@ -154,7 +182,7 @@ export default function Game() {
                   wavesCleared: event.wavesCleared,
                 },
               });
-              saveScore(event.score);
+              saveScore(event.score).catch((err) => console.warn('Failed to save score:', err));
               if (event.win) {
                 sceneRef.current?.spawnConfetti();
               }

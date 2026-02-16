@@ -196,15 +196,15 @@ class BuildingState extends State<AIDirector> {
       return;
     }
 
-    // Transition to SUSTAINING if player is struggling
-    if (director.performance.panic > 60 || skill < 0.35) {
-      director.fsm.changeTo('SUSTAINING');
+    // Transition to RELIEVING if panic is critical (check first — more specific)
+    if (director.performance.panic > 80) {
+      director.fsm.changeTo('RELIEVING');
       return;
     }
 
-    // Transition to RELIEVING if panic is critical
-    if (director.performance.panic > 80) {
-      director.fsm.changeTo('RELIEVING');
+    // Transition to SUSTAINING if player is struggling
+    if (director.performance.panic > 60 || skill < 0.35) {
+      director.fsm.changeTo('SUSTAINING');
     }
   }
 }
