@@ -85,10 +85,8 @@ test.describe('Complete Game Playthrough', () => {
     await screenshot(page, 'playthrough', '08-wave-announcement-detail');
 
     // Wait for announcement to fade
-    await page.waitForTimeout(6000);
-    await expect(waveAnnounce).not.toHaveClass(/show/);
+    await expect(waveAnnounce).not.toHaveClass(/show/, { timeout: WAVE_ANNOUNCE_TIMEOUT });
   });
-
   test('should handle game over scenario', async ({ page }) => {
     await navigateToGame(page);
     await startGame(page);
