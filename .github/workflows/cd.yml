@@ -16,6 +16,7 @@ permissions:
   checks: read
 
 jobs:
+  # Wait for CI to complete before proceeding
   wait-for-ci:
     name: Wait for CI
     runs-on: ubuntu-latest
@@ -33,7 +34,7 @@ jobs:
       - name: Check CI result
         if: steps.wait-for-ci.outputs.conclusion != 'success'
         run: |
-          echo "CI workflow did not succeed: ${{ steps.wait-for-ci.outputs.conclusion }}"
+          echo "❌ CI workflow did not succeed: ${{ steps.wait-for-ci.outputs.conclusion }}"
           exit 1
 
   deploy-web:

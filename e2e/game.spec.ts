@@ -24,12 +24,14 @@ test.describe('Psyduck Panic Game', () => {
     await page.goto('/game');
     const canvas = page.locator('#gameCanvas');
     await expect(canvas).toBeVisible();
-    // Canvas resolution scales with devicePixelRatio (e.g. 1600x1200 on 2x, 2400x1800 on 3x)
+
+    // Check dimensions and aspect ratio
     const width = Number(await canvas.getAttribute('width'));
     const height = Number(await canvas.getAttribute('height'));
+
     expect(width).toBeGreaterThanOrEqual(800);
     expect(height).toBeGreaterThanOrEqual(600);
-    expect(width / height).toBeCloseTo(800 / 600, 1);
+    expect(width / height).toBeCloseTo(4 / 3, 1);
   });
 
   test('should have control buttons', async ({ page }) => {

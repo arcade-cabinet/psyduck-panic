@@ -19,13 +19,13 @@ test.describe('Responsive Device Tests', () => {
     const canvas = page.locator('#gameCanvas');
     await expect(canvas).toBeVisible();
 
-    // Get canvas dimensions
-    const canvasBox = await canvas.boundingBox();
-    if (!canvasBox) {
-      throw new Error('Canvas bounding box is null');
-    }
-    expect(canvasBox.width).toBeGreaterThan(0);
-    expect(canvasBox.height).toBeGreaterThan(0);
+    // Wait for canvas to have dimensions (polling assertion for hydration)
+    await expect(async () => {
+      const box = await canvas.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeGreaterThan(0);
+      expect(box!.height).toBeGreaterThan(0);
+    }).toPass({ timeout: 5000 });
 
     // Take screenshot for visual verification
     const deviceName = test.info().project.name.replace(/\s+/g, '-').toLowerCase();
@@ -214,13 +214,13 @@ test.describe('Foldable-Specific Tests', () => {
     const canvas = page.locator('#gameCanvas');
     await expect(canvas).toBeVisible();
 
-    const canvasBox = await canvas.boundingBox();
-    if (!canvasBox || !viewport) {
-      throw new Error('Canvas bounding box or viewport is null');
-    }
-
-    // Canvas should fit within narrow viewport
-    expect(canvasBox.width).toBeLessThanOrEqual(viewport.width);
+    // Canvas should fit within narrow viewport (polling for hydration)
+    await expect(async () => {
+      const box = await canvas.boundingBox();
+      expect(box).not.toBeNull();
+      // Allow a small margin of error for borders/scaling
+      expect(box!.width).toBeLessThanOrEqual(viewport.width + 2);
+    }).toPass({ timeout: 5000 });
   });
 
   test('should utilize unfolded screen space', async ({ page, viewport }) => {

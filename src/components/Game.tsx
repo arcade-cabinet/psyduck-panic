@@ -120,13 +120,21 @@ export default function Game() {
   const rendererRef = useRef<PixiRenderer | null>(null);
   const sfxRef = useRef<SFX | null>(null);
   const [ui, dispatch] = useReducer(uiReducer, initialState);
-  const [viewport, setViewport] = useState<ViewportDimensions>({
-    width: GAME_WIDTH,
-    height: GAME_HEIGHT,
-    scale: 1,
-    offsetX: 0,
-    offsetY: 0,
-    aspectRatio: GAME_WIDTH / GAME_HEIGHT,
+  const [viewport, setViewport] = useState<ViewportDimensions>(() => {
+    // Initialize viewport immediately if window is available
+    // to prevent flash of wrong size (e.g., 800x600 on mobile)
+    if (typeof window !== 'undefined') {
+      const deviceInfo = detectDevice();
+      return calculateViewport(GAME_WIDTH, GAME_HEIGHT, deviceInfo);
+    }
+    return {
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0,
+      aspectRatio: GAME_WIDTH / GAME_HEIGHT,
+    };
   });
 
   // Ref to hold the latest UI state for event handlers

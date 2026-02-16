@@ -110,8 +110,7 @@ export function detectDevice(): DeviceInfo {
  */
 function detectFoldable(): boolean {
   // Check for Window Segments API (foldable devices)
-  // @ts-expect-error - experimental API
-  if ('getWindowSegments' in window.visualViewport) {
+  if (window.visualViewport && 'getWindowSegments' in window.visualViewport) {
     // @ts-expect-error
     const segments = window.visualViewport.getWindowSegments();
     return segments && segments.length > 1;
@@ -334,48 +333,6 @@ export function createResizeObserver(
     window.removeEventListener('orientationchange', handleOrientationChange);
     if (window.visualViewport) {
       window.visualViewport.removeEventListener('resize', handleResize);
-    }
-  };
-}
-
-/**
-      callback(viewport, deviceInfo);
-    }, 100);
-  };
-
-  // Listen for various resize events
-  window.addEventListener('resize', handleResize);
-  window.addEventListener('orientationchange', handleOrientationChange);
-
-  // Also listen for visual viewport changes (important for mobile browsers)
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', handleResize);
-  }
-
-  // Foldable-specific events
-  // @ts-expect-error experimental API
-  if (window.screen?.orientation) {
-    // @ts-expect-error experimental API
-    window.screen.orientation.addEventListener('change', handleOrientationChange);
-  }
-
-  // Initial call
-  handleResize();
-
-  // Return cleanup function
-  return () => {
-    clearTimeout(resizeTimeout);
-    window.removeEventListener('resize', handleResize);
-    window.removeEventListener('orientationchange', handleOrientationChange);
-
-    if (window.visualViewport) {
-      window.visualViewport.removeEventListener('resize', handleResize);
-    }
-
-    // @ts-expect-error experimental API
-    if (window.screen?.orientation) {
-      // @ts-expect-error experimental API
-      window.screen.orientation.removeEventListener('change', handleOrientationChange);
     }
   };
 }
