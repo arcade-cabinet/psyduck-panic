@@ -1,7 +1,15 @@
+/**
+ * Sound Effects Manager
+ *
+ * Synthesizes game audio using the Web Audio API oscillator nodes.
+ * Handles all SFX (counter, miss, powerup, nuke, boss) and
+ * procedural background music that scales with wave intensity.
+ */
 export class SFX {
   public ctx: AudioContext | null = null;
   public musicInterval: number | null = null;
 
+  /** Initialize the AudioContext (must be called after user interaction) */
   init(): void {
     // Support both standard and webkit-prefixed AudioContext for browser compatibility
     const AudioContextClass =
@@ -10,12 +18,14 @@ export class SFX {
     this.ctx = new AudioContextClass();
   }
 
+  /** Resume a suspended AudioContext (required by autoplay policy) */
   resume(): void {
     if (this.ctx?.state === 'suspended') {
       this.ctx.resume();
     }
   }
 
+  /** Generate a synthesized tone with envelope decay */
   private tone(
     frequency: number,
     type: OscillatorType = 'square',
@@ -35,6 +45,7 @@ export class SFX {
     oscillator.stop(this.ctx.currentTime + duration);
   }
 
+  /** Play ascending counter SFX with pitch scaled by combo multiplier */
   counter(combo: number): void {
     const f = 400 + combo * 40;
     this.tone(f, 'square', 0.08, 0.1);
@@ -42,42 +53,50 @@ export class SFX {
     setTimeout(() => this.tone(f * 1.5, 'triangle', 0.15, 0.06), 100);
   }
 
+  /** Play low-frequency miss sound */
   miss(): void {
     this.tone(120, 'sawtooth', 0.2, 0.08);
   }
 
+  /** Play deep rumble when panic damage is taken */
   panicHit(): void {
     this.tone(90, 'sawtooth', 0.15, 0.1);
   }
 
+  /** Play ascending triple-tone powerup collection jingle */
   powerup(): void {
     this.tone(600, 'triangle', 0.1, 0.08);
     setTimeout(() => this.tone(800, 'triangle', 0.1, 0.08), 80);
     setTimeout(() => this.tone(1000, 'triangle', 0.2, 0.06), 160);
   }
 
+  /** Play heavy descending nuke activation blast */
   nuke(): void {
     this.tone(200, 'sawtooth', 0.4, 0.13);
     setTimeout(() => this.tone(100, 'sawtooth', 0.6, 0.1), 100);
   }
 
+  /** Play dual-tone boss damage impact */
   bossHit(): void {
     this.tone(300, 'square', 0.06, 0.1);
     this.tone(450, 'square', 0.06, 0.08);
   }
 
+  /** Play escalating victory fanfare when boss is defeated */
   bossDie(): void {
     [0, 80, 160, 240, 320, 400].forEach((d, i) => {
       setTimeout(() => this.tone(200 + i * 80, 'square', 0.15, 0.1), d);
     });
   }
 
+  /** Play four-note ascending wave start fanfare */
   waveStart(): void {
     [0, 100, 200, 300].forEach((d, i) => {
       setTimeout(() => this.tone(300 + i * 100, 'square', 0.12, 0.07), d);
     });
   }
 
+  /** Start procedural background music loop that scales BPM and intensity with wave number */
   startMusic(wave: number): void {
     this.stopMusic();
     if (!this.ctx) return;
@@ -133,6 +152,7 @@ export class SFX {
     }, ms);
   }
 
+  /** Stop the background music loop */
   stopMusic(): void {
     if (this.musicInterval) {
       clearInterval(this.musicInterval);

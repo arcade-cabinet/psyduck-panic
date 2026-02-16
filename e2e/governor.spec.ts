@@ -102,7 +102,14 @@ test.describe('Automated Playthrough with Governor', () => {
     // Start game manually
     const startBtn = page.locator('#start-btn');
     await startBtn.click();
-    await page.waitForTimeout(2000);
+
+    // Wait for worker to initialize and send first state update
+    // The time display should change from initial 0 to the wave duration (e.g., 28)
+    const timeDisplay = page.locator('#time-display');
+    await expect(async () => {
+      const t = await timeDisplay.textContent();
+      expect(Number.parseInt(t || '0', 10)).toBeGreaterThan(0);
+    }).toPass({ timeout: 5000 });
 
     await verifyGamePlaying(page);
 
@@ -113,13 +120,12 @@ test.describe('Automated Playthrough with Governor', () => {
     // Verify game is still running
     await verifyGamePlaying(page);
 
-    // Verify HUD elements are updating
-    const timeDisplay = page.locator('#time-display');
+    // Verify HUD elements are updating (time counts down each second)
     const time1 = await timeDisplay.textContent();
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     const time2 = await timeDisplay.textContent();
 
-    // Time should be changing
+    // Time should be counting down
     expect(time1).not.toBe(time2);
 
     governor.stop();

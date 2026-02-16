@@ -29,8 +29,8 @@ test.describe('Complete Game Playthrough', () => {
     await verifyGamePlaying(page);
     await expect(page.locator('#wave-display')).toContainText('WAVE 1');
 
-    // Wait for wave announcement
-    await expect(page.locator('#wave-announce')).toHaveClass(/show/, { timeout: 2000 });
+    // Wait for wave announcement (worker must initialize and send WAVE_START event)
+    await expect(page.locator('#wave-announce')).toHaveClass(/show/, { timeout: 5000 });
     await screenshot(page, 'playthrough', '03-wave-announcement');
 
     // Wait for enemies to spawn
@@ -75,9 +75,9 @@ test.describe('Complete Game Playthrough', () => {
     await navigateToGame(page);
     await startGame(page);
 
-    // Check wave announcement appears
+    // Check wave announcement appears (worker must initialize and send WAVE_START event)
     const waveAnnounce = page.locator('#wave-announce');
-    await expect(waveAnnounce).toHaveClass(/show/, { timeout: 2000 });
+    await expect(waveAnnounce).toHaveClass(/show/, { timeout: 5000 });
 
     await expect(page.locator('#wa-title')).toContainText('WAVE 1');
     await expect(page.locator('#wa-sub')).toContainText('Just checking Twitter');

@@ -1,10 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import Game from './components/Game';
 import Landing from './components/Landing';
 import { initializePlatform } from './lib/capacitor-device';
-
-// Lazy load Game component — defers Three.js/R3F/ECS until /game route
-const Game = lazy(() => import('./components/Game'));
 
 const loadingStyle = {
   display: 'flex',
@@ -53,14 +51,12 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingScreen />}>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/game" element={<Game />} />
-          <Route path="/psyduck-panic" element={<Game />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/game" element={<Game />} />
+        <Route path="/psyduck-panic" element={<Game />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }

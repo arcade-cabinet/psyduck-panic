@@ -170,8 +170,15 @@ export class GameGovernor {
 
     // Get final result
     const title = await this.page.locator('#overlay-title').textContent();
-    const scoreText = await this.page.locator('#end-stats').textContent();
-    const score = Number.parseInt(scoreText?.match(/SCORE: (\d+)/)?.[1] || '0', 10);
+
+    // Parse score from the specific stat-value element (first row is FINAL SCORE)
+    // toLocaleString() may add commas, so strip them before parsing
+    let score = 0;
+    const endStats = this.page.locator('#end-stats');
+    if ((await endStats.count()) > 0) {
+      const scoreValue = await endStats.locator('.stat-value').first().textContent();
+      score = Number.parseInt((scoreValue || '0').replace(/,/g, ''), 10);
+    }
 
     const result = title?.includes('CRISIS AVERTED') ? 'win' : 'loss';
 
