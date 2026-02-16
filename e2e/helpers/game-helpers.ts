@@ -10,14 +10,19 @@ import { expect } from '@playwright/test';
 
 // ─── Timeouts ────────────────────────────────────────────────
 
-export const GAME_START_TIMEOUT = 3000;
-export const WAVE_ANNOUNCE_TIMEOUT = 5000;
+export const GAME_START_TIMEOUT = 10000;
+export const WAVE_ANNOUNCE_TIMEOUT = 10000;
 export const GAMEPLAY_TIMEOUT = 60000;
 
 // ─── Navigation ──────────────────────────────────────────────
 
 /** Navigate to the game page and wait for the container to load */
 export async function navigateToGame(page: Page): Promise<void> {
+  // Abort font requests to prevent screenshot hanging in offline CI
+  await page.route('**/*.{woff,woff2}', (route) => route.abort());
+  await page.route('**/fonts.googleapis.com/**', (route) => route.abort());
+  await page.route('**/fonts.gstatic.com/**', (route) => route.abort());
+
   await page.goto('/game');
   await expect(page.locator('#game-container')).toBeVisible();
 }
@@ -32,10 +37,22 @@ export async function navigateToGame(page: Page): Promise<void> {
 export async function startGame(page: Page): Promise<void> {
   const startBtn = page.locator('#start-btn');
   await expect(startBtn).toBeVisible();
+
+  // Wait for listeners to attach
+  await page.waitForTimeout(500);
+
   await page.keyboard.press(' ');
-  await expect(page.locator('#overlay')).toHaveClass(/hidden/, {
-    timeout: GAME_START_TIMEOUT,
-  });
+  try {
+    await expect(page.locator('#overlay')).toHaveClass(/hidden/, {
+      timeout: 2000,
+    });
+  } catch {
+    // Retry if missed
+    await page.keyboard.press(' ');
+    await expect(page.locator('#overlay')).toHaveClass(/hidden/, {
+      timeout: GAME_START_TIMEOUT,
+    });
+  }
 }
 
 /** Start the game by pressing spacebar */

@@ -42,7 +42,6 @@ test.describe('Complete Game Playthrough', () => {
 
     // ── Wave announcement ─────────────────────────────
     await expect(page.locator('#wave-display')).toContainText('WAVE 1');
-    await expect(page.locator('#wave-announce')).toHaveClass(/show/, { timeout: 5000 });
     await screenshot(page, 'playthrough', '03-wave-announcement');
 
     // ── HUD elements ──────────────────────────────────

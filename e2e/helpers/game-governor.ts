@@ -42,7 +42,7 @@ export class GameGovernor {
     // Click start button
     const startBtn = this.page.locator('#start-btn');
     if (await startBtn.isVisible()) {
-      await startBtn.click();
+      await this.page.keyboard.press(' ');
     }
 
     // Wait for game to start
