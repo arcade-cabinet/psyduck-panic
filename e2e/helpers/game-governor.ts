@@ -5,7 +5,7 @@
  * simulating realistic player behavior and decision-making.
  */
 
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 export interface GovernorConfig {
   /** How aggressively to counter enemies (0-1) */
@@ -39,11 +39,13 @@ export class GameGovernor {
   async start(): Promise<void> {
     this.isRunning = true;
 
-    // Click start button
+    // Use keyboard instead of click because an unhandled font-fetch
+    // rejection from troika-three-text (offline CI) breaks React 18's
+    // synthetic event dispatch for mouse/pointer events while native
+    // keyboard listeners remain unaffected.
     const startBtn = this.page.locator('#start-btn');
-    if (await startBtn.isVisible()) {
-      await startBtn.click();
-    }
+    await expect(startBtn).toBeVisible();
+    await this.page.keyboard.press(' ');
 
     // Wait for game to start
     await this.page.waitForTimeout(1000);
