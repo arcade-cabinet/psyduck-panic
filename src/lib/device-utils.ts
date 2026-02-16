@@ -110,8 +110,7 @@ export function detectDevice(): DeviceInfo {
  */
 function detectFoldable(): boolean {
   // Check for Window Segments API (foldable devices)
-  // @ts-expect-error - experimental API
-  if ('getWindowSegments' in window.visualViewport) {
+  if (window.visualViewport && 'getWindowSegments' in window.visualViewport) {
     // @ts-expect-error
     const segments = window.visualViewport.getWindowSegments();
     return segments && segments.length > 1;
