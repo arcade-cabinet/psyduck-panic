@@ -390,11 +390,13 @@ describe('GameLogic', () => {
       if (!game.boss) throw new Error('Boss not started');
       const boss = game.boss;
       const initialTimer = boss.timer;
+      const initialX = boss.x;
 
       game.update(1.0, 1000);
 
       expect(boss.timer).toBeGreaterThan(initialTimer);
-      // Boss AI should have produced actions
+      // Boss AI always produces a 'move' action, so position should change
+      expect(boss.x).not.toBe(initialX);
     });
 
     it('should process boss hit with nuke', () => {

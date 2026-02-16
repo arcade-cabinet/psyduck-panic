@@ -1,7 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { SFX } from '../lib/audio';
-import { GAME_HEIGHT, GAME_WIDTH, WAVES } from '../lib/constants';
+import { GAME_HEIGHT, GAME_WIDTH, WAVE_ANNOUNCEMENT_DURATION, WAVES } from '../lib/constants';
 import {
   calculateViewport,
   createResizeObserver,
@@ -25,6 +25,7 @@ export default function Game() {
   const sfxRef = useRef<SFX | null>(null);
   const musicRef = useRef<AdaptiveMusic | null>(null);
   const musicInitRef = useRef<Promise<void> | null>(null);
+  const waveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [ui, dispatch] = useReducer(uiReducer, initialUIState);
   const [viewport, setViewport] = useState<ViewportDimensions>(() => {
     if (typeof window !== 'undefined') {
@@ -199,7 +200,11 @@ export default function Game() {
               break;
             case 'WAVE_START':
               dispatch({ type: 'WAVE_START', title: event.title, sub: event.sub });
-              setTimeout(() => dispatch({ type: 'HIDE_WAVE' }), 5000);
+              if (waveTimeoutRef.current) clearTimeout(waveTimeoutRef.current);
+              waveTimeoutRef.current = setTimeout(
+                () => dispatch({ type: 'HIDE_WAVE' }),
+                WAVE_ANNOUNCEMENT_DURATION
+              );
               break;
             case 'FEED':
               dispatch({
@@ -251,6 +256,7 @@ export default function Game() {
     return () => {
       worker.terminate();
       window.removeEventListener('keydown', handleKeyDown);
+      if (waveTimeoutRef.current) clearTimeout(waveTimeoutRef.current);
     };
   }, [handleStartLogic, handleAbility, handleNuke]);
 

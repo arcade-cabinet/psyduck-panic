@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EnemyType } from '../types';
 import { BossAI, type BossState } from './boss-ai';
 
 const mockEnemyType: EnemyType = {
-  icon: 'test-icon',
+  icon: '🦆',
   color: '#fff',
   words: ['test'],
   counter: 'reality',
@@ -24,8 +24,13 @@ describe('BossAI', () => {
   let boss: BossAI;
 
   beforeEach(() => {
-    // Reset state for each test
+    vi.useFakeTimers();
     boss = new BossAI({ ...mockState });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('should initialize correctly', () => {
@@ -58,63 +63,39 @@ describe('BossAI', () => {
     expect(() => boss.randomEnemyType()).toThrow();
   });
 
-  it('should eventually produce spawn actions', () => {
-    // Reset cooldown
+  it('should produce spawn actions when cooldown is 0', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
     boss.attackCooldown = 0;
-    let spawned = false;
-    // Run enough updates to likely trigger a goal
-    for (let i = 0; i < 100; i++) {
-      const actions = boss.update(0.1, mockState);
-      if (actions.some((a) => a.type === 'spawn_enemies')) {
-        spawned = true;
-        break;
-      }
-    }
-    expect(spawned).toBe(true);
+    const actions = boss.update(0.1, mockState);
+    expect(actions.some((a) => a.type === 'spawn_enemies')).toBe(true);
   });
 
   it('should trigger Rage mode at low HP', () => {
-    // Low HP -> High desirability for Rage
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const lowHpState = { ...mockState, hp: 10, maxHp: 100 };
     boss = new BossAI(lowHpState);
     boss.attackCooldown = 0;
-
-    // We can't easily force it without mocking Math.random, but likely it will pick Rage
-    // Rage goal immediately spawns enemies and shakes
-
-    // Let's try to detect if Rage was picked by checking for Shake/Flash
-    // Rage adds shake intensity 12
-    let raged = false;
-    for (let i = 0; i < 50; i++) {
-      const actions = boss.update(0.1, lowHpState);
-      if (actions.some((a) => a.type === 'shake' && a.intensity === 12)) {
-        raged = true;
-        break;
-      }
-    }
-    // Might flake if randomness is against us, but usually Rage desirability is 0.8+ at low HP
-    expect(raged).toBe(true);
+    const actions = boss.update(0.1, lowHpState);
+    // Rage at low HP has highest desirability with bias 1.2
+    expect(actions.some((a) => a.type === 'shake' && a.intensity === 12)).toBe(true);
   });
 
   it('should move to target when moveTo is called', () => {
     boss.moveTo(100, 100);
-    // Can't check internal state easily, but it shouldn't crash
     boss.update(0.1, mockState);
+    vi.advanceTimersByTime(1500);
   });
 
   it('should respect pattern constraints', () => {
-    const noPatternState = { ...mockState, patterns: [] };
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const noPatternState = { ...mockState, patterns: [] as string[] };
     boss = new BossAI(noPatternState);
     boss.attackCooldown = 0;
 
-    // Should NOT spawn burst/sweep/spiral
-    // Only Reposition, Summon (maybe), Rage (if low HP)
-    // Summon doesn't check pattern.
+    const actions = boss.update(0.1, noPatternState);
 
-    // If we are high HP, Summon is low desirability.
-    // Reposition is fallback.
-
-    const _actions = boss.update(0.1, noPatternState);
-    // It might do nothing or reposition
+    // With no patterns and high HP, only Reposition or Summon can be chosen
+    // Reposition produces a move action
+    expect(actions.some((a) => a.type === 'move')).toBe(true);
   });
 });

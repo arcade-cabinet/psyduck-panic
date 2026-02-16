@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  E2E_PLAYTHROUGH_TIMEOUT,
   navigateToGame,
   pressAllAbilities,
   screenshot,
@@ -8,6 +9,7 @@ import {
   verifyGamePlaying,
   verifyHUDVisible,
   verifyPowerupsVisible,
+  WAVE_ANNOUNCE_TIMEOUT,
 } from './helpers/game-helpers';
 
 /**
@@ -22,7 +24,7 @@ import {
  */
 test.describe('Complete Game Playthrough', () => {
   test('should complete a full game playthrough from start to wave 1', async ({ page }) => {
-    test.setTimeout(90000); // Allow sufficient time for screenshots and gameplay
+    test.setTimeout(E2E_PLAYTHROUGH_TIMEOUT);
 
     await navigateToGame(page);
     await screenshot(page, 'playthrough', '01-start-screen');
@@ -38,7 +40,9 @@ test.describe('Complete Game Playthrough', () => {
     await startGame(page);
 
     // Check wave announcement immediately (it has a 5s duration)
-    await expect(page.locator('#wave-announce')).toHaveClass(/show/, { timeout: 5000 });
+    await expect(page.locator('#wave-announce')).toHaveClass(/show/, {
+      timeout: WAVE_ANNOUNCE_TIMEOUT,
+    });
 
     await screenshot(page, 'playthrough', '02-game-started');
 
