@@ -51,6 +51,7 @@ export default defineConfig({
         deviceScaleFactor: 2,
         isMobile: true,
         hasTouch: true,
+        defaultBrowserType: 'webkit',
       },
       testMatch: /.*\.(spec|test)\.ts/, // Run all tests
     },
@@ -120,6 +121,7 @@ export default defineConfig({
         deviceScaleFactor: 2,
         isMobile: true,
         hasTouch: true,
+        defaultBrowserType: 'webkit',
       },
       testMatch: /device-responsive\.spec\.ts/,
     },
@@ -132,6 +134,7 @@ export default defineConfig({
         deviceScaleFactor: 2,
         isMobile: true,
         hasTouch: true,
+        defaultBrowserType: 'webkit',
       },
       testMatch: /.*\.(spec|test)\.ts/, // Run all tests
     },
