@@ -13,7 +13,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
-  checks: read
+  checks: write
 
 jobs:
   deploy-web:
@@ -96,6 +96,14 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+      - name: Create test report check run
+        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
+        if: always()
+        with:
+          name: 'E2E Results - ${{ matrix.project }}'
+          path: junit-${{ steps.slug.outputs.project_slug }}.xml
+          reporter: 'java-junit'
+          fail-on-error: false
 
   e2e-matrix-collector:
     name: E2E Matrix Results
@@ -109,14 +117,128 @@ jobs:
         with:
           artifact-pattern: 'e2e-junit-*'
           output-name: 'e2e-junit-combined'
+      - name: Download combined JUnit results
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: e2e-junit-combined
+          path: combined-junit/
+      - name: Create combined test report
+        uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2.5.0
+        if: always()
+        with:
+          name: 'E2E Combined Results'
+          path: combined-junit/junit-combined.xml
+          reporter: 'java-junit'
+          fail-on-error: false
       - name: Check E2E matrix results
         run: |
           echo "E2E Matrix Test Results: ${{ needs.e2e-matrix.result }}"
           if [[ "${{ needs.e2e-matrix.result }}" == "failure" ]]; then
-            echo "❌ One or more E2E matrix tests failed"
+            echo "One or more E2E matrix tests failed"
             exit 1
           fi
-          echo "✅ All E2E matrix tests passed"
+          echo "All E2E matrix tests passed"
+
+  # CD failure handler: targeted Jules fix
+  fix-cd-failure:
+    name: Fix CD E2E Failures
+    runs-on: ubuntu-latest
+    needs: [e2e-matrix-collector]
+    if: failure()
+    permissions:
+      contents: write
+      actions: read
+      checks: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Fetch test report URLs
+        id: reports
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const { data: checkRuns } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              per_page: 100,
+            });
+
+            const testReports = checkRuns.check_runs
+              .filter(cr => cr.name.startsWith('E2E Results -') || cr.name === 'E2E Combined Results')
+              .map(cr => ({
+                name: cr.name,
+                conclusion: cr.conclusion,
+                url: cr.html_url,
+                summary: cr.output?.summary || '',
+              }));
+
+            const failedReports = testReports.filter(r => r.conclusion === 'failure');
+            const reportSummary = testReports
+              .map(r => `- ${r.name}: ${r.conclusion} (${r.url})`)
+              .join('\n');
+
+            const failedSummary = failedReports
+              .map(r => `- ${r.name}: ${r.url}\n  ${r.summary.substring(0, 500)}`)
+              .join('\n');
+
+            core.setOutput('all_reports', reportSummary);
+            core.setOutput('failed_reports', failedSummary);
+            core.setOutput('failed_count', failedReports.length.toString());
+
+      - name: Invoke Jules for CD failure fix
+        if: steps.reports.outputs.failed_count != '0'
+        uses: google-labs-code/jules-action@bff7875eaa123cac6742b7cfc51005b95ba4d566
+        with:
+          prompt: |
+            ## CD E2E Matrix Failure — Auto-Fix Request
+
+            **Repository:** arcade-cabinet/psyduck-panic
+            **Branch:** main
+            **Commit:** ${{ github.sha }}
+
+            ### What Failed
+            The CD pipeline's E2E matrix tests failed after deploying to GitHub Pages. These tests run across 20 device configurations using Playwright.
+
+            ### Failed Test Reports
+            ${{ steps.reports.outputs.failed_reports }}
+
+            ### All Test Reports
+            ${{ steps.reports.outputs.all_reports }}
+
+            ### Test Configuration
+            - 20 device projects defined in `playwright.config.ts`
+            - Tests: `e2e/game.spec.ts`, `e2e/playthrough.spec.ts`, `e2e/governor.spec.ts`, `e2e/device-responsive.spec.ts`
+            - The `@matrix` tagged tests in governor.spec.ts (aggressive, defensive, verify-running) only run in CD
+            - Each device uses `--workers=1` with JUnit + line reporters
+            - Traces on first retry, screenshots on failure, video retained on failure
+
+            ### Common CD-Only Failure Patterns
+            1. **Device-specific viewport issues**: Game canvas not fitting within specific device dimensions (especially Galaxy Fold folded at 280px width)
+            2. **Touch interaction failures**: Mobile devices expecting tap() instead of click()
+            3. **WebKit-specific issues**: Safari/iPad tests use WebKit which has different behavior
+            4. **Timing issues across devices**: Slower rendering on complex viewports
+            5. **Governor extended tests**: The @matrix tests run longer playthroughs that may expose game state bugs
+
+            ### Project Context
+            - React + Three.js game with HTML overlay UI
+            - Key DOM elements: #gameCanvas, #overlay, #overlay-title, #start-btn, #ui-layer, #wave-display, #score-display, #combo-display, #panic-bar
+            - CSS must handle viewports from 280px (Galaxy Fold folded) to 1366px (iPad Pro 12.9)
+            - E2E helpers: `e2e/helpers/game-helpers.ts`, `e2e/helpers/game-governor.ts`
+
+            ### Instructions
+            1. Check the test report URLs above for specific failure details.
+            2. Fix the APPLICATION code (under `src/`), primarily CSS/layout issues for device-specific failures.
+            3. If a test is flaky due to timing, it is acceptable to increase timeouts in the test, but prefer fixing the underlying timing issue in the app.
+            4. For governor test failures, check `e2e/helpers/game-governor.ts` for the AI logic.
+            5. Run the full E2E suite locally: `pnpm build && pnpm exec playwright test` to verify.
+            6. Do NOT modify CI/CD workflow files or playwright.config.ts device configurations.
+            7. Your fix PR should trigger full CI and then CD to validate the fix end-to-end.
+          jules_api_key: ${{ secrets.GOOGLE_JULES_API_KEY }}
+          starting_branch: main
+          include_last_commit: true
 
   build-and-release-android:
     name: Build and Release Android APK
