@@ -14,34 +14,45 @@ permissions:
   checks: write
 
 jobs:
-  # ──────────────────────────────────────────────
-  # Stage 1: Code Quality (all parallel)
-  # ──────────────────────────────────────────────
-  lint:
-    name: Lint
+  # ═══════════════════════════════════════════════════
+  # Stage 1: Code Quality
+  # Lint → TypeCheck → Build → Unit Tests
+  # Single job, single Jules handler on failure.
+  # ═══════════════════════════════════════════════════
+  code-quality:
+    name: Code Quality
     runs-on: ubuntu-latest
+    outputs:
+      failed_jobs: ${{ steps.results.outputs.failed_jobs }}
+      failure_details: ${{ steps.results.outputs.failure_details }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/setup
-      - run: pnpm lint
 
-  typecheck:
-    name: Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/setup
-      - run: pnpm exec tsc --noEmit
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: pnpm lint
 
-  unit:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/setup
-      - run: pnpm test:coverage
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - name: Type Check
+        id: typecheck
+        continue-on-error: true
+        run: pnpm exec tsc --noEmit
+
+      - name: Build
+        id: build
+        if: steps.typecheck.outcome == 'success'
+        continue-on-error: true
+        run: pnpm build
+
+      - name: Unit Tests
+        id: unit
+        continue-on-error: true
+        run: pnpm test:coverage
+
+      - name: Upload coverage reports
         if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: coverage-reports
           path: |
@@ -49,30 +60,59 @@ jobs:
             test-results/
           retention-days: 7
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/setup
-      - run: pnpm build
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      - name: Upload dist
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: dist
           path: dist/
           retention-days: 1
 
+      - name: Check results
+        id: results
+        run: |
+          FAILED=""
+          DETAILS=""
+
+          if [[ "${{ steps.lint.outcome }}" == "failure" ]]; then
+            FAILED="${FAILED}lint,"
+            DETAILS="${DETAILS}LINT FAILED: Biome linter found issues. Run 'pnpm lint' locally. Auto-fix with 'pnpm lint:fix'.\n"
+          fi
+          if [[ "${{ steps.typecheck.outcome }}" == "failure" ]]; then
+            FAILED="${FAILED}typecheck,"
+            DETAILS="${DETAILS}TYPECHECK FAILED: TypeScript compilation errors. Run 'pnpm exec tsc --noEmit' locally.\n"
+          fi
+          if [[ "${{ steps.build.outcome }}" == "failure" ]]; then
+            FAILED="${FAILED}build,"
+            DETAILS="${DETAILS}BUILD FAILED: Vite build failed. Run 'pnpm build' locally. Prebuild runs typecheck + icon generation.\n"
+          elif [[ "${{ steps.build.outcome }}" == "skipped" ]]; then
+            FAILED="${FAILED}build,"
+            DETAILS="${DETAILS}BUILD SKIPPED: TypeCheck failed so build was not attempted.\n"
+          fi
+          if [[ "${{ steps.unit.outcome }}" == "failure" ]]; then
+            FAILED="${FAILED}unit,"
+            DETAILS="${DETAILS}UNIT TESTS FAILED: Vitest tests failed. Run 'pnpm test' locally. Check .ci-failure-artifacts/ for coverage and sonar report.\n"
+          fi
+
+          echo "failed_jobs=${FAILED}" >> $GITHUB_OUTPUT
+          echo "failure_details<<EOF" >> $GITHUB_OUTPUT
+          echo -e "${DETAILS}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          if [[ -n "$FAILED" ]]; then
+            echo "::error::Code quality checks failed: ${FAILED}"
+            exit 1
+          fi
+          echo "All code quality checks passed"
+
   # ──────────────────────────────────────────────
-  # Stage 1 failure handler: targeted Jules fix
+  # Stage 1 failure: Jules auto-fix
   # ──────────────────────────────────────────────
   fix-code-quality:
     name: Fix Code Quality Issues
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, build, unit]
+    needs: [code-quality]
     if: failure()
-    permissions:
-      contents: write
-      actions: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -86,36 +126,8 @@ jobs:
           path: ci-artifacts/
         continue-on-error: true
 
-      - name: Determine which jobs failed
-        id: failures
-        run: |
-          FAILED_JOBS=""
-          FAILURE_DETAILS=""
-
-          if [[ "${{ needs.lint.result }}" == "failure" ]]; then
-            FAILED_JOBS="${FAILED_JOBS}lint,"
-            FAILURE_DETAILS="${FAILURE_DETAILS}LINT FAILED: The biome linter found issues. Run 'pnpm lint' locally to see errors. Many issues can be auto-fixed with 'pnpm lint:fix'.\n"
-          fi
-          if [[ "${{ needs.typecheck.result }}" == "failure" ]]; then
-            FAILED_JOBS="${FAILED_JOBS}typecheck,"
-            FAILURE_DETAILS="${FAILURE_DETAILS}TYPECHECK FAILED: TypeScript compilation found type errors. Run 'pnpm exec tsc --noEmit' locally.\n"
-          fi
-          if [[ "${{ needs.build.result }}" == "failure" ]]; then
-            FAILED_JOBS="${FAILED_JOBS}build,"
-            FAILURE_DETAILS="${FAILURE_DETAILS}BUILD FAILED: Vite build failed. Run 'pnpm build' locally. Note: prebuild runs typecheck + icon generation.\n"
-          fi
-          if [[ "${{ needs.unit.result }}" == "failure" ]]; then
-            FAILED_JOBS="${FAILED_JOBS}unit,"
-            FAILURE_DETAILS="${FAILURE_DETAILS}UNIT TESTS FAILED: Vitest tests failed. Run 'pnpm test' locally. Check ci-artifacts/ for coverage and sonar report XML.\n"
-          fi
-
-          echo "failed_jobs=${FAILED_JOBS}" >> $GITHUB_OUTPUT
-          echo "failure_details<<EOF" >> $GITHUB_OUTPUT
-          echo -e "${FAILURE_DETAILS}" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Commit test artifacts to PR branch
-        if: steps.failures.outputs.failed_jobs != '' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -124,13 +136,13 @@ jobs:
             mkdir -p .ci-failure-artifacts
             cp -r ci-artifacts/* .ci-failure-artifacts/ 2>/dev/null || true
             git add .ci-failure-artifacts/
-            git commit -m "[ci-artifacts] Test results from failed code quality checks" --allow-empty || true
+            git commit -m "[ci-artifacts] Test results from failed code quality checks [skip ci]" --allow-empty || true
             git pull --rebase origin ${{ github.head_ref }} || true
             git push origin HEAD:${{ github.head_ref }}
           fi
 
       - name: Invoke Jules for code quality fix
-        if: steps.failures.outputs.failed_jobs != ''
+        if: needs.code-quality.outputs.failed_jobs != ''
         uses: google-labs-code/jules-action@bff7875eaa123cac6742b7cfc51005b95ba4d566
         with:
           prompt: |
@@ -138,11 +150,11 @@ jobs:
 
             **Repository:** arcade-cabinet/psyduck-panic
             **PR Branch:** ${{ github.head_ref }}
-            **Failed Jobs:** ${{ steps.failures.outputs.failed_jobs }}
+            **Failed Jobs:** ${{ needs.code-quality.outputs.failed_jobs }}
             **PR:** #${{ github.event.pull_request.number }}
 
             ### Failure Details
-            ${{ steps.failures.outputs.failure_details }}
+            ${{ needs.code-quality.outputs.failure_details }}
 
             ### Project Context
             - Package manager: pnpm (lockfile: pnpm-lock.yaml)
@@ -161,19 +173,113 @@ jobs:
             6. Run `pnpm lint && pnpm exec tsc --noEmit && pnpm build && pnpm test` to verify your fix before submitting.
             7. Do NOT modify CI workflow files.
             8. Remove the `.ci-failure-artifacts/` directory in your fix commit.
+            9. Use `[skip ci]` in your commit messages.
           jules_api_key: ${{ secrets.GOOGLE_JULES_API_KEY }}
           starting_branch: ${{ github.head_ref }}
           include_last_commit: true
 
+  # ═══════════════════════════════════════════════════
+  # Stage 2: Security & Code Analysis
+  # CodeQL (advanced) + SonarCloud
+  # Uses coverage data from Stage 1 via artifact handoff.
+  # ═══════════════════════════════════════════════════
+  security:
+    name: Security & Code Analysis
+    runs-on: ubuntu-latest
+    needs: [code-quality]
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
+        with:
+          languages: 'javascript-typescript'
+          build-mode: 'none'
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: coverage-reports
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
+
   # ──────────────────────────────────────────────
-  # Stage 2: E2E Smoke Tests (needs build)
+  # Stage 2 failure: Jules auto-fix
   # ──────────────────────────────────────────────
+  fix-security:
+    name: Fix Security Issues
+    runs-on: ubuntu-latest
+    needs: [security]
+    if: failure()
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Invoke Jules for security fix
+        uses: google-labs-code/jules-action@bff7875eaa123cac6742b7cfc51005b95ba4d566
+        with:
+          prompt: |
+            ## Security Analysis Failure — Auto-Fix Request
+
+            **Repository:** arcade-cabinet/psyduck-panic
+            **PR Branch:** ${{ github.head_ref }}
+            **PR:** #${{ github.event.pull_request.number }}
+
+            ### What Failed
+            The security analysis job failed. This job runs CodeQL (GitHub Advanced Security) and SonarCloud analysis.
+
+            ### Possible Causes
+            1. **CodeQL findings**: Security vulnerabilities in JavaScript/TypeScript (XSS, injection, etc.)
+            2. **SonarCloud Quality Gate failure**: Code smells, bugs, vulnerabilities, insufficient coverage, or duplication above threshold
+
+            ### Project Context
+            - Source code is in `src/` (React + TypeScript + Three.js game)
+            - SonarCloud config: `sonar-project.properties` (project key: arcade-cabinet_psyduck-panic)
+            - Coverage reports: `coverage/lcov.info` (generated by Vitest with v8 provider)
+            - Test execution reports: `test-results/sonar-report.xml`
+
+            ### Instructions
+            1. Check the CodeQL and SonarCloud dashboards for specific findings.
+            2. Fix security vulnerabilities first (highest priority).
+            3. Fix code smells and bugs identified by SonarCloud.
+            4. If coverage is too low, add unit tests in `src/**/*.test.ts` files.
+            5. Run `pnpm test:coverage` to verify coverage improvements.
+            6. Do NOT modify CI workflow files or sonar-project.properties.
+            7. Use `[skip ci]` in your commit messages.
+          jules_api_key: ${{ secrets.GOOGLE_JULES_API_KEY }}
+          starting_branch: ${{ github.head_ref }}
+          include_last_commit: true
+
+  # ═══════════════════════════════════════════════════
+  # Stage 3: E2E Smoke Tests
+  # Headed, Desktop Chrome, playthrough + governor default.
+  # Screenshots/video on failure only (playwright.config.ts).
+  # ═══════════════════════════════════════════════════
   e2e-smoke:
     name: E2E Smoke Tests
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.50.0-noble
-    needs: [build]
+    needs: [security]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/setup
@@ -196,16 +302,14 @@ jobs:
           retention-days: 7
 
   # ──────────────────────────────────────────────
-  # Stage 2 failure handler: targeted Jules fix
+  # Stage 3 failure: Jules auto-fix
+  # Commits screenshots/traces to PR branch for Jules context.
   # ──────────────────────────────────────────────
   fix-e2e:
     name: Fix E2E Smoke Failures
     runs-on: ubuntu-latest
     needs: [e2e-smoke]
     if: failure()
-    permissions:
-      contents: write
-      actions: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -229,7 +333,7 @@ jobs:
             mkdir -p .ci-failure-artifacts/e2e
             cp -r e2e-failure-artifacts/* .ci-failure-artifacts/e2e/ 2>/dev/null || true
             git add .ci-failure-artifacts/
-            git commit -m "[ci-artifacts] E2E smoke test results from failed run" --allow-empty || true
+            git commit -m "[ci-artifacts] E2E test results from failed smoke tests [skip ci]" --allow-empty || true
             git pull --rebase origin ${{ github.head_ref }} || true
             git push origin HEAD:${{ github.head_ref }}
           fi
@@ -252,7 +356,7 @@ jobs:
             - Test files: `e2e/game.spec.ts`, `e2e/playthrough.spec.ts`, `e2e/governor.spec.ts` (default test only), `e2e/device-responsive.spec.ts`
             - The game runs via `vite preview --port 4173`
             - Retries: 1 (CI mode)
-            - Traces captured on first retry, screenshots on failure, video retained on failure
+            - Traces on first retry, screenshots on failure, video retained on failure
 
             ### Artifacts
             E2E failure artifacts (screenshots, traces, playwright report) are committed to `.ci-failure-artifacts/e2e/`.
@@ -260,128 +364,31 @@ jobs:
             - `test-results/` contains traces, screenshots, and videos from failed tests
 
             ### Project Context
-            - This is a React + Three.js game ("Psyduck Panic")
-            - The game uses a canvas-based renderer (#gameCanvas) with HTML overlay UI (#overlay, #ui-layer)
+            - React + Three.js game ("Psyduck Panic")
+            - Canvas renderer (#gameCanvas) with HTML overlay UI (#overlay, #ui-layer)
             - Key DOM elements: #overlay, #overlay-title, #start-btn, #ui-layer, #wave-display, #score-display, #combo-display, #panic-bar
             - Game starts via spacebar press or clicking #start-btn
-            - E2E helpers are in `e2e/helpers/game-helpers.ts` and `e2e/helpers/game-governor.ts`
+            - E2E helpers: `e2e/helpers/game-helpers.ts` and `e2e/helpers/game-governor.ts`
 
             ### Instructions
             1. Examine the failure artifacts in `.ci-failure-artifacts/e2e/` to understand what failed.
             2. Fix the APPLICATION code (under `src/`), not the test code, unless the tests are clearly wrong.
-            3. Common issues: missing DOM elements, timing issues (increase waits), CSS class changes, game state not transitioning correctly.
+            3. Common issues: missing DOM elements, timing issues, CSS class changes, game state not transitioning correctly.
             4. Run `pnpm build && pnpm exec playwright test --project="Desktop Chrome" --grep-invert "@matrix"` to verify.
             5. Do NOT modify CI workflow files or playwright.config.ts.
             6. Remove the `.ci-failure-artifacts/` directory in your fix commit.
+            7. Use `[skip ci]` in your commit messages.
           jules_api_key: ${{ secrets.GOOGLE_JULES_API_KEY }}
           starting_branch: ${{ github.head_ref }}
           include_last_commit: true
 
-  # ──────────────────────────────────────────────
-  # Security: Advanced CodeQL + SonarCloud
-  # ──────────────────────────────────────────────
-  security:
-    name: Security & Code Analysis
-    runs-on: ubuntu-latest
-    needs: [unit]
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
-        with:
-          languages: 'javascript-typescript'
-          build-mode: 'none'
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6 # v4.32.3
-
-      - name: Download coverage reports
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-        with:
-          name: coverage-reports
-
-      - name: List coverage files
-        run: |
-          echo "Coverage directory contents:"
-          ls -la coverage/ || echo "coverage directory not found"
-          echo "Test results directory contents:"
-          ls -la test-results/ || echo "test-results directory not found"
-
-      - name: SonarCloud Scan
-        uses: sonarsource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
-        with:
-          args: >
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.head_ref }}
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
-
-  # ──────────────────────────────────────────────
-  # Security failure handler: targeted Jules fix
-  # ──────────────────────────────────────────────
-  fix-security:
-    name: Fix Security Issues
-    runs-on: ubuntu-latest
-    needs: [security]
-    if: failure()
-    permissions:
-      contents: write
-      actions: read
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ github.head_ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Invoke Jules for security fix
-        uses: google-labs-code/jules-action@bff7875eaa123cac6742b7cfc51005b95ba4d566
-        with:
-          prompt: |
-            ## Security Analysis Failure — Auto-Fix Request
-
-            **Repository:** arcade-cabinet/psyduck-panic
-            **PR Branch:** ${{ github.head_ref }}
-            **PR:** #${{ github.event.pull_request.number }}
-
-            ### What Failed
-            The security analysis job failed. This job runs both CodeQL (GitHub Advanced Security) and SonarCloud analysis.
-
-            ### Possible Causes
-            1. **CodeQL findings**: Security vulnerabilities detected in JavaScript/TypeScript code (XSS, injection, etc.)
-            2. **SonarCloud Quality Gate failure**: Code smells, bugs, vulnerabilities, insufficient coverage on new code, or duplication above threshold
-
-            ### Project Context
-            - Source code is in `src/` (React + TypeScript + Three.js game)
-            - SonarCloud config: `sonar-project.properties` (project key: arcade-cabinet_psyduck-panic)
-            - Coverage reports are generated by Vitest with v8 provider to `coverage/lcov.info`
-            - Test execution reports: `test-results/sonar-report.xml`
-
-            ### Instructions
-            1. Check the CodeQL and SonarCloud dashboards for specific findings.
-            2. Fix security vulnerabilities first (highest priority).
-            3. Fix code smells and bugs identified by SonarCloud.
-            4. If coverage is too low, add unit tests in `src/**/*.test.ts` files.
-            5. Run `pnpm test:coverage` to verify coverage improvements.
-            6. Do NOT modify CI workflow files or sonar-project.properties.
-          jules_api_key: ${{ secrets.GOOGLE_JULES_API_KEY }}
-          starting_branch: ${{ github.head_ref }}
-          include_last_commit: true
-
-  # ──────────────────────────────────────────────
-  # Cleanup: remove committed test artifacts
-  # ──────────────────────────────────────────────
+  # ═══════════════════════════════════════════════════
+  # Cleanup: remove test artifacts after ALL stages pass
+  # ═══════════════════════════════════════════════════
   cleanup:
     name: Cleanup CI Artifacts
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, build, unit, e2e-smoke, security]
+    needs: [code-quality, security, e2e-smoke]
     if: success()
     permissions:
       contents: write
@@ -397,39 +404,25 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git rm -rf .ci-failure-artifacts/
-            git commit -m "[ci-cleanup] Remove CI failure artifacts after successful run"
+            git commit -m "[ci-cleanup] Remove CI failure artifacts after successful run [skip ci]"
             git push origin HEAD:${{ github.head_ref }}
           else
             echo "No CI failure artifacts to clean up"
           fi
 
-  # ──────────────────────────────────────────────
-  # Finalize: CI gate + PR comments
-  # ──────────────────────────────────────────────
-
-  # Collector job that ensures all checks pass
+  # ═══════════════════════════════════════════════════
+  # CI Gate + PR Reports
+  # ═══════════════════════════════════════════════════
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, typecheck, unit, build, security, e2e-smoke]
+    needs: [code-quality, security, e2e-smoke]
     steps:
       - name: Check CI status
         run: |
-          if [[ "${{ needs.lint.result }}" != "success" ]]; then
-            echo "Lint failed"
-            exit 1
-          fi
-          if [[ "${{ needs.typecheck.result }}" != "success" ]]; then
-            echo "Type check failed"
-            exit 1
-          fi
-          if [[ "${{ needs.unit.result }}" != "success" ]]; then
-            echo "Unit tests failed"
-            exit 1
-          fi
-          if [[ "${{ needs.build.result }}" != "success" ]]; then
-            echo "Build failed"
+          if [[ "${{ needs.code-quality.result }}" != "success" ]]; then
+            echo "Code quality failed"
             exit 1
           fi
           if [[ "${{ needs.security.result }}" != "success" ]]; then
@@ -442,65 +435,52 @@ jobs:
           fi
           echo "All CI checks passed"
 
-  # Post PR comment with CI results
   pr-comment:
     name: Update PR with CI Results
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, typecheck, unit, build, e2e-smoke, security, ci-success]
+    needs: [code-quality, security, e2e-smoke, ci-success]
     permissions:
       pull-requests: write
     steps:
       - name: Generate CI summary
         id: summary
         run: |
-          # Determine overall status
           if [[ "${{ needs.ci-success.result }}" == "success" ]]; then
             STATUS="**CI Passed**"
-            EMOJI="pass"
           else
             STATUS="**CI Failed**"
-            EMOJI="fail"
           fi
 
-          # Build detailed results
           {
             echo "## CI Results for PR #${{ github.event.pull_request.number }}"
             echo ""
             echo "${STATUS}"
             echo ""
-            echo "### Job Results"
-            echo "| Job | Status |"
-            echo "|-----|--------|"
-            echo "| Lint | ${{ (needs.lint.result == 'success' && 'Passed') || (needs.lint.result == 'skipped' && 'Skipped') || (needs.lint.result == 'cancelled' && 'Cancelled') || 'Failed' }} |"
-            echo "| Type Check | ${{ (needs.typecheck.result == 'success' && 'Passed') || (needs.typecheck.result == 'skipped' && 'Skipped') || (needs.typecheck.result == 'cancelled' && 'Cancelled') || 'Failed' }} |"
-            echo "| Unit Tests | ${{ (needs.unit.result == 'success' && 'Passed') || (needs.unit.result == 'skipped' && 'Skipped') || (needs.unit.result == 'cancelled' && 'Cancelled') || 'Failed' }} |"
-            echo "| Build | ${{ (needs.build.result == 'success' && 'Passed') || (needs.build.result == 'skipped' && 'Skipped') || (needs.build.result == 'cancelled' && 'Cancelled') || 'Failed' }} |"
-            echo "| E2E Smoke Tests | ${{ (needs.e2e-smoke.result == 'success' && 'Passed') || (needs.e2e-smoke.result == 'skipped' && 'Skipped') || (needs.e2e-smoke.result == 'cancelled' && 'Cancelled') || 'Failed' }} |"
-            echo "| Security & Code Analysis | ${{ (needs.security.result == 'success' && 'Passed') || (needs.security.result == 'skipped' && 'Skipped') || (needs.security.result == 'cancelled' && 'Cancelled') || 'Failed' }} |"
+            echo "### Pipeline Stages (sequential)"
+            echo "| Stage | Status |"
+            echo "|-------|--------|"
+            echo "| 1. Code Quality (Lint, TypeCheck, Build, Tests) | ${{ (needs.code-quality.result == 'success' && 'Passed') || (needs.code-quality.result == 'skipped' && 'Skipped') || (needs.code-quality.result == 'cancelled' && 'Cancelled') || 'Failed' }} |"
+            echo "| 2. Security & Code Analysis (CodeQL, SonarCloud) | ${{ (needs.security.result == 'success' && 'Passed') || (needs.security.result == 'skipped' && 'Skipped') || (needs.security.result == 'cancelled' && 'Cancelled') || 'Failed' }} |"
+            echo "| 3. E2E Smoke Tests (Desktop Chrome) | ${{ (needs.e2e-smoke.result == 'success' && 'Passed') || (needs.e2e-smoke.result == 'skipped' && 'Skipped') || (needs.e2e-smoke.result == 'cancelled' && 'Cancelled') || 'Failed' }} |"
             echo ""
-            echo "### Quick Actions"
           } > summary.md
 
-          # Add failure-specific guidance
-          if [[ "${{ needs.lint.result }}" != "success" ]]; then
-            echo "- Run \`pnpm lint:fix\` to auto-fix linting issues" >> summary.md
+          # Failure-specific guidance
+          if [[ "${{ needs.code-quality.result }}" != "success" ]]; then
+            {
+              echo "### Code Quality Failures: ${{ needs.code-quality.outputs.failed_jobs }}"
+              echo "A Jules auto-fix PR has been dispatched. It will auto-merge when ready."
+              echo ""
+            } >> summary.md
           fi
 
-          if [[ "${{ needs.typecheck.result }}" != "success" ]]; then
-            echo "- Run \`pnpm exec tsc --noEmit\` to check types locally" >> summary.md
-          fi
-
-          if [[ "${{ needs.unit.result }}" != "success" ]]; then
-            echo "- Run \`pnpm test\` to reproduce unit test failures" >> summary.md
+          if [[ "${{ needs.security.result }}" == "failure" ]]; then
+            echo "- Check CodeQL and SonarCloud dashboards for security findings" >> summary.md
           fi
 
           if [[ "${{ needs.e2e-smoke.result }}" == "failure" ]]; then
-            echo "- Run \`pnpm exec playwright test --project=\"Desktop Chrome\"\` to debug E2E tests" >> summary.md
-          fi
-
-          if [[ "${{ needs.security.result }}" != "success" ]]; then
-            echo "- Check CodeQL and SonarCloud dashboards for security findings" >> summary.md
+            echo "- E2E failure artifacts committed to branch. Check \`.ci-failure-artifacts/e2e/\`" >> summary.md
           fi
 
           if [[ "${{ needs.ci-success.result }}" == "success" ]]; then
@@ -513,11 +493,9 @@ jobs:
             {
               echo ""
               echo "---"
-              echo "_Please fix the failing checks before requesting review._"
+              echo "_A Jules auto-fix PR may be in progress. CI will re-run after the fix merges._"
             } >> summary.md
           fi
-
-          echo "summary_file=summary.md" >> $GITHUB_OUTPUT
 
       - name: Post or update PR comment
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
@@ -526,7 +504,6 @@ jobs:
             const fs = require('fs');
             const summary = fs.readFileSync('summary.md', 'utf8');
 
-            // Find existing comment
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -539,26 +516,22 @@ jobs:
             );
 
             if (botComment) {
-              // Update existing comment
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: botComment.id,
                 body: summary
               });
-              console.log('Updated existing PR comment');
             } else {
-              // Create new comment
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
                 body: summary
               });
-              console.log('Created new PR comment');
             }
 
-  # Post detailed SonarCloud analysis as PR comment (single pane of glass)
+  # SonarCloud detailed PR report
   sonar-pr-comment:
     name: SonarCloud PR Report
     runs-on: ubuntu-latest
@@ -616,19 +589,16 @@ jobs:
           BASE="https://sonarcloud.io"
           AUTH="Authorization: Bearer ${SONAR_TOKEN}"
 
-          # Quality Gate conditions
           echo "Fetching quality gate..."
           curl -sf -H "${AUTH}" \
             "${BASE}/api/qualitygates/project_status?projectKey=${PROJECT}&pullRequest=${PR_NUMBER}" \
             -o quality_gate.json
 
-          # Measures
           echo "Fetching measures..."
           curl -sf -H "${AUTH}" \
             "${BASE}/api/measures/component?component=${PROJECT}&pullRequest=${PR_NUMBER}&metricKeys=new_coverage,new_code_smells,new_bugs,new_vulnerabilities,new_security_hotspots,new_duplicated_lines_density,new_technical_debt" \
             -o measures.json
 
-          # Issues (paginated)
           echo "Fetching issues..."
           PAGE=1
           TOTAL=0
@@ -655,13 +625,11 @@ jobs:
             fi
           done
 
-          # Security Hotspots
           echo "Fetching hotspots..."
           curl -sf -H "${AUTH}" \
             "${BASE}/api/hotspots/search?projectKey=${PROJECT}&pullRequest=${PR_NUMBER}&ps=500" \
             -o hotspots.json 2>/dev/null || echo '{"hotspots":[],"paging":{"total":0}}' > hotspots.json
 
-          # Combine
           jq -n \
             --slurpfile qg quality_gate.json \
             --slurpfile measures measures.json \
@@ -696,13 +664,11 @@ jobs:
               if (data) body = formatReport(data);
             }
 
-            // Truncate if needed
             if (body.length > MAX_BODY) {
               const msg = `\n\n---\n:warning: **Truncated** — [view full results on SonarCloud](${dashboardUrl})\n`;
               body = body.substring(0, MAX_BODY - msg.length) + msg;
             }
 
-            // Post or update
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber,
             });
@@ -727,7 +693,6 @@ jobs:
               const qgLabel = qgStatus === 'OK' ? 'PASSED' : qgStatus === 'ERROR' ? 'FAILED' : qgStatus;
               L.push(`## ${qgEmoji} SonarCloud Quality Gate: **${qgLabel}**`, '');
 
-              // Quality Gate conditions
               const conditions = data.quality_gate?.projectStatus?.conditions || [];
               if (conditions.length) {
                 L.push('<details>', '<summary>Quality Gate Conditions</summary>', '',
@@ -740,7 +705,6 @@ jobs:
                 L.push('', '</details>', '');
               }
 
-              // Measures
               const measures = {};
               for (const m of (data.measures?.component?.measures || [])) {
                 measures[m.metric] = m.period?.value ?? m.value ?? '-';
@@ -760,7 +724,6 @@ jobs:
               if (measures.new_technical_debt !== undefined) L.push(`| Technical Debt | ${measures.new_technical_debt} |`);
               L.push('');
 
-              // Issues
               const issues = data.issues || [];
               if (issues.length === 0) {
                 L.push('### :tada: No Issues Found', '');
@@ -788,13 +751,11 @@ jobs:
                 for (const s of sevOrder) if (bySev[s]) L.push(`| ${sevEmoji[s]||''} ${s} | ${bySev[s].length} |`);
                 L.push('');
 
-                // Detailed per severity
                 for (const s of sevOrder) {
                   const si = bySev[s];
                   if (!si || !si.length) continue;
                   L.push(`<details>`, `<summary>${sevEmoji[s]||''} ${s} (${si.length})</summary>`, '');
 
-                  // Group by file
                   const byFile = {};
                   for (const i of si) {
                     const comp = i.component || '';
@@ -815,7 +776,6 @@ jobs:
                 }
               }
 
-              // Security Hotspots
               const hotspots = data.hotspots?.hotspots || [];
               if (hotspots.length) {
                 L.push(`### Security Hotspots (${hotspots.length})`, '', '<details>', '<summary>View hotspots</summary>', '',
