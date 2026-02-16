@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+  type DeviceInfo,
   calculateViewport,
   createResizeObserver,
   detectDevice,
@@ -120,7 +121,7 @@ describe('device-utils', () => {
 
     test('safely handles missing visualViewport', () => {
       // Ensure visualViewport is undefined
-      // @ts-expect-error
+      // @ts-ignore
       Object.defineProperty(window, 'visualViewport', { value: undefined });
 
       // Should not throw
@@ -130,7 +131,7 @@ describe('device-utils', () => {
 
     test('detects foldable via window segments if available', () => {
       const getWindowSegments = vi.fn().mockReturnValue([{ x: 0 }, { x: 100 }]);
-      // @ts-expect-error
+      // @ts-ignore
       Object.defineProperty(window, 'visualViewport', {
         value: {
           getWindowSegments,

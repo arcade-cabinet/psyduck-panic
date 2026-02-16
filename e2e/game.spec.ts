@@ -25,12 +25,13 @@ test.describe('Psyduck Panic Game', () => {
     const canvas = page.locator('#gameCanvas');
     await expect(canvas).toBeVisible();
 
-    // Check width attribute is at least 800 (Pixi autoDensity might scale it up)
-    const width = await canvas.getAttribute('width');
-    expect(Number(width)).toBeGreaterThanOrEqual(800);
+    // Check dimensions and aspect ratio
+    const width = Number(await canvas.getAttribute('width'));
+    const height = Number(await canvas.getAttribute('height'));
 
-    const height = await canvas.getAttribute('height');
-    expect(Number(height)).toBeGreaterThanOrEqual(600);
+    expect(width).toBeGreaterThanOrEqual(800);
+    expect(height).toBeGreaterThanOrEqual(600);
+    expect(width / height).toBeCloseTo(4 / 3, 1);
   });
 
   test('should have control buttons', async ({ page }) => {
