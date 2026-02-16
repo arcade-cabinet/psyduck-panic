@@ -46,7 +46,6 @@ describe('device-utils', () => {
     });
 
     // Ensure ontouchstart is undefined for desktop tests
-    // @ts-expect-error
     delete window.ontouchstart;
   });
 
@@ -113,7 +112,7 @@ describe('device-utils', () => {
 
     test('safely handles missing visualViewport', () => {
       // Ensure visualViewport is undefined
-      // @ts-expect-error
+      // @ts-ignore
       window.visualViewport = undefined;
 
       // Should not throw
@@ -123,10 +122,9 @@ describe('device-utils', () => {
 
     test('detects foldable via window segments if available', () => {
       const getWindowSegments = vi.fn().mockReturnValue([{ x: 0 }, { x: 100 }]);
-      // @ts-expect-error
       window.visualViewport = {
         getWindowSegments,
-      };
+      } as any;
 
       const info = detectDevice();
       expect(info.isFoldable).toBe(true);
