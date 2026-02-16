@@ -45,12 +45,7 @@ export default defineConfig({
     {
       name: 'iPad Pro 11 Portrait',
       use: {
-        viewport: { width: 834, height: 1194 },
-        userAgent:
-          'Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
-        deviceScaleFactor: 2,
-        isMobile: true,
-        hasTouch: true,
+        ...devices['iPad Pro 11'],
       },
       testMatch: /.*\.(spec|test)\.ts/, // Run all tests
     },
@@ -120,18 +115,14 @@ export default defineConfig({
         deviceScaleFactor: 2,
         isMobile: true,
         hasTouch: true,
+        defaultBrowserType: 'webkit',
       },
       testMatch: /device-responsive\.spec\.ts/,
     },
     {
       name: 'iPad Pro 11 Landscape',
       use: {
-        viewport: { width: 1194, height: 834 },
-        userAgent:
-          'Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
-        deviceScaleFactor: 2,
-        isMobile: true,
-        hasTouch: true,
+        ...devices['iPad Pro 11 landscape'],
       },
       testMatch: /.*\.(spec|test)\.ts/, // Run all tests
     },
