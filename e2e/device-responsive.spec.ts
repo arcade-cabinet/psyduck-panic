@@ -114,8 +114,14 @@ test.describe('Responsive Device Tests', () => {
 });
 
 test.describe('Phone-Specific Tests', () => {
-  test('should have touch-friendly button sizes on phones', async ({ page, isMobile }) => {
-    test.skip(!isMobile, 'This test is only for mobile devices');
+  test('should have touch-friendly button sizes on phones', async ({
+    page,
+    isMobile,
+    viewport,
+  }) => {
+    // Skip if not mobile or if it's a tablet (width >= 600)
+    const isTablet = viewport && Math.min(viewport.width, viewport.height) >= 600;
+    test.skip(!isMobile || !!isTablet, 'This test is only for mobile phone devices');
 
     await page.goto('/game');
     const startBtn = page.locator('#start-btn');
@@ -140,8 +146,10 @@ test.describe('Phone-Specific Tests', () => {
     }
   });
 
-  test('should handle touch interactions on phones', async ({ page, isMobile }) => {
-    test.skip(!isMobile, 'This test is only for mobile devices');
+  test('should handle touch interactions on phones', async ({ page, isMobile, viewport }) => {
+    // Skip if not mobile or if it's a tablet (width >= 600)
+    const isTablet = viewport && Math.min(viewport.width, viewport.height) >= 600;
+    test.skip(!isMobile || !!isTablet, 'This test is only for mobile phone devices');
 
     await page.goto('/game');
 
