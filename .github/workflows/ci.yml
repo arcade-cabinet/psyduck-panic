@@ -6,7 +6,6 @@ concurrency:
 
 on:
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 
@@ -83,6 +82,12 @@ jobs:
         uses: sonarsource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
 
   e2e-smoke:
     name: E2E Smoke Tests - Desktop Chrome

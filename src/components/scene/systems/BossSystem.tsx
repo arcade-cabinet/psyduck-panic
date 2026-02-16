@@ -5,7 +5,7 @@
  * - Pulsing red glow
  * - Orbiting color orbs (reality/history/logic)
  * - iFrame flash effect
- * - Boss emoji (Hype Train on wave 3, Singularity on wave 5)
+ * - Boss emoji (train for waves 1-3, brain for wave 4+)
  * - HP bar rendered in HTML overlay (not here)
  */
 
