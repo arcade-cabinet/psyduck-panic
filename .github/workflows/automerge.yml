@@ -25,7 +25,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           checkName: CI Success
           ref: ${{ github.event.pull_request.head.sha }}
-          timeoutSeconds: 1800
+          timeoutSeconds: 3600
           intervalSeconds: 30
 
       - name: Check CI result
