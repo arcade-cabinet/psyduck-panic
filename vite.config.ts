@@ -21,7 +21,8 @@ export default defineConfig({
         manualChunks: {
           // Vendor chunks
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-pixi': ['pixi.js'],
+          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
+          'vendor-tone': ['tone'],
           'vendor-anime': ['animejs'],
 
           // Capacitor chunks (lazy loaded)
@@ -40,7 +41,7 @@ export default defineConfig({
             './src/lib/constants.ts',
             './src/lib/events.ts',
           ],
-          'game-renderer': ['./src/lib/pixi-renderer.ts', './src/lib/character-renderer.ts'],
+          'game-ecs': ['./src/ecs/world.ts', './src/ecs/react.ts', './src/ecs/state-sync.ts'],
           'game-utils': [
             './src/lib/audio.ts',
             './src/lib/storage.ts',

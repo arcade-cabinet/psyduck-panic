@@ -5,7 +5,16 @@ export type GameEvent =
   | { type: 'PARTICLE'; x: number; y: number; color: string }
   | { type: 'CONFETTI'; x: number; y: number; color: string }
   | { type: 'FEED'; handle: string; text: string; stat: string }
-  | { type: 'GAME_OVER'; score: number; win: boolean }
+  | {
+      type: 'GAME_OVER';
+      score: number;
+      win: boolean;
+      totalC: number;
+      totalM: number;
+      maxCombo: number;
+      nukesUsed: number;
+      wavesCleared: number;
+    }
   | { type: 'WAVE_START'; wave: number; title: string; sub: string }
   | { type: 'BOSS_START'; name: string; hp: number }
   | { type: 'BOSS_HIT'; hp: number; maxHp: number }

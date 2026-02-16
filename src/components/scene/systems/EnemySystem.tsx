@@ -1,0 +1,130 @@
+/**
+ * Enemy Rendering System
+ *
+ * Renders each enemy entity as a 3D bubble with:
+ * - Colored sphere with glow
+ * - Type icon (emoji)
+ * - Word label
+ * - Connection line to character
+ * - Variant effects (encrypted: "?", child: smaller)
+ *
+ * Uses miniplex ECS to iterate enemy entities.
+ * Coordinates: game space (800x600) mapped to scene space via g2s().
+ */
+
+import { Billboard, Line, Text } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import { useRef } from 'react';
+import type * as THREE from 'three';
+import { ECS } from '../../../ecs/react';
+import { enemies } from '../../../ecs/world';
+import { GAME_WIDTH } from '../../../lib/constants';
+
+/** Convert game X (0-800) to scene X (-4 to 4) */
+function gx(x: number): number {
+  return (x - GAME_WIDTH / 2) / 100;
+}
+
+/** Convert game Y (0-600) to scene Y (3 to -3) */
+function gy(y: number): number {
+  return -(y - 300) / 100;
+}
+
+export function EnemySystem() {
+  return (
+    <ECS.Entities in={enemies}>
+      {(entity) => <EnemyMesh key={entity.enemy.gameId} entity={entity} />}
+    </ECS.Entities>
+  );
+}
+
+function EnemyMesh({ entity }: { entity: (typeof enemies.entities)[number] }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const { position, enemy } = entity;
+  const isEncrypted = enemy.encrypted;
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    // Smooth position update
+    groupRef.current.position.x = gx(position.x);
+    groupRef.current.position.y = gy(position.y);
+    groupRef.current.position.z = position.z;
+
+    // Gentle float bob
+    groupRef.current.position.y += Math.sin(clock.elapsedTime * 2 + entity.enemy.gameId) * 0.02;
+  });
+
+  const displayColor = isEncrypted ? '#444444' : enemy.color;
+  const radius = enemy.variant === 'child' ? 0.2 : 0.3;
+
+  return (
+    <group ref={groupRef}>
+      {/* Glow sphere (larger, transparent) */}
+      <mesh>
+        <sphereGeometry args={[radius + 0.1, 16, 16]} />
+        <meshBasicMaterial color={displayColor} transparent opacity={0.08} />
+      </mesh>
+
+      {/* Main bubble */}
+      <mesh>
+        <sphereGeometry args={[radius, 16, 16]} />
+        <meshStandardMaterial
+          color={displayColor}
+          emissive={displayColor}
+          emissiveIntensity={0.3}
+          roughness={0.4}
+          metalness={0.1}
+        />
+      </mesh>
+
+      {/* Highlight spot */}
+      <mesh position={[-0.06, 0.08, radius * 0.9]}>
+        <circleGeometry args={[0.06, 8]} />
+        <meshBasicMaterial color="white" transparent opacity={0.2} />
+      </mesh>
+
+      {/* Icon */}
+      <Billboard position={[0, 0.05, radius + 0.01]}>
+        <Text fontSize={0.14} anchorX="center" anchorY="middle">
+          {isEncrypted ? '?' : enemy.icon}
+        </Text>
+      </Billboard>
+
+      {/* Word label */}
+      {!isEncrypted && (
+        <Billboard position={[0, -0.12, radius + 0.01]}>
+          <Text
+            fontSize={0.06}
+            color="white"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.005}
+            outlineColor="black"
+          >
+            {enemy.word}
+          </Text>
+        </Billboard>
+      )}
+
+      {/* Connection line to character (center) */}
+      {!isEncrypted && (
+        <Line
+          points={[
+            [0, 0, 0],
+            [-gx(position.x), -gy(position.y) + gy(400), 0],
+          ]}
+          color="white"
+          lineWidth={0.5}
+          transparent
+          opacity={0.04}
+          dashed
+          dashSize={0.1}
+          gapSize={0.15}
+        />
+      )}
+
+      {/* Point light for bubble glow */}
+      <pointLight color={displayColor} intensity={0.5} distance={1.5} decay={2} />
+    </group>
+  );
+}

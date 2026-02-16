@@ -1,3 +1,4 @@
+import { Canvas } from '@react-three/fiber';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { SFX } from '../lib/audio';
 import { GAME_HEIGHT, GAME_WIDTH, WAVES } from '../lib/constants';
@@ -8,121 +9,23 @@ import {
   type ViewportDimensions,
 } from '../lib/device-utils';
 import type { GameState } from '../lib/events';
-import { PixiRenderer } from '../lib/pixi-renderer';
+import { calculateAccuracy, calculateGrade } from '../lib/grading';
+import { AdaptiveMusic } from '../lib/music';
 import { saveScore } from '../lib/storage';
+import { initialUIState, type UIState, uiReducer } from '../lib/ui-state';
+import { GameScene, type GameSceneHandle } from './scene/GameScene';
 import '../styles/game.css';
 
 // Worker type definition
 import GameWorker from '../worker/game.worker.ts?worker';
 
-type UIState = {
-  screen: 'start' | 'playing' | 'gameover' | 'endless_transition';
-  score: number;
-  wave: number;
-  panic: number;
-  combo: number;
-  maxCombo: number;
-  time: number;
-  win: boolean;
-  nukeCd: number;
-  nukeMax: number;
-  abilityCd: { reality: number; history: number; logic: number };
-  abilityMax: { reality: number; history: number; logic: number };
-  pu: { slow: number; shield: number; double: number };
-  waveTitle: string;
-  waveSub: string;
-  showWave: boolean;
-  boss: { name: string; hp: number; maxHp: number } | null;
-  feed: { handle: string; text: string; stat: string; id: number }[];
-};
-
-const initialState: UIState = {
-  screen: 'start',
-  score: 0,
-  wave: 0,
-  panic: 0,
-  combo: 0,
-  maxCombo: 0,
-  time: 0,
-  win: false,
-  nukeCd: 0,
-  nukeMax: 1,
-  abilityCd: { reality: 0, history: 0, logic: 0 },
-  abilityMax: { reality: 1, history: 1, logic: 1 },
-  pu: { slow: 0, shield: 0, double: 0 },
-  waveTitle: '',
-  waveSub: '',
-  showWave: false,
-  boss: null,
-  feed: [],
-};
-
-type Action =
-  | { type: 'UPDATE_STATE'; state: GameState }
-  | { type: 'GAME_OVER'; score: number; win: boolean }
-  | { type: 'START_GAME' }
-  | { type: 'START_ENDLESS' }
-  | { type: 'WAVE_START'; title: string; sub: string }
-  | { type: 'HIDE_WAVE' }
-  | { type: 'ADD_FEED'; item: { handle: string; text: string; stat: string } }
-  | { type: 'BOSS_START'; name: string; hp: number }
-  | { type: 'BOSS_HIT'; hp: number; maxHp: number }
-  | { type: 'BOSS_DIE' };
-
-function uiReducer(state: UIState, action: Action): UIState {
-  switch (action.type) {
-    case 'UPDATE_STATE':
-      return {
-        ...state,
-        score: action.state.score,
-        wave: action.state.wave,
-        panic: action.state.panic,
-        combo: action.state.combo,
-        time: action.state.waveTime,
-        nukeCd: action.state.nukeCd,
-        nukeMax: action.state.nukeMax,
-        abilityCd: action.state.abilityCd,
-        abilityMax: action.state.abilityMax,
-        pu: action.state.pu,
-      };
-    case 'GAME_OVER':
-      return { ...state, screen: 'gameover', win: action.win, score: action.score };
-    case 'START_GAME':
-      return { ...initialState, screen: 'playing' };
-    case 'START_ENDLESS':
-      return { ...state, screen: 'playing' };
-    case 'WAVE_START':
-      return { ...state, showWave: true, waveTitle: action.title, waveSub: action.sub };
-    case 'HIDE_WAVE':
-      return { ...state, showWave: false };
-    case 'ADD_FEED':
-      return {
-        ...state,
-        feed: [{ ...action.item, id: Date.now() + Math.random() }, ...state.feed.slice(0, 2)],
-      };
-    case 'BOSS_START':
-      return { ...state, boss: { name: action.name, hp: action.hp, maxHp: action.hp } };
-    case 'BOSS_HIT':
-      return {
-        ...state,
-        boss: state.boss ? { ...state.boss, hp: action.hp, maxHp: action.maxHp } : null,
-      };
-    case 'BOSS_DIE':
-      return { ...state, boss: null };
-    default:
-      return state;
-  }
-}
-
 export default function Game() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sceneRef = useRef<GameSceneHandle>(null);
   const workerRef = useRef<Worker | null>(null);
-  const rendererRef = useRef<PixiRenderer | null>(null);
   const sfxRef = useRef<SFX | null>(null);
-  const [ui, dispatch] = useReducer(uiReducer, initialState);
+  const musicRef = useRef<AdaptiveMusic | null>(null);
+  const [ui, dispatch] = useReducer(uiReducer, initialUIState);
   const [viewport, setViewport] = useState<ViewportDimensions>(() => {
-    // Initialize viewport immediately if window is available
-    // to prevent flash of wrong size (e.g., 800x600 on mobile)
     if (typeof window !== 'undefined') {
       const deviceInfo = detectDevice();
       return calculateViewport(GAME_WIDTH, GAME_HEIGHT, deviceInfo);
@@ -137,13 +40,11 @@ export default function Game() {
     };
   });
 
-  // Ref to hold the latest UI state for event handlers
   const uiRef = useRef(ui);
   useEffect(() => {
     uiRef.current = ui;
   }, [ui]);
 
-  // Ref to hold the latest viewport for pointer events
   const viewportRef = useRef(viewport);
   useEffect(() => {
     viewportRef.current = viewport;
@@ -154,26 +55,32 @@ export default function Game() {
     const deviceInfo = detectDevice();
     const initialViewport = calculateViewport(GAME_WIDTH, GAME_HEIGHT, deviceInfo);
     setViewport(initialViewport);
-
-    // Set up resize observer
     const cleanup = createResizeObserver((newViewport) => {
       setViewport(newViewport);
     });
-
     return cleanup;
   }, []);
 
-  // Initialize SFX
+  // Initialize SFX + Music
   useEffect(() => {
     sfxRef.current = new SFX();
     sfxRef.current.init();
+
+    const music = new AdaptiveMusic();
+    music.init();
+    musicRef.current = music;
+
+    return () => {
+      music.destroy();
+    };
   }, []);
 
-  // Consolidate start logic
-  // This logic works for both Spacebar (via listener) and Click (via button)
-  // `currentState` arg allows the event listener to pass the ref value
+  // Start logic
   const handleStartLogic = useCallback((currentState: UIState) => {
     sfxRef.current?.resume();
+    musicRef.current?.resume();
+    sceneRef.current?.reset();
+
     if (currentState.win && currentState.screen === 'gameover') {
       dispatch({ type: 'START_ENDLESS' });
       workerRef.current?.postMessage({ type: 'START', endless: true });
@@ -183,22 +90,12 @@ export default function Game() {
     }
   }, []);
 
-  // Button click handler - uses current state from closure
   const handleStartButton = () => {
     handleStartLogic(ui);
   };
 
-  // Initialize Game (Renderer & Worker)
+  // Initialize Worker
   useEffect(() => {
-    if (!canvasRef.current) return;
-
-    // Initialize Renderer
-    const renderer = new PixiRenderer();
-    renderer.init(canvasRef.current).then(() => {
-      rendererRef.current = renderer;
-    });
-
-    // Initialize Worker
     const worker = new GameWorker();
     workerRef.current = worker;
 
@@ -207,8 +104,11 @@ export default function Game() {
       if (msg.type === 'STATE') {
         const state = msg.state as GameState;
 
-        // Sync Renderer
-        rendererRef.current?.update(state);
+        // Update 3D scene via ref
+        sceneRef.current?.updateState(state);
+
+        // Update adaptive music panic level
+        musicRef.current?.setPanic(state.panic);
 
         // Sync UI
         dispatch({ type: 'UPDATE_STATE', state });
@@ -217,18 +117,39 @@ export default function Game() {
         for (const event of state.events) {
           switch (event.type) {
             case 'SFX':
-              // @ts-expect-error
-              sfxRef.current?.[event.name]?.(...(event.args || []));
+              if (event.name === 'startMusic') {
+                // Use Tone.js adaptive music instead of SFX music
+                musicRef.current?.start((event.args?.[0] as number) ?? 0);
+              } else if (event.name === 'stopMusic') {
+                musicRef.current?.stop();
+              } else {
+                // @ts-expect-error dynamic SFX method call
+                sfxRef.current?.[event.name]?.(...(event.args || []));
+              }
               break;
             case 'PARTICLE':
-              rendererRef.current?.spawnParticles(event.x, event.y, event.color);
+              sceneRef.current?.spawnParticles(event.x, event.y, event.color);
               break;
             case 'CONFETTI':
-              rendererRef.current?.spawnConfetti(event.x, event.y);
+              sceneRef.current?.spawnConfetti();
               break;
             case 'GAME_OVER':
-              dispatch({ type: 'GAME_OVER', score: event.score, win: event.win });
+              dispatch({
+                type: 'GAME_OVER',
+                score: event.score,
+                win: event.win,
+                stats: {
+                  totalC: event.totalC,
+                  totalM: event.totalM,
+                  maxCombo: event.maxCombo,
+                  nukesUsed: event.nukesUsed,
+                  wavesCleared: event.wavesCleared,
+                },
+              });
               saveScore(event.score);
+              if (event.win) {
+                sceneRef.current?.spawnConfetti();
+              }
               break;
             case 'WAVE_START':
               dispatch({ type: 'WAVE_START', title: event.title, sub: event.sub });
@@ -256,12 +177,9 @@ export default function Game() {
 
     // Keyboard controls
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Use uiRef to access latest state
       const currentUI = uiRef.current;
-
       if (e.key === ' ') {
         e.preventDefault();
-
         if (currentUI.screen === 'start' || currentUI.screen === 'gameover') {
           handleStartLogic(currentUI);
         }
@@ -274,7 +192,6 @@ export default function Game() {
 
     return () => {
       worker.terminate();
-      rendererRef.current?.destroy();
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleStartLogic]);
@@ -287,19 +204,22 @@ export default function Game() {
     workerRef.current?.postMessage({ type: 'NUKE' });
   };
 
-  const handleCanvasPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-
-    // Get current viewport from ref to avoid closure issues
+  const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
     const currentViewport = viewportRef.current;
-
-    // Convert viewport coordinates to game coordinates using responsive viewport
     const x = (e.clientX - rect.left) / currentViewport.scale;
     const y = (e.clientY - rect.top) / currentViewport.scale;
-
     workerRef.current?.postMessage({ type: 'CLICK', x, y });
   };
+
+  // Game-over grade calculation
+  const accuracy = ui.gameOverStats
+    ? calculateAccuracy(ui.gameOverStats.totalC, ui.gameOverStats.totalM)
+    : 0;
+
+  const gradeInfo = ui.gameOverStats
+    ? calculateGrade(ui.win, accuracy / 100, ui.gameOverStats.maxCombo)
+    : null;
 
   return (
     <div id="game-scaler" style={{ touchAction: 'none' }}>
@@ -311,22 +231,25 @@ export default function Game() {
           position: 'relative',
           margin: '0 auto',
         }}
+        onPointerDown={handleCanvasPointerDown}
       >
-        <canvas
-          ref={canvasRef}
+        {/* R3F Canvas replaces PixiJS */}
+        <Canvas
           id="gameCanvas"
-          width={GAME_WIDTH}
-          height={GAME_HEIGHT}
-          onPointerDown={handleCanvasPointerDown}
           style={{
             touchAction: 'none',
             width: '100%',
             height: '100%',
             display: 'block',
           }}
+          camera={{ position: [0, 0.5, 6], fov: 45 }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, alpha: false }}
           tabIndex={0}
           aria-label="Game Area: Tap enemies to counter them"
-        ></canvas>
+        >
+          <GameScene ref={sceneRef} />
+        </Canvas>
 
         {/* HUD Layer */}
         <div id="ui-layer" className={ui.screen === 'playing' ? '' : 'hidden'}>
@@ -484,7 +407,7 @@ export default function Game() {
             {ui.screen === 'gameover'
               ? ui.win
                 ? 'CRISIS AVERTED'
-                : 'FULL PSYCHOSIS'
+                : 'BRAIN MELTDOWN'
               : 'PSYDUCK PANIC'}
             <br />
             {ui.screen === 'gameover' ? '' : 'EVOLUTION'}
@@ -503,18 +426,21 @@ export default function Game() {
             )}
             {ui.screen === 'gameover' && ui.win && (
               <>
-                His brain is safe... for now.
+                He closes the laptop. Sunlight enters the room.
+                <br />
+                &quot;Maybe I should touch grass.&quot;
                 <br />
                 <br />
-                Press SPACE to continue into ENDLESS MODE
+                <span style={{ color: '#00ffff' }}>
+                  Press <b>SPACE</b> for ENDLESS MODE.
+                </span>
               </>
             )}
             {ui.screen === 'gameover' && !ui.win && (
               <>
-                His brain melted. Game over.
+                Full Psyduck transformation complete.
                 <br />
-                <br />
-                Press SPACE to retry
+                He just pre-ordered 5,000 H100s.
               </>
             )}
           </p>
@@ -528,12 +454,33 @@ export default function Game() {
             </p>
           )}
 
-          {ui.screen === 'gameover' && (
+          {ui.screen === 'gameover' && ui.gameOverStats && gradeInfo && (
             <div id="end-stats">
-              SCORE: {ui.score}
-              <br />
-              {/* Accuracy calculation omitted for brevity unless tracked in state */}
-              MAX COMBO: x{ui.maxCombo}
+              <div className={`grade ${gradeInfo.className}`}>{gradeInfo.grade}</div>
+              <div className="stat-row">
+                <span className="stat-label">FINAL SCORE</span>
+                <span className="stat-value">{ui.score.toLocaleString()}</span>
+              </div>
+              <div className="stat-row">
+                <span className="stat-label">WAVES CLEARED</span>
+                <span className="stat-value">{ui.gameOverStats.wavesCleared} / 5</span>
+              </div>
+              <div className="stat-row">
+                <span className="stat-label">MAX COMBO</span>
+                <span className="stat-value">x{ui.gameOverStats.maxCombo}</span>
+              </div>
+              <div className="stat-row">
+                <span className="stat-label">COUNTERED</span>
+                <span className="stat-value">{ui.gameOverStats.totalC}</span>
+              </div>
+              <div className="stat-row">
+                <span className="stat-label">ACCURACY</span>
+                <span className="stat-value">{accuracy}%</span>
+              </div>
+              <div className="stat-row">
+                <span className="stat-label">NUKES USED</span>
+                <span className="stat-value">{ui.gameOverStats.nukesUsed}</span>
+              </div>
             </div>
           )}
 

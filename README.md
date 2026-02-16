@@ -135,19 +135,22 @@ psyduck-panic/
 
 | Technology | Purpose |
 |------------|---------|
-| **Astro 5.17** | Static site generation |
 | **React 19** | UI components |
 | **TypeScript 5** | Type safety |
-| **Canvas API** | 2D game rendering |
-| **Web Audio API** | Sound effects and music |
+| **Vite 7** | Build tool and dev server |
+| **React Three Fiber 9** | 3D rendering (Three.js) |
+| **Miniplex 2** | Entity Component System (ECS) |
+| **Tone.js 15** | Adaptive music system |
+| **Capacitor 8** | Native mobile (iOS/Android) |
 | **Biome 2.3** | Linting and formatting |
 | **Vitest 4** | Unit testing |
-| **Playwright 1.58.2** | E2E testing |
+| **Playwright 1.58** | E2E testing |
 
 ## 🎨 Features
 
-- ✅ Retro pixel-art aesthetic with CRT effects
-- ✅ Dynamic music that speeds up with wave progression
+- ✅ 3D diorama scene with React Three Fiber
+- ✅ ECS-driven entity management (Miniplex)
+- ✅ Adaptive music via Tone.js (layers respond to panic + wave)
 - ✅ Combo system with momentum perks
 - ✅ Multiple enemy types and boss battles
 - ✅ Powerup system

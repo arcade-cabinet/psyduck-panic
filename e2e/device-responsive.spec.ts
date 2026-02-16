@@ -164,8 +164,8 @@ test.describe('Phone-Specific Tests', () => {
 
 test.describe('Tablet-Specific Tests', () => {
   test('should utilize larger screen on tablets', async ({ page, viewport }) => {
-    // Skip if not tablet size
-    const isTablet = viewport && viewport.width >= 600;
+    // Skip if not tablet size — require both dimensions >= 600 to exclude landscape phones
+    const isTablet = viewport && Math.min(viewport.width, viewport.height) >= 600;
     test.skip(!isTablet, 'This test is only for tablet-sized devices');
 
     await page.goto('/game');
@@ -182,7 +182,7 @@ test.describe('Tablet-Specific Tests', () => {
   });
 
   test('should show comfortable UI spacing on tablets', async ({ page, viewport }) => {
-    const isTablet = viewport && viewport.width >= 600;
+    const isTablet = viewport && Math.min(viewport.width, viewport.height) >= 600;
     test.skip(!isTablet, 'This test is only for tablet-sized devices');
 
     await page.goto('/game');
@@ -224,8 +224,9 @@ test.describe('Foldable-Specific Tests', () => {
   });
 
   test('should utilize unfolded screen space', async ({ page, viewport }) => {
-    // Check if this is a foldable in unfolded state (wider aspect)
-    const isUnfolded = viewport && viewport.width > 700 && viewport.width < 900;
+    // Check if this is a foldable in unfolded state (wider aspect, not a landscape phone)
+    const isUnfolded =
+      viewport && viewport.width > 700 && viewport.width < 900 && viewport.height > 400;
     test.skip(!isUnfolded, 'This test is only for unfolded foldable devices');
 
     await page.goto('/game');

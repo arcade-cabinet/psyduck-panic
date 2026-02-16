@@ -192,7 +192,16 @@ export class GameLogic {
   endGame(win: boolean): void {
     this.running = false;
     this.events.push({ type: 'SFX', name: 'stopMusic' });
-    this.events.push({ type: 'GAME_OVER', score: this.score, win });
+    this.events.push({
+      type: 'GAME_OVER',
+      score: this.score,
+      win,
+      totalC: this.totalC,
+      totalM: this.totalM,
+      maxCombo: this.maxCombo,
+      nukesUsed: this.nukesUsed,
+      wavesCleared: win ? 5 : this.wave + 1,
+    });
   }
 
   spawnEnemy(): void {

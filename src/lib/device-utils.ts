@@ -202,16 +202,28 @@ export function calculateViewport(
 
     scale = width / baseWidth;
   }
-  // Phone landscape - maximize screen usage
+  // Phone landscape - maximize screen usage (match original: use full constraining dimension)
   else if (type === 'phone' && orientation === 'landscape') {
     // Try to use full width
     width = availableWidth * 0.98;
     height = width / baseAspectRatio;
 
-    // Constrain by height if needed
-    if (height > availableHeight * 0.95) {
-      height = availableHeight * 0.95;
+    // Constrain by height — use 0.98 to match width utilization
+    if (height > availableHeight * 0.98) {
+      height = availableHeight * 0.98;
       width = height * baseAspectRatio;
+    }
+
+    scale = width / baseWidth;
+  }
+  // Foldable unfolded - treat like a small tablet
+  else if (type === 'foldable' && foldState === 'unfolded') {
+    if (screenAspectRatio > baseAspectRatio) {
+      height = availableHeight * 0.92;
+      width = height * baseAspectRatio;
+    } else {
+      width = availableWidth * 0.92;
+      height = width / baseAspectRatio;
     }
 
     scale = width / baseWidth;
