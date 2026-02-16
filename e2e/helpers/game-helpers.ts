@@ -100,11 +100,7 @@ export function getDeviceName(testInfo: TestInfo): string {
 }
 
 /** Take a screenshot with a standardized name: {prefix}-{stage}.png */
-export async function screenshot(
-  page: Page,
-  prefix: string,
-  stage: string
-): Promise<void> {
+export async function screenshot(page: Page, prefix: string, stage: string): Promise<void> {
   await page.screenshot({
     path: `test-results/screenshots/${prefix}-${stage}.png`,
     fullPage: false,

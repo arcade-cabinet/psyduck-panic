@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { navigateToGame, screenshot, verifyGamePlaying, verifyHUDVisible } from './helpers/game-helpers';
 import { GameGovernor } from './helpers/game-governor';
+import { navigateToGame, screenshot, verifyGamePlaying } from './helpers/game-helpers';
 
 test.describe('Automated Playthrough with Governor', () => {
   test.setTimeout(90000);
