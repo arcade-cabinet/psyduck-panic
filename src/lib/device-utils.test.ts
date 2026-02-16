@@ -1,13 +1,29 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
-  type DeviceInfo,
   calculateViewport,
   createResizeObserver,
+  type DeviceInfo,
   detectDevice,
   gameToViewport,
   getUIScale,
   viewportToGame,
 } from './device-utils';
+
+function createMockDeviceInfo(overrides: Partial<DeviceInfo> = {}): DeviceInfo {
+  return {
+    type: 'phone',
+    orientation: 'portrait',
+    screenWidth: 375,
+    screenHeight: 667,
+    pixelRatio: 2,
+    isTouchDevice: true,
+    isIOS: false,
+    isAndroid: false,
+    hasNotch: false,
+    isFoldable: false,
+    ...overrides,
+  };
+}
 
 describe('device-utils', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -54,7 +70,6 @@ describe('device-utils', () => {
     });
 
     // Ensure ontouchstart is undefined for desktop tests
-    // @ts-expect-error
     delete window.ontouchstart;
   });
 
@@ -121,7 +136,6 @@ describe('device-utils', () => {
 
     test('safely handles missing visualViewport', () => {
       // Ensure visualViewport is undefined
-      // @ts-ignore
       Object.defineProperty(window, 'visualViewport', { value: undefined });
 
       // Should not throw
@@ -131,7 +145,6 @@ describe('device-utils', () => {
 
     test('detects foldable via window segments if available', () => {
       const getWindowSegments = vi.fn().mockReturnValue([{ x: 0 }, { x: 100 }]);
-      // @ts-ignore
       Object.defineProperty(window, 'visualViewport', {
         value: {
           getWindowSegments,
@@ -217,25 +230,39 @@ describe('device-utils', () => {
 
   describe('getUIScale', () => {
     test('returns correct scale for phone', () => {
-      const info = { type: 'phone', screenWidth: 375, pixelRatio: 2 } as any;
+      const info = createMockDeviceInfo({
+        type: 'phone',
+        screenWidth: 375,
+        pixelRatio: 2,
+      });
       expect(getUIScale(info)).toBe(0.8); // 375*2 = 750 < 1000
     });
 
     test('returns correct scale for tablet', () => {
-      const info = { type: 'tablet', screenWidth: 768, pixelRatio: 2 } as any;
+      const info = createMockDeviceInfo({
+        type: 'tablet',
+        screenWidth: 768,
+        pixelRatio: 2,
+      });
       expect(getUIScale(info)).toBe(1.0);
     });
 
     test('returns correct scale for foldable', () => {
-      const folded = { type: 'foldable', foldState: 'folded' } as any;
+      const folded = createMockDeviceInfo({
+        type: 'foldable',
+        foldState: 'folded',
+      });
       expect(getUIScale(folded)).toBe(0.85);
 
-      const unfolded = { type: 'foldable', foldState: 'unfolded' } as any;
+      const unfolded = createMockDeviceInfo({
+        type: 'foldable',
+        foldState: 'unfolded',
+      });
       expect(getUIScale(unfolded)).toBe(1.0);
     });
 
     test('returns correct scale for desktop', () => {
-      const info = { type: 'desktop' } as any;
+      const info = createMockDeviceInfo({ type: 'desktop' });
       expect(getUIScale(info)).toBe(1.1);
     });
   });
