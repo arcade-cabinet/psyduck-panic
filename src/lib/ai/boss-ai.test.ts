@@ -90,10 +90,22 @@ describe('BossAI', () => {
 
   it('should move to target when moveTo is called', () => {
     boss.moveTo(100, 100);
-    // Wait for cooldown
+
+    const arriveBehavior = (boss as any).arriveBehavior;
+    expect(arriveBehavior).toBeDefined();
+    expect(arriveBehavior.active).toBe(true);
+
+    // Update once to apply movement towards the target
+    boss.update(0.016, mockState);
+
+    // Wait for cooldown so the boss returns to wandering behavior
     vi.advanceTimersByTime(2000);
-    // Should be back to wandering
-    // We can't easily check private behavior weights, but we can ensure no crash
+
+    // Another update to process behavior change after cooldown
+    boss.update(0.016, mockState);
+
+    // After cooldown, arrive behavior should be disabled again
+    expect(arriveBehavior.active).toBe(false);
   });
 
   describe('Goals', () => {
