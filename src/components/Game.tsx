@@ -91,25 +91,33 @@ export default function Game() {
     if (startInitiatedRef.current) return;
     startInitiatedRef.current = true;
 
-    sfxRef.current?.resume();
-    musicRef.current?.resume();
-    sceneRef.current?.reset();
-
+    // 1. Update UI State immediately to ensure responsiveness (hides overlay)
     const endless = currentState.win && currentState.screen === 'gameover';
     dispatch(endless ? { type: 'START_ENDLESS' } : { type: 'START_GAME' });
 
-    // Delay worker start to let React commit the screen transition first.
-    // Without this delay, the worker's rapid STATE messages can race with
-    // React 18's concurrent rendering and prevent the commit.
-    // Also includes retry logic in case worker init is slow.
-    const attemptStart = (retries = 0) => {
-      if (workerRef.current) {
-        workerRef.current.postMessage({ type: 'START', endless });
-      } else if (retries < 50) {
-        setTimeout(() => attemptStart(retries + 1), 200);
-      }
-    };
-    setTimeout(() => attemptStart(), 100);
+    // 2. Perform Side Effects with Error Handling
+    try {
+      sfxRef.current?.resume();
+      musicRef.current?.resume();
+      sceneRef.current?.reset();
+
+      // Delay worker start to let React commit the screen transition first.
+      // Without this delay, the worker's rapid STATE messages can race with
+      // React 18's concurrent rendering and prevent the commit.
+      // Also includes retry logic in case worker init is slow.
+      const attemptStart = (retries = 0) => {
+        if (workerRef.current) {
+          workerRef.current.postMessage({ type: 'START', endless });
+        } else if (retries < 50) {
+          setTimeout(() => attemptStart(retries + 1), 200);
+        }
+      };
+      setTimeout(() => attemptStart(), 100);
+    } catch (e) {
+      console.error('Error during game start sequence:', e);
+      // Ensure we don't lock the game if start fails catastrophically
+      startInitiatedRef.current = false;
+    }
   }, []);
 
   const handleStartButton = () => {

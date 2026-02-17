@@ -617,7 +617,7 @@ jobs:
           echo '[]' > all_issues.json
           while true; do
             curl -sf -H "${AUTH}" \
-              "${BASE}/api/issues/search?componentKeys=${PROJECT}&pullRequest=${PR_NUMBER}&ps=500&p=${PAGE}&issueStatuses=OPEN,CONFIRMED&additionalFields=effort" \
+              "${BASE}/api/issues/search?componentKeys=${PROJECT}&pullRequest=${PR_NUMBER}&ps=500&p=${PAGE}&statuses=OPEN,CONFIRMED&additionalFields=effort" \
               -o issues_page.json
 
             ISSUES_IN_PAGE=$(jq '.issues | length' issues_page.json)
