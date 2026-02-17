@@ -210,7 +210,13 @@ jobs:
             const isBot = pr.user.type === 'Bot';
             const hasAutoMergeLabel = labels.includes('auto-merge');
             const isJulesPR = pr.user.login.includes('jules') || pr.head.ref.includes('jules');
-            const touchesWorkflows = false; // Gemini already checked this
+            // Check if PR touches workflow files — block auto-merge if so
+            const { data: prFiles } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            const touchesWorkflows = prFiles.some(f => f.filename.startsWith('.github/workflows/'));
 
             // Verify CodeRabbit hasn't requested changes since Gemini reviewed
             const { data: reviews } = await github.rest.pulls.listReviews({
@@ -241,7 +247,7 @@ jobs:
             const ciPassing = ciSuccess?.conclusion === 'success';
 
             // Only auto-merge bot PRs or PRs with auto-merge label
-            const eligible = (isBot || hasAutoMergeLabel || isJulesPR) && !coderabbitBlocking;
+            const eligible = (isBot || hasAutoMergeLabel || isJulesPR) && !coderabbitBlocking && !touchesWorkflows;
 
             if (!eligible) {
               core.info(`PR #${prNumber} is not eligible for auto-merge (bot=${isBot}, label=${hasAutoMergeLabel}, jules=${isJulesPR})`);

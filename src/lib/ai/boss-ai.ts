@@ -29,6 +29,7 @@ import {
   WanderBehavior,
 } from 'yuka';
 import { GAME_HEIGHT, GAME_WIDTH } from '../constants';
+import { rng } from '../rng';
 import type { Enemy, EnemyType } from '../types';
 
 const W = GAME_WIDTH;
@@ -187,7 +188,7 @@ export class BossAI {
     if (this.state.enemyTypes.length === 0) {
       throw new Error('No enemy types configured');
     }
-    return this.state.enemyTypes[Math.floor(Math.random() * this.state.enemyTypes.length)];
+    return this.state.enemyTypes[Math.floor(rng() * this.state.enemyTypes.length)];
   }
 }
 
@@ -219,8 +220,8 @@ export class BurstAttackGoal extends Goal<Vehicle> {
     const enemies: Partial<Enemy>[] = [];
 
     for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
-      const speed = 1.2 + Math.random() * 0.8;
+      const angle = (i / count) * Math.PI * 2 + rng() * 0.3;
+      const speed = 1.2 + rng() * 0.8;
       const type = this.boss.randomEnemyType();
       enemies.push({
         x: x + Math.cos(angle) * 20,
@@ -228,7 +229,7 @@ export class BurstAttackGoal extends Goal<Vehicle> {
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         type,
-        word: type.words[Math.floor(Math.random() * type.words.length)],
+        word: type.words[Math.floor(rng() * type.words.length)],
         counter: type.counter,
         spd: speed,
       });
@@ -260,13 +261,13 @@ export class SweepAttackGoal extends CompositeGoal<Vehicle> {
     this.sweepTimer = 0;
     this.sweepDuration = 2.0;
     this.spawned = 0;
-    this.direction = Math.random() < 0.5 ? -1 : 1;
+    this.direction = rng() < 0.5 ? -1 : 1;
   }
 
   override activate(): void {
     this.sweepTimer = 0;
     this.spawned = 0;
-    this.direction = Math.random() < 0.5 ? -1 : 1;
+    this.direction = rng() < 0.5 ? -1 : 1;
     // Move to one side
     const startX = this.direction > 0 ? 100 : W - 100;
     this.boss.moveTo(startX, 80);
@@ -291,9 +292,9 @@ export class SweepAttackGoal extends CompositeGoal<Vehicle> {
             x: spawnX,
             y: this.boss.state.y + 30,
             vx: 0,
-            vy: 1.5 + Math.random() * 0.5,
+            vy: 1.5 + rng() * 0.5,
             type,
-            word: type.words[Math.floor(Math.random() * type.words.length)],
+            word: type.words[Math.floor(rng() * type.words.length)],
             counter: type.counter,
             spd: 1.5,
           },
@@ -330,7 +331,7 @@ export class SpiralAttackGoal extends Goal<Vehicle> {
 
   override activate(): void {
     this.spiralTimer = 0;
-    this.spiralAngle = Math.random() * Math.PI * 2;
+    this.spiralAngle = rng() * Math.PI * 2;
     this.spawned = 0;
   }
 
@@ -361,7 +362,7 @@ export class SpiralAttackGoal extends Goal<Vehicle> {
             vx: dx * (0.8 + this.boss.state.aggression * 0.6),
             vy: dy * (0.8 + this.boss.state.aggression * 0.6),
             type,
-            word: type.words[Math.floor(Math.random() * type.words.length)],
+            word: type.words[Math.floor(rng() * type.words.length)],
             counter: type.counter,
             spd: 1.0 + this.boss.state.aggression * 0.5,
           },
@@ -393,8 +394,8 @@ export class RepositionGoal extends Goal<Vehicle> {
 
   override activate(): void {
     // Pick a random position in the boss zone
-    const targetX = 100 + Math.random() * (W - 200);
-    const targetY = 50 + Math.random() * 100;
+    const targetX = 100 + rng() * (W - 200);
+    const targetY = 50 + rng() * 100;
     this.boss.moveTo(targetX, targetY);
   }
 
@@ -426,15 +427,15 @@ export class SummonGoal extends Goal<Vehicle> {
     const enemies: Partial<Enemy>[] = [];
 
     for (let i = 0; i < count; i++) {
-      const side = Math.random() < 0.5 ? 0 : 1;
+      const side = rng() < 0.5 ? 0 : 1;
       const type = this.boss.randomEnemyType();
       enemies.push({
         x: side === 0 ? -40 : W + 40,
-        y: 100 + Math.random() * 180,
-        vx: (side === 0 ? 1 : -1) * (1.0 + Math.random() * 0.5),
-        vy: (Math.random() - 0.5) * 0.3,
+        y: 100 + rng() * 180,
+        vx: (side === 0 ? 1 : -1) * (1.0 + rng() * 0.5),
+        vy: (rng() - 0.5) * 0.3,
         type,
-        word: type.words[Math.floor(Math.random() * type.words.length)],
+        word: type.words[Math.floor(rng() * type.words.length)],
         counter: type.counter,
         spd: 1.2,
         child: true,
@@ -472,7 +473,7 @@ export class RageGoal extends Goal<Vehicle> {
 
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
-      const speed = 1.5 + Math.random() * 1.0;
+      const speed = 1.5 + rng() * 1.0;
       const type = this.boss.randomEnemyType();
       enemies.push({
         x: x + Math.cos(angle) * 30,
@@ -480,10 +481,10 @@ export class RageGoal extends Goal<Vehicle> {
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         type,
-        word: type.words[Math.floor(Math.random() * type.words.length)],
+        word: type.words[Math.floor(rng() * type.words.length)],
         counter: type.counter,
         spd: speed,
-        encrypted: Math.random() < 0.3,
+        encrypted: rng() < 0.3,
       });
     }
 
@@ -513,7 +514,7 @@ export class BurstEvaluator extends GoalEvaluator<Vehicle> {
     if (this.boss.attackCooldown > 0) return 0;
     // More desirable at medium aggression, available in all patterns
     if (!this.boss.state.patterns.includes('burst')) return 0;
-    return 0.5 + this.boss.state.aggression * 0.3 + Math.random() * 0.2;
+    return 0.5 + this.boss.state.aggression * 0.3 + rng() * 0.2;
   }
 
   override setGoal(_owner: Vehicle): void {
@@ -533,7 +534,7 @@ export class SweepEvaluator extends GoalEvaluator<Vehicle> {
   override calculateDesirability(): number {
     if (this.boss.attackCooldown > 0) return 0;
     if (!this.boss.state.patterns.includes('sweep')) return 0;
-    return 0.4 + this.boss.state.aggression * 0.2 + Math.random() * 0.3;
+    return 0.4 + this.boss.state.aggression * 0.2 + rng() * 0.3;
   }
 
   override setGoal(_owner: Vehicle): void {
@@ -554,7 +555,7 @@ export class SpiralEvaluator extends GoalEvaluator<Vehicle> {
     if (this.boss.attackCooldown > 0) return 0;
     if (!this.boss.state.patterns.includes('spiral')) return 0;
     // Spiral is rare but flashy — more desirable at high aggression
-    return 0.3 + this.boss.state.aggression * 0.4 + Math.random() * 0.2;
+    return 0.3 + this.boss.state.aggression * 0.4 + rng() * 0.2;
   }
 
   override setGoal(_owner: Vehicle): void {
@@ -573,8 +574,8 @@ export class RepositionEvaluator extends GoalEvaluator<Vehicle> {
 
   override calculateDesirability(): number {
     // Always available as a fallback when on cooldown
-    if (this.boss.attackCooldown > 0) return 0.4 + Math.random() * 0.2;
-    return 0.1 + Math.random() * 0.1;
+    if (this.boss.attackCooldown > 0) return 0.4 + rng() * 0.2;
+    return 0.1 + rng() * 0.1;
   }
 
   override setGoal(_owner: Vehicle): void {
@@ -595,7 +596,7 @@ export class SummonEvaluator extends GoalEvaluator<Vehicle> {
     if (this.boss.attackCooldown > 0) return 0;
     // More desirable when HP is lower (boss calls for help)
     const hpFactor = 1 - this.boss.getHpRatio();
-    return 0.2 + hpFactor * 0.4 + Math.random() * 0.15;
+    return 0.2 + hpFactor * 0.4 + rng() * 0.15;
   }
 
   override setGoal(_owner: Vehicle): void {
@@ -618,7 +619,7 @@ export class RageEvaluator extends GoalEvaluator<Vehicle> {
     const hpRatio = this.boss.getHpRatio();
     if (hpRatio > 0.3) return 0;
     // Very desirable at low HP
-    return 0.8 + (1 - hpRatio) * 0.5 + Math.random() * 0.1;
+    return 0.8 + (1 - hpRatio) * 0.5 + rng() * 0.1;
   }
 
   override setGoal(_owner: Vehicle): void {

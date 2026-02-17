@@ -260,8 +260,41 @@ jobs:
           echo "${OPEN_BLOCKERS}"
           echo "Skipping Jules invocation until blockers are resolved."
 
-      - name: Invoke Jules
+      - name: Check for existing AI PRs
         if: steps.issue.outputs.blocked == 'false'
+        id: existing_pr
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            // Skip Jules if there's already an open PR from Claude or Copilot
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+
+            const issueNum = context.payload.issue.number;
+            const aiPrefixes = ['claude/', 'copilot/'];
+            const activePR = prs.find(pr => {
+              const branch = pr.head.ref;
+              const isAiBranch = aiPrefixes.some(p => branch.startsWith(p));
+              // Check if PR references this issue
+              const body = (pr.body || '').toLowerCase();
+              const title = (pr.title || '').toLowerCase();
+              const refersToIssue = body.includes(`#${issueNum}`) || title.includes(`#${issueNum}`);
+              return isAiBranch && refersToIssue;
+            });
+
+            if (activePR) {
+              core.info(`Skipping Jules — active AI PR #${activePR.number} (${activePR.head.ref}) already addresses issue #${issueNum}`);
+              core.setOutput('skip', 'true');
+            } else {
+              core.setOutput('skip', 'false');
+            }
+
+      - name: Invoke Jules
+        if: steps.issue.outputs.blocked == 'false' && steps.existing_pr.outputs.skip != 'true'
         uses: google-labs-code/jules-action@bff7875eaa123cac6742b7cfc51005b95ba4d566 # v1.0.0
         with:
           prompt: |
@@ -386,8 +419,39 @@ jobs:
               core.info(`Issue #${issueNumber} is fully unblocked and has actionable label — invoking Jules`);
             }
 
-      - name: Invoke Jules on unblocked issue
+      - name: Check for existing AI PRs
         if: steps.issue.outputs.eligible == 'true'
+        id: existing_pr
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          ISSUE_NUMBER: ${{ matrix.issue-number }}
+        with:
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const issueNum = parseInt(process.env.ISSUE_NUMBER, 10);
+            const aiPrefixes = ['claude/', 'copilot/'];
+            const activePR = prs.find(pr => {
+              const branch = pr.head.ref;
+              const isAiBranch = aiPrefixes.some(p => branch.startsWith(p));
+              const body = (pr.body || '').toLowerCase();
+              const title = (pr.title || '').toLowerCase();
+              const refersToIssue = body.includes(`#${issueNum}`) || title.includes(`#${issueNum}`);
+              return isAiBranch && refersToIssue;
+            });
+            if (activePR) {
+              core.info(`Skipping Jules — active AI PR #${activePR.number} (${activePR.head.ref}) already addresses issue #${issueNum}`);
+              core.setOutput('skip', 'true');
+            } else {
+              core.setOutput('skip', 'false');
+            }
+
+      - name: Invoke Jules on unblocked issue
+        if: steps.issue.outputs.eligible == 'true' && steps.existing_pr.outputs.skip != 'true'
         uses: google-labs-code/jules-action@bff7875eaa123cac6742b7cfc51005b95ba4d566 # v1.0.0
         with:
           prompt: |

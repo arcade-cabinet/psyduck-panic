@@ -4,7 +4,7 @@ import { AIDirector } from './ai/director';
 import { FEED, GAME_HEIGHT, GAME_WIDTH, POWERUPS, TYPES, WAVES } from './constants';
 import type { GameEvent, GameState } from './events';
 import { calculatePanicDamage, calculatePanicDecay, getPanicModifiers } from './panic-system';
-import { secureRandom } from './secure-random';
+import { nextId, resetIds, rng, seedRng } from './rng';
 import type { Boss, BossConfig, Enemy, MomentumPerks, PowerUpInstance } from './types';
 
 const W = GAME_WIDTH;
@@ -138,7 +138,9 @@ export class GameLogic {
 
     // Reset AI
     this.director = new AIDirector();
+    this.bossAI?.dispose();
     this.bossAI = null;
+    resetIds();
     this.recentEscapes = 0;
     this.recentCounters = 0;
     this.recentResetTimer = 0;
@@ -159,6 +161,7 @@ export class GameLogic {
 
   start(): void {
     this.reset();
+    seedRng(Date.now());
     this.running = true;
     this.events.push({ type: 'SFX', name: 'resume' });
     this.feedIdx = 0;
@@ -171,6 +174,7 @@ export class GameLogic {
     this.waveTime = currentWave.dur;
     this.bossPhase = false;
     this.boss = null;
+    this.bossAI?.dispose();
     this.bossAI = null;
     this.secondAccumulator = 0;
 
@@ -229,6 +233,7 @@ export class GameLogic {
 
   endGame(win: boolean): void {
     this.running = false;
+    this.bossAI?.dispose();
     this.bossAI = null;
     this.events.push({ type: 'SFX', name: 'stopMusic' });
     this.events.push({
@@ -245,11 +250,11 @@ export class GameLogic {
 
   spawnEnemy(): void {
     const typeKeys = Object.keys(TYPES);
-    const typeKey = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+    const typeKey = typeKeys[Math.floor(rng() * typeKeys.length)];
     const type = TYPES[typeKey];
-    const word = type.words[Math.floor(Math.random() * type.words.length)];
+    const word = type.words[Math.floor(rng() * type.words.length)];
     const cfg = WAVES[Math.min(this.wave, WAVES.length - 1)];
-    const side = Math.random() < 0.5 ? 0 : 1;
+    const side = rng() < 0.5 ? 0 : 1;
 
     // Get panic + director modifiers for dynamic speed
     const panicMods = getPanicModifiers(this.panic, this.wave);
@@ -257,17 +262,17 @@ export class GameLogic {
     const speedMult = panicMods.speedMultiplier * directorMods.enemySpeedMultiplier;
 
     // Determine if this enemy should be special
-    const isEncrypted = Math.random() < panicMods.encryptChance;
-    const isChild = !isEncrypted && Math.random() < panicMods.variantChance;
+    const isEncrypted = rng() < panicMods.encryptChance;
+    const isChild = !isEncrypted && rng() < panicMods.variantChance;
 
     const enemy: Enemy = {
-      id: Date.now() + secureRandom(),
+      id: nextId(),
       x: side === 0 ? -40 : W + 40,
-      y: 100 + Math.random() * 180,
+      y: 100 + rng() * 180,
       word,
       type,
-      vx: (side === 0 ? 1 : -1) * (0.8 + Math.random() * 0.4) * cfg.spd * speedMult,
-      vy: (Math.random() - 0.5) * 0.3,
+      vx: (side === 0 ? 1 : -1) * (0.8 + rng() * 0.4) * cfg.spd * speedMult,
+      vy: (rng() - 0.5) * 0.3,
       counter: type.counter,
       spd: cfg.spd * speedMult,
       encrypted: isEncrypted,
@@ -280,7 +285,7 @@ export class GameLogic {
   private spawnBossEnemy(partial: Partial<Enemy>): void {
     const type = partial.type || Object.values(TYPES)[0];
     const enemy: Enemy = {
-      id: Date.now() + secureRandom(),
+      id: nextId(),
       x: partial.x ?? W / 2,
       y: partial.y ?? 80,
       word: partial.word || type.words[0],
@@ -296,13 +301,13 @@ export class GameLogic {
   }
 
   spawnPowerUp(): void {
-    const pu = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
+    const pu = POWERUPS[Math.floor(rng() * POWERUPS.length)];
     this.powerups.push({
       ...pu,
-      id: `${pu.id}-${Date.now()}-${secureRandom()}`,
-      x: 100 + Math.random() * (W - 200),
+      id: `${pu.id}-${nextId()}`,
+      x: 100 + rng() * (W - 200),
       y: -30,
-      vy: 0.6 + Math.random() * 0.4,
+      vy: 0.6 + rng() * 0.4,
     });
   }
 
@@ -344,6 +349,7 @@ export class GameLogic {
         this.events.push({ type: 'BOSS_DIE' });
         this.boss = null;
         this.bossPhase = false;
+        this.bossAI?.dispose();
         this.bossAI = null;
         this.fl = 0.4;
         this.flCol = '#2ecc71';

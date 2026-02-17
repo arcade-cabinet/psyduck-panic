@@ -112,7 +112,10 @@ jobs:
     name: Fix Code Quality Issues
     runs-on: ubuntu-latest
     needs: [code-quality]
-    if: failure()
+    if: >-
+      failure() &&
+      !startsWith(github.head_ref, 'claude/') &&
+      !startsWith(github.head_ref, 'copilot/')
     permissions:
       contents: write
     steps:
@@ -231,7 +234,10 @@ jobs:
     name: Fix Security Issues
     runs-on: ubuntu-latest
     needs: [security]
-    if: failure()
+    if: >-
+      failure() &&
+      !startsWith(github.head_ref, 'claude/') &&
+      !startsWith(github.head_ref, 'copilot/')
     permissions:
       contents: write
     steps:
@@ -315,7 +321,10 @@ jobs:
     name: Fix E2E Smoke Failures
     runs-on: ubuntu-latest
     needs: [e2e-smoke]
-    if: failure()
+    if: >-
+      failure() &&
+      !startsWith(github.head_ref, 'claude/') &&
+      !startsWith(github.head_ref, 'copilot/')
     permissions:
       contents: write
     steps:

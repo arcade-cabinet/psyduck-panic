@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Goal, Vehicle } from 'yuka';
+import { seedRng } from '../rng';
 import {
   BossAI,
   BurstAttackGoal,
@@ -60,11 +61,13 @@ describe('BossAI Internals', () => {
       boss.attackCooldown = 0;
       boss.state.patterns = ['burst'];
       boss.state.aggression = 0.5;
-      vi.spyOn(Math, 'random').mockReturnValue(0.1);
+      seedRng(42);
 
       const evaluator = new BurstEvaluator(boss, 1);
-      // 0.5 + 0.5*0.3 + 0.1*0.2 = 0.5 + 0.15 + 0.02 = 0.67
-      expect(evaluator.calculateDesirability()).toBeCloseTo(0.67);
+      const result = evaluator.calculateDesirability();
+      // 0.5 + aggression*0.3 + rng()*0.2 — result should be in [0.5, 1.0)
+      expect(result).toBeGreaterThan(0.5);
+      expect(result).toBeLessThan(1.0);
     });
 
     it('should set BurstAttackGoal', () => {
@@ -90,11 +93,13 @@ describe('BossAI Internals', () => {
     it('should return high desirability if HP ratio <= 0.3', () => {
       boss.state.hp = 20;
       boss.state.maxHp = 100; // 0.2
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      seedRng(42);
 
       const evaluator = new RageEvaluator(boss, 1);
-      // 0.8 + (1 - 0.2)*0.5 + 0.5*0.1 = 0.8 + 0.4 + 0.05 = 1.25
-      expect(evaluator.calculateDesirability()).toBeCloseTo(1.25);
+      const result = evaluator.calculateDesirability();
+      // 0.8 + (1-0.2)*0.5 + rng()*0.1 — should be high (> 1.0)
+      expect(result).toBeGreaterThan(1.0);
+      expect(result).toBeLessThan(1.4);
     });
   });
 
@@ -103,7 +108,7 @@ describe('BossAI Internals', () => {
       const goal = new BurstAttackGoal(boss);
       boss.actions = [];
       boss.state.aggression = 0.5;
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      seedRng(42);
 
       goal.execute();
 
@@ -119,7 +124,7 @@ describe('BossAI Internals', () => {
       boss.state.patterns = ['sweep'];
       boss.attackCooldown = 0;
       const ev = new SweepEvaluator(boss, 1);
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      seedRng(42);
       expect(ev.calculateDesirability()).toBeGreaterThan(0);
     });
 
@@ -142,7 +147,7 @@ describe('BossAI Internals', () => {
       boss.state.patterns = ['spiral'];
       boss.attackCooldown = 0;
       const ev = new SpiralEvaluator(boss, 1);
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      seedRng(42);
       expect(ev.calculateDesirability()).toBeGreaterThan(0);
     });
 
@@ -164,9 +169,11 @@ describe('BossAI Internals', () => {
     it('RepositionEvaluator always returns something > 0 if on cooldown', () => {
       boss.attackCooldown = 5;
       const ev = new RepositionEvaluator(boss, 1);
-      vi.spyOn(Math, 'random').mockReturnValue(0.5);
-      // 0.4 + 0.5*0.2 = 0.5
-      expect(ev.calculateDesirability()).toBeCloseTo(0.5);
+      seedRng(42);
+      // 0.4 + rng()*0.2 — should be in [0.4, 0.6)
+      const result = ev.calculateDesirability();
+      expect(result).toBeGreaterThanOrEqual(0.4);
+      expect(result).toBeLessThan(0.6);
     });
   });
 

@@ -7,6 +7,8 @@
 
 import type { GameState } from './events';
 
+let feedIdCounter = 0;
+
 export type GameOverStats = {
   totalC: number;
   totalM: number;
@@ -107,7 +109,7 @@ export function uiReducer(state: UIState, action: UIAction): UIState {
     case 'ADD_FEED':
       return {
         ...state,
-        feed: [{ ...action.item, id: Date.now() + Math.random() }, ...state.feed.slice(0, 2)],
+        feed: [{ ...action.item, id: ++feedIdCounter }, ...state.feed.slice(0, 2)],
       };
     case 'BOSS_START':
       return { ...state, boss: { name: action.name, hp: action.hp, maxHp: action.hp } };
