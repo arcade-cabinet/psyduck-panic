@@ -20,9 +20,8 @@ describe('GameLogic - Boss Actions', () => {
       }
     ];
 
-    // Access private method to test it
-    // biome-ignore lint/suspicious/noExplicitAny: access private method for testing
-    (game as any).executeBossActions(mockActions);
+    // Access private method to test it with a typed cast instead of `any`
+    (game as unknown as { executeBossActions: (actions: BossAction[]) => void }).executeBossActions(mockActions);
 
     expect(game.boss?.x).toBe(200);
     expect(game.boss?.y).toBe(150);
