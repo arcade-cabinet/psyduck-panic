@@ -70,17 +70,23 @@ export default function Game() {
 
   // Initialize SFX + Music
   useEffect(() => {
-    sfxRef.current = new SFX();
-    sfxRef.current.init();
+    try {
+      sfxRef.current = new SFX();
+      sfxRef.current.init();
 
-    const music = new AdaptiveMusic();
-    musicInitRef.current = music.init();
-    musicRef.current = music;
+      const music = new AdaptiveMusic();
+      musicInitRef.current = music.init().catch((e) => {
+        console.warn('Music init failed:', e);
+      });
+      musicRef.current = music;
+    } catch (e) {
+      console.warn('Audio init failed:', e);
+    }
 
     return () => {
       sfxRef.current?.destroy();
       sfxRef.current = null;
-      music.destroy();
+      musicRef.current?.destroy();
     };
   }, []);
 
@@ -104,11 +110,11 @@ export default function Game() {
 
       try {
         sfxRef.current?.resume();
-        musicRef.current?.resume();
+        musicRef.current?.resume().catch((e) => console.warn('Music resume failed:', e));
         sceneRef.current?.reset();
       } catch (e) {
         console.warn('Failed to resume audio or reset scene:', e);
-        throw e;
+        // Continue starting game even if audio/scene fails
       }
 
       // Delay worker start to let React commit the screen transition first.
