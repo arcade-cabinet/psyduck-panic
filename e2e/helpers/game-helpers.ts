@@ -110,10 +110,23 @@ export function getDeviceName(testInfo: TestInfo): string {
 
 /** Take a screenshot with a standardized name: {prefix}-{stage}.png */
 export async function screenshot(page: Page, prefix: string, stage: string): Promise<void> {
-  await page.screenshot({
-    path: `test-results/screenshots/${prefix}-${stage}.png`,
-    fullPage: false,
-  });
+  // Add a small delay to let the frame settle and reduce likelihood of protocol errors during rendering
+  await page.waitForTimeout(250);
+
+  try {
+    await page.screenshot({
+      path: `test-results/screenshots/${prefix}-${stage}.png`,
+      fullPage: false,
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`Screenshot failed (${message}), retrying... (${prefix}-${stage})`);
+    await page.waitForTimeout(500);
+    await page.screenshot({
+      path: `test-results/screenshots/${prefix}-${stage}.png`,
+      fullPage: false,
+    });
+  }
 }
 
 /** Take a device-specific screenshot */
