@@ -48,7 +48,7 @@ export class GameGovernor {
     await this.page.keyboard.press(' ');
 
     // Wait for game to start
-    await this.page.waitForTimeout(1000);
+    await expect(this.page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 10000 });
 
     // Start gameplay loop
     await this.playLoop();
