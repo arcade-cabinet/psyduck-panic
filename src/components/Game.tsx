@@ -98,7 +98,7 @@ export default function Game() {
     // Initialize audio/scene, but don't let failures block game start
     // Initialize audio/scene, but don't let failures block game start
     try {
-      sfxRef.current?.resume();
+      sfxRef.current?.resume().catch((e) => console.warn('SFX resume failed:', e));
       sceneRef.current?.reset();
     } catch (e) {
       console.error('Failed to initialize game components:', e);
