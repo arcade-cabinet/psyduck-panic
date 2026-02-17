@@ -17,7 +17,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   switch (msg.type) {
     case 'START':
       // Ensure idempotency: cancel any existing loop before starting a new one
-      if (running) cancelFrame(animationFrameId);
+      if (running && animationFrameId !== undefined) cancelFrame(animationFrameId);
 
       running = true;
       if (msg.endless) {
