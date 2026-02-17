@@ -161,7 +161,15 @@ export class GameGovernor {
         freq[c] = (freq[c] || 0) + 1;
       }
       const bestCounter = Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
-      const key = GameGovernor.COUNTER_MAP[bestCounter] || 'F1';
+      const key = GameGovernor.COUNTER_MAP[bestCounter];
+      if (!key) {
+        console.warn(`[GameGovernor] Unknown enemy counter type: ${bestCounter}, falling back to F1`);
+      }
+      const pressKey = key || 'F1';
+
+      if (this.rng() < this.config.aggressiveness) {
+        await this.page.keyboard.press(pressKey);
+      }
 
       if (this.rng() < this.config.aggressiveness) {
         await this.page.keyboard.press(key);
