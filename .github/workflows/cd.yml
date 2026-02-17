@@ -200,10 +200,7 @@ jobs:
           prompt: |
             ## CD E2E Matrix Failure — Auto-Fix Request
 
-            ## CD E2E Matrix Failure — Auto-Fix Request
-
             **Repository:** ${{ github.repository }}
-            **Branch:** main
             **Branch:** main
             **Commit:** ${{ github.sha }}
 

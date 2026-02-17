@@ -163,6 +163,16 @@ export class BossAI {
     }, 1500);
   }
 
+  /** Clean up timers and steering behaviors. Call when boss is defeated or game ends. */
+  dispose(): void {
+    if (this.moveCooldownTimer !== null) {
+      clearTimeout(this.moveCooldownTimer);
+      this.moveCooldownTimer = null;
+    }
+    this.vehicle.steering.clear();
+    this.brain.clearSubgoals();
+  }
+
   /** Get HP ratio (0-1) */
   getHpRatio(): number {
     return this.state.hp / this.state.maxHp;
