@@ -117,9 +117,10 @@ export default function Game() {
       // Without this delay, the worker's rapid STATE messages can race with
       // React 18's concurrent rendering and prevent the commit.
       // Also includes retry logic in case worker init is slow.
+      const seed = endless ? undefined : Date.now();
       const attemptStart = (retries = 0) => {
         if (workerRef.current) {
-          workerRef.current.postMessage({ type: 'START', endless });
+          workerRef.current.postMessage({ type: 'START', endless, seed });
         } else if (retries < 50) {
           setTimeout(() => attemptStart(retries + 1), 200);
         }

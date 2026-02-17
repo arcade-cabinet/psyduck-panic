@@ -51,7 +51,6 @@ jobs:
       selected_labels: ${{ env.SELECTED_LABELS }}
     permissions:
       contents: read
-      id-token: write
       issues: read
     steps:
       - name: Get repository labels

@@ -42,7 +42,7 @@ export type GameState = {
 };
 
 export type WorkerMessage =
-  | { type: 'START'; endless?: boolean }
+  | { type: 'START'; endless?: boolean; seed?: number }
   | { type: 'PAUSE' }
   | { type: 'RESUME' }
   | { type: 'INPUT'; key: string }

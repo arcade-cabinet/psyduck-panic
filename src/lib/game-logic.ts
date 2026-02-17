@@ -152,21 +152,22 @@ export class GameLogic {
     this.nowMs = 0;
   }
 
-  startOrContinue(): void {
+  startOrContinue(seed?: number): void {
     if (this.running) return;
-    this.start();
+    this.start(seed);
   }
 
   startEndlessMode(): void {
+    // Endless reuses the same RNG stream — no reseed needed
     this.endless = true;
     this.running = true;
     this.events.push({ type: 'SFX', name: 'resume' });
     this.startWave(this.wave + 1);
   }
 
-  start(): void {
+  start(seed?: number): void {
     this.reset();
-    seedRng(Date.now());
+    seedRng(seed ?? Date.now());
     this.running = true;
     this.events.push({ type: 'SFX', name: 'resume' });
     this.feedIdx = 0;

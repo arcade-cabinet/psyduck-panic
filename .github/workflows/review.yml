@@ -187,6 +187,7 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
+      checks: read
     steps:
       - name: Verify all signals and enable auto-merge
         id: gate
@@ -212,12 +213,12 @@ jobs:
             const hasAutoMergeLabel = labels.includes('auto-merge');
             const isJulesPR = pr.user.login.includes('jules') || pr.head.ref.includes('jules');
             // Check if PR touches workflow files — block auto-merge if so
-            const { data: prFiles } = await github.rest.pulls.listFiles({
+            const allFiles = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: prNumber,
             });
-            const touchesWorkflows = prFiles.some(f => f.filename.startsWith('.github/workflows/'));
+            const touchesWorkflows = allFiles.some(f => f.filename.startsWith('.github/workflows/'));
 
             // Verify CodeRabbit hasn't requested changes since Gemini reviewed
             const { data: reviews } = await github.rest.pulls.listReviews({
@@ -247,8 +248,8 @@ jobs:
             const ciSuccess = checks.check_runs.find(c => c.name === 'CI Success');
             const ciPassing = ciSuccess?.conclusion === 'success';
 
-            // Only auto-merge bot PRs or PRs with auto-merge label
-            const eligible = (isBot || hasAutoMergeLabel || isJulesPR) && !coderabbitBlocking && !touchesWorkflows;
+            // Only auto-merge bot PRs or PRs with auto-merge label, and only if CI passes
+            const eligible = (isBot || hasAutoMergeLabel || isJulesPR) && !coderabbitBlocking && !touchesWorkflows && ciPassing;
 
             if (!eligible) {
               core.info(`PR #${prNumber} is not eligible for auto-merge (bot=${isBot}, label=${hasAutoMergeLabel}, jules=${isJulesPR})`);

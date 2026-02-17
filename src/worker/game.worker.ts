@@ -24,7 +24,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         if (msg.endless) {
           logic.startEndlessMode();
         } else {
-          logic.start();
+          logic.start(msg.seed);
         }
         lastTime = performance.now();
         scheduleLoop();
