@@ -6,11 +6,10 @@ let running = false;
 let lastTime = 0;
 let animationFrameId: number | undefined;
 
-// Polyfill for requestAnimationFrame in worker if needed
-const requestFrame =
-  self.requestAnimationFrame ||
-  ((callback: (t: number) => void) => setTimeout(() => callback(performance.now()), 16));
-const cancelFrame = self.cancelAnimationFrame || clearTimeout;
+// Use setTimeout for reliable game loop in worker, especially for headless CI
+const requestFrame = (callback: (t: number) => void) =>
+  setTimeout(() => callback(performance.now()), 16);
+const cancelFrame = clearTimeout;
 
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   try {
