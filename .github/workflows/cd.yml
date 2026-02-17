@@ -133,12 +133,11 @@ jobs:
       - name: Check E2E matrix results
         run: |
           echo "E2E Matrix Test Results: ${{ needs.e2e-matrix.result }}"
-          if [[ "${{ needs.e2e-matrix.result }}" == "failure" ]]; then
-            echo "One or more E2E matrix tests failed"
+          if [[ "${{ needs.e2e-matrix.result }}" != "success" ]]; then
+            echo "E2E matrix did not complete successfully: ${{ needs.e2e-matrix.result }}"
             exit 1
           fi
           echo "All E2E matrix tests passed"
-
   # CD failure handler: targeted Jules fix
   fix-cd-failure:
     name: Fix CD E2E Failures
