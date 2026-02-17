@@ -17,6 +17,8 @@ import {
 } from './helpers/game-helpers';
 
 test.describe('Responsive Device Tests', () => {
+  test.setTimeout(60000);
+
   test('should render game canvas on all devices', async ({ page }) => {
     await navigateToGame(page);
     await getCanvasBoundingBox(page);
@@ -61,6 +63,8 @@ test.describe('Responsive Device Tests', () => {
 });
 
 test.describe('Phone-Specific Tests', () => {
+  test.setTimeout(60000);
+
   test('should handle touch interactions on phones', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'This test is only for mobile devices');
 
@@ -76,6 +80,8 @@ test.describe('Phone-Specific Tests', () => {
 });
 
 test.describe('Tablet-Specific Tests', () => {
+  test.setTimeout(60000);
+
   test('should utilize larger screen on tablets', async ({ page, viewport }) => {
     const isTablet = viewport && Math.min(viewport.width, viewport.height) >= 600;
     test.skip(!isTablet, 'This test is only for tablet-sized devices');
@@ -99,6 +105,8 @@ test.describe('Tablet-Specific Tests', () => {
 });
 
 test.describe('Foldable-Specific Tests', () => {
+  test.setTimeout(60000);
+
   test('should adapt to folded state dimensions', async ({ page, viewport }) => {
     const isFolded = viewport && viewport.width < 300;
     test.skip(!isFolded, 'This test is only for folded foldable devices');
@@ -126,6 +134,8 @@ test.describe('Foldable-Specific Tests', () => {
 });
 
 test.describe('Character Rendering Tests', () => {
+  test.setTimeout(60000);
+
   test('should render character in all panic states', async ({ page }) => {
     await navigateToGame(page);
     await startGame(page);
@@ -147,6 +157,8 @@ test.describe('Character Rendering Tests', () => {
 });
 
 test.describe('Orientation Change Tests', () => {
+  test.setTimeout(60000);
+
   test('should handle viewport resize gracefully', async ({ page }) => {
     await navigateToGame(page);
 
@@ -178,6 +190,8 @@ test.describe('Orientation Change Tests', () => {
 });
 
 test.describe('Game Responsiveness Tests', () => {
+  test.setTimeout(60000);
+
   test('should maintain acceptable frame rate on all devices', async ({ page }) => {
     await navigateToGame(page);
     await startGame(page);

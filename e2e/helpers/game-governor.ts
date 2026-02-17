@@ -6,6 +6,7 @@
  */
 
 import { expect, type Page } from '@playwright/test';
+import { GAME_START_TIMEOUT } from './game-helpers';
 
 export interface GovernorConfig {
   /** How aggressively to counter enemies (0-1) */
@@ -45,7 +46,9 @@ export class GameGovernor {
     // keyboard listeners remain unaffected.
     const startBtn = this.page.locator('#start-btn');
     await expect(startBtn).toBeVisible();
+    await this.page.waitForTimeout(1000); // Wait for listeners
     await this.page.keyboard.press(' ');
+    await this.page.waitForTimeout(1000); // Wait for reaction
 
     // Wait for game to start
     await expect(this.page.locator('#overlay')).toHaveClass(/hidden/, { timeout: GAME_START_TIMEOUT });

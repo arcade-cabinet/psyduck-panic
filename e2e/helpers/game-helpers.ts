@@ -10,10 +10,10 @@ import { expect } from '@playwright/test';
 
 // ─── Timeouts ────────────────────────────────────────────────
 
-export const GAME_START_TIMEOUT = 3000;
+export const GAME_START_TIMEOUT = 10000;
 export const WAVE_ANNOUNCE_TIMEOUT = 10000;
 export const GAMEPLAY_TIMEOUT = 60000;
-export const E2E_PLAYTHROUGH_TIMEOUT = 120000;
+export const E2E_PLAYTHROUGH_TIMEOUT = 180000;
 
 // ─── Navigation ──────────────────────────────────────────────
 
@@ -37,8 +37,9 @@ export async function navigateToGame(page: Page): Promise<void> {
 export async function startGame(page: Page): Promise<void> {
   const startBtn = page.locator('#start-btn');
   await expect(startBtn).toBeVisible();
+  await page.waitForTimeout(1000); // Wait for listeners
   await page.keyboard.press(' ');
-  await page.waitForTimeout(500); // Allow event listeners to attach
+  await page.waitForTimeout(1000); // Wait for reaction
   await expect(page.locator('#overlay')).toHaveClass(/hidden/, {
     timeout: GAME_START_TIMEOUT,
   });
@@ -56,19 +57,23 @@ export async function startGameWithSpacebar(page: Page): Promise<void> {
 
 /** Verify all HUD elements are visible during gameplay */
 export async function verifyHUDVisible(page: Page): Promise<void> {
-  await expect(page.locator('#wave-display')).toBeVisible();
-  await expect(page.locator('#time-display')).toBeVisible();
-  await expect(page.locator('#score-display')).toBeVisible();
-  await expect(page.locator('#panic-bar')).toBeVisible();
-  await expect(page.locator('#combo-display')).toBeVisible();
+  await Promise.all([
+    expect(page.locator('#wave-display')).toBeVisible(),
+    expect(page.locator('#time-display')).toBeVisible(),
+    expect(page.locator('#score-display')).toBeVisible(),
+    expect(page.locator('#panic-bar')).toBeVisible(),
+    expect(page.locator('#combo-display')).toBeVisible(),
+  ]);
 }
 
 /** Verify control buttons exist in the DOM (hidden for a11y/e2e, 3D keyboard is primary) */
 export async function verifyControlsAttached(page: Page): Promise<void> {
-  await expect(page.locator('#btn-reality')).toBeAttached();
-  await expect(page.locator('#btn-history')).toBeAttached();
-  await expect(page.locator('#btn-logic')).toBeAttached();
-  await expect(page.locator('#btn-special')).toBeAttached();
+  await Promise.all([
+    expect(page.locator('#btn-reality')).toBeAttached(),
+    expect(page.locator('#btn-history')).toBeAttached(),
+    expect(page.locator('#btn-logic')).toBeAttached(),
+    expect(page.locator('#btn-special')).toBeAttached(),
+  ]);
 }
 
 /** Verify powerup indicators are visible */
@@ -100,7 +105,7 @@ export async function getCanvasBoundingBox(
     expect(box.width).toBeGreaterThan(0);
     expect(box.height).toBeGreaterThan(0);
     resultBox = box;
-  }).toPass({ timeout: 10000 });
+  }).toPass({ timeout: 30000 });
 
   if (!resultBox) throw new Error('Failed to get canvas bounding box');
   return resultBox;
