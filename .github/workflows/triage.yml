@@ -1,10 +1,19 @@
-name: Jules Issue Triage
+name: Issue Triage
 
-# Automated issue implementation via Jules AI.
-# Flow: CodeRabbit triages issue → applies labels + plan →
-#   functional label triggers this workflow → checks GitHub's native
-#   issue dependency graph for blockers → if unblocked, Jules implements →
-#   PR merges → issue closes → on-unblocked finds newly eligible issues → repeat.
+# Multi-system automated issue triage pipeline.
+#
+# Flow:
+#   1. CodeRabbit triages new issues → applies functional labels + plan + `triage` label
+#   2. `triage` label triggers GitHub AI assessment → evaluates quality/risk →
+#      posts assessment comment + `ai:*` labels → removes `triage` label
+#   3. Functional label triggers dependency check → if unblocked, Jules implements
+#   4. PR merges → issue closes → on-unblocked finds newly eligible issues → repeat
+#
+# Systems:
+#   - CodeRabbit: auto-labeling + planning (.coderabbit.yaml)
+#   - GitHub AI Models: issue quality assessment (.github/prompts/)
+#   - Jules: automated implementation (google-labs-code/jules-action)
+#   - on-unblocked: dependency cascade (BeksOmega/on-unblocked)
 #
 # Dependencies are configured via GitHub's native "Blocked by" relationships
 # (Settings > Features > Issue Dependencies). The workflow uses the GraphQL
@@ -18,8 +27,43 @@ permissions:
   contents: read
   issues: read
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 jobs:
-  # ── Label-triggered: Jules implements an unblocked issue ───────
+
+  # ── AI Quality Assessment ──────────────────────────────────────────
+  # When CodeRabbit (or a maintainer) applies the `triage` label,
+  # run AI assessment prompts matched to the issue's functional labels.
+  # Posts an assessment comment and adds `ai:<prompt>:<verdict>` labels.
+  # The `triage` label is removed automatically for idempotency.
+  ai-assessment:
+    name: AI Issue Assessment
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'triage'
+    permissions:
+      issues: write
+      models: read
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run AI assessment
+        id: assessment
+        uses: github/ai-assessment-comment-labeler@e3bedc38cfffa9179fe4cee8f7ecc93bffb3fee7 # v1.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ai_review_label: triage
+          issue_number: ${{ github.event.issue.number }}
+          issue_body: ${{ github.event.issue.body }}
+          prompts_directory: .github/prompts
+          # SYNC: Labels below must match .coderabbit.yaml labeling_instructions
+          labels_to_prompts_mapping: >-
+            bug,bug-review.prompt.yml|enhancement,issue-review.prompt.yml|determinism,issue-review.prompt.yml|performance,issue-review.prompt.yml|ai,issue-review.prompt.yml|state-management,issue-review.prompt.yml|old-index-parity,issue-review.prompt.yml|accessibility,issue-review.prompt.yml
+          model: openai/gpt-4o-mini
+          max_tokens: 500
+
+  # ── Label-triggered: Jules implements an unblocked issue ───────────
   # When CodeRabbit (or a maintainer) applies a functional label,
   # check GitHub's native dependency graph for open blockers, then
   # invoke Jules to implement the issue using CodeRabbit's plan.
@@ -131,7 +175,7 @@ jobs:
           starting_branch: main
           include_last_commit: true
 
-  # ── Unblocked issue detection ──────────────────────────────────
+  # ── Unblocked issue detection ──────────────────────────────────────
   # When an issue closes (usually via PR merge), find issues that
   # were blocked by it and are now ready for implementation.
   detect-unblocked:
@@ -150,7 +194,7 @@ jobs:
         id: finder
         uses: BeksOmega/on-unblocked@0e54ef697940f67a5bc41efe624bf282889d105f # v1.0.0
 
-  # ── Implement each newly unblocked issue ───────────────────────
+  # ── Implement each newly unblocked issue ───────────────────────────
   implement-unblocked:
     name: Implement Unblocked Issue
     needs: detect-unblocked
