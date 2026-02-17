@@ -78,7 +78,7 @@ describe('GameLogic Coverage', () => {
       };
 
       // biome-ignore lint/suspicious/noExplicitAny: access private method for testing
-      (game as any).executeBossActions([action]);
+      (game as unknown as { executeBossActions: (actions: Array<{ type: string; enemies: Array<{ x: number; y: number; vx: number; vy: number }> }>) => void }).executeBossActions([action]);
 
       expect(game.enemies.length).toBeGreaterThan(0);
       if (game.enemies.length > 0) {
