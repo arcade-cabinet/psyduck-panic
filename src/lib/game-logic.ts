@@ -441,6 +441,8 @@ export class GameLogic {
     if (!this.running) return;
     this.nowMs = now;
 
+    const deltaSec = (dt * 16.67) / 1000; // Convert frame-time factor to seconds
+
     // Boss wave transition (frame-based delay to allow confetti)
     if (this.bossWaveTransitionTimer > 0) {
       this.bossWaveTransitionTimer -= deltaSec;
@@ -448,8 +450,6 @@ export class GameLogic {
         this.nextWave();
       }
     }
-
-    const deltaSec = (dt * 16.67) / 1000; // Convert frame-time factor to seconds
 
     // ─── Update AI Director ─────────────────────────────
     this.recentResetTimer += deltaSec;
