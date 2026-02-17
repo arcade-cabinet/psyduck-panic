@@ -70,17 +70,21 @@ export default function Game() {
 
   // Initialize SFX + Music
   useEffect(() => {
-    sfxRef.current = new SFX();
-    sfxRef.current.init();
+    try {
+      sfxRef.current = new SFX();
+      sfxRef.current.init();
 
-    const music = new AdaptiveMusic();
-    musicInitRef.current = music.init();
-    musicRef.current = music;
+      const music = new AdaptiveMusic();
+      musicInitRef.current = music.init().catch((e) => console.warn('Music init failed:', e));
+      musicRef.current = music;
+    } catch (e) {
+      console.warn('Audio init failed:', e);
+    }
 
     return () => {
       sfxRef.current?.destroy();
       sfxRef.current = null;
-      music.destroy();
+      musicRef.current?.destroy();
     };
   }, []);
 
@@ -104,11 +108,11 @@ export default function Game() {
 
       try {
         sfxRef.current?.resume();
-        musicRef.current?.resume();
+        musicRef.current?.resume().catch((e) => console.warn('Music resume failed:', e));
         sceneRef.current?.reset();
       } catch (e) {
         console.warn('Failed to resume audio or reset scene:', e);
-        throw e;
+        // We do NOT rethrow here, because audio/scene failures shouldn't block game start
       }
 
       // Delay worker start to let React commit the screen transition first.
@@ -187,6 +191,10 @@ export default function Game() {
   useEffect(() => {
     const worker = new GameWorker();
     workerRef.current = worker;
+
+    worker.onerror = (e) => {
+      console.error('[game.worker] Worker crashed:', e.message);
+    };
 
     worker.onmessage = (e: MessageEvent) => {
       const msg = e.data;
@@ -547,6 +555,8 @@ export default function Game() {
             type="button"
             className="start-btn"
             id="start-btn"
+            // biome-ignore lint/a11y/noAutofocus: reliability for e2e tests
+            autoFocus
             onClick={handleStartButton}
             aria-label={
               ui.screen === 'start'
