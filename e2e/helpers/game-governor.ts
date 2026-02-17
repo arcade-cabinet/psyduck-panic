@@ -170,10 +170,6 @@ export class GameGovernor {
       if (this.rng() < this.config.aggressiveness) {
         await this.page.keyboard.press(pressKey);
       }
-
-      if (this.rng() < this.config.aggressiveness) {
-        await this.page.keyboard.press(key);
-      }
     } else {
       // No enemy info available — fall back to cycling abilities
       const keys = ['F1', 'F2', 'F3'];
