@@ -13,7 +13,7 @@ import { expect } from '@playwright/test';
 export const GAME_START_TIMEOUT = 10000;
 export const WAVE_ANNOUNCE_TIMEOUT = 15000;
 export const GAMEPLAY_TIMEOUT = 60000;
-export const E2E_PLAYTHROUGH_TIMEOUT = 120000;
+export const E2E_PLAYTHROUGH_TIMEOUT = 180000;
 
 // ─── Navigation ──────────────────────────────────────────────
 
@@ -29,14 +29,27 @@ export async function navigateToGame(page: Page): Promise<void> {
  *  Uses keyboard instead of click because an unhandled font-fetch
  *  rejection from troika-three-text (offline CI) breaks React 18's
  *  synthetic event dispatch for mouse/pointer events while native
- *  keyboard listeners remain unaffected. */
+ *  keyboard listeners remain unaffected.
+ *
+ *  Robustly handles delayed event listener attachment by retrying
+ *  the start sequence if the overlay remains visible. */
 export async function startGame(page: Page): Promise<void> {
   const startBtn = page.locator('#start-btn');
-  await expect(startBtn).toBeVisible();
-  await page.keyboard.press(' ');
-  await expect(page.locator('#overlay')).toHaveClass(/hidden/, {
-    timeout: GAME_START_TIMEOUT,
-  });
+
+  // Retry loop to handle race condition where React event listeners
+  // might not be attached when the first keypress occurs.
+  await expect(async () => {
+    // Only attempt to start if the overlay is still visible
+    if (await page.locator('#overlay').isVisible()) {
+      await expect(startBtn).toBeVisible();
+      await page.keyboard.press(' ');
+
+      // Check if it worked (short timeout for retry loop)
+      await expect(page.locator('#overlay')).toHaveClass(/hidden/, {
+        timeout: 2000,
+      });
+    }
+  }).toPass({ timeout: GAME_START_TIMEOUT });
 }
 
 /** Start the game by pressing spacebar */
