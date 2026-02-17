@@ -6,7 +6,21 @@ import Landing from './Landing';
 
 // Mock animejs to avoid DOM animation issues in jsdom
 vi.mock('animejs', () => ({
-  animate: vi.fn(),
+  animate: vi.fn((_target, params) => {
+    // Execute function properties in params to cover them
+    if (params) {
+      Object.values(params).forEach((val) => {
+        if (typeof val === 'function') {
+          val();
+        } else if (Array.isArray(val)) {
+          val.forEach((v) => {
+            if (typeof v === 'function') v();
+          });
+        }
+      });
+    }
+    return { pause: vi.fn(), play: vi.fn() };
+  }),
 }));
 
 const mockedNavigate = vi.fn();

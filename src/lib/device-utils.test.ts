@@ -257,6 +257,28 @@ describe('device-utils', () => {
       expect(vp.width / vp.height).toBeCloseTo(baseWidth / baseHeight, 1);
     });
 
+    test('calculates viewport for tablet wide landscape', () => {
+      const deviceInfo: DeviceInfo = {
+        type: 'tablet',
+        orientation: 'landscape',
+        screenWidth: 1280,
+        screenHeight: 800,
+        pixelRatio: 2,
+        isTouchDevice: true,
+        isIOS: false,
+        isAndroid: true,
+        hasNotch: false,
+        isFoldable: false,
+      };
+
+      const vp = calculateViewport(baseWidth, baseHeight, deviceInfo);
+      // 1280/800 = 1.6 > 1.333
+      // Should constrain by height: height = 800 * 0.9 = 720
+      expect(vp.height).toBe(720);
+      expect(vp.width).toBe(960); // 720 * 1.333
+      expect(vp.scale).toBe(1.2);
+    });
+
     test('calculates viewport for tablet portrait', () => {
       const deviceInfo: DeviceInfo = {
         type: 'tablet',
@@ -457,6 +479,13 @@ describe('device-utils', () => {
 
       // Initial call triggers after debounce
       expect(callback).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(200);
+      expect(callback).toHaveBeenCalled();
+
+      // Test orientation change
+      callback.mockClear();
+      window.dispatchEvent(new Event('orientationchange'));
+      expect(callback).not.toHaveBeenCalled(); // Should be debounced/delayed
       vi.advanceTimersByTime(200);
       expect(callback).toHaveBeenCalled();
 
