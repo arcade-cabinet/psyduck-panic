@@ -186,6 +186,10 @@ export default function Game() {
     const worker = new GameWorker();
     workerRef.current = worker;
 
+    worker.onerror = (e) => {
+      console.error('[game.worker] Worker initialization failed:', e);
+    };
+
     worker.onmessage = (e: MessageEvent) => {
       const msg = e.data;
       if (msg.type === 'ERROR') {

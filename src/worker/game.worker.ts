@@ -6,11 +6,11 @@ let running = false;
 let lastTime = 0;
 let animationFrameId: number;
 
-// Polyfill for requestAnimationFrame in worker if needed
-const requestFrame =
-  self.requestAnimationFrame ||
-  ((callback: (t: number) => void) => setTimeout(() => callback(performance.now()), 16));
-const cancelFrame = self.cancelAnimationFrame || clearTimeout;
+// Use setTimeout for the game loop to ensure consistent execution
+// independent of browser background throttling (which affects requestAnimationFrame)
+const requestFrame = (callback: (t: number) => void) =>
+  setTimeout(() => callback(performance.now()), 16);
+const cancelFrame = clearTimeout;
 
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   try {
