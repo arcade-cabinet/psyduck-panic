@@ -34,14 +34,8 @@ jobs:
         continue-on-error: true
         run: pnpm lint
 
-      - name: Type Check
-        id: typecheck
-        continue-on-error: true
-        run: pnpm exec tsc --noEmit
-
       - name: Build
         id: build
-        if: steps.typecheck.outcome == 'success'
         continue-on-error: true
         run: pnpm build
 
@@ -78,16 +72,9 @@ jobs:
             FAILED="${FAILED}lint,"
             DETAILS="${DETAILS}LINT FAILED: Biome linter found issues. Run 'pnpm lint' locally. Auto-fix with 'pnpm lint:fix'.\n"
           fi
-          if [[ "${{ steps.typecheck.outcome }}" == "failure" ]]; then
-            FAILED="${FAILED}typecheck,"
-            DETAILS="${DETAILS}TYPECHECK FAILED: TypeScript compilation errors. Run 'pnpm exec tsc --noEmit' locally.\n"
-          fi
           if [[ "${{ steps.build.outcome }}" == "failure" ]]; then
             FAILED="${FAILED}build,"
-            DETAILS="${DETAILS}BUILD FAILED: Vite build failed. Run 'pnpm build' locally. Prebuild runs typecheck + icon generation.\n"
-          elif [[ "${{ steps.build.outcome }}" == "skipped" ]]; then
-            FAILED="${FAILED}build,"
-            DETAILS="${DETAILS}BUILD SKIPPED: TypeCheck failed so build was not attempted.\n"
+            DETAILS="${DETAILS}BUILD/TYPECHECK FAILED: Vite build failed. Run 'pnpm build' locally. Prebuild runs typecheck + icon generation.\n"
           fi
           if [[ "${{ steps.unit.outcome }}" == "failure" ]]; then
             FAILED="${FAILED}unit,"
