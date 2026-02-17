@@ -49,7 +49,7 @@ export default defineConfig({
     strictPort: true,
   },
   worker: {
-    format: 'es',
+    format: 'iife',
   },
   optimizeDeps: {
     exclude: ['@capacitor/core', '@capacitor/app'],

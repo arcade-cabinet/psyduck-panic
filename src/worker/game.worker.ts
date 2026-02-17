@@ -84,14 +84,19 @@ function loop(now: number) {
   if (!running) return;
 
   try {
-    const dt = Math.min((now - lastTime) / 16.67, 2); // Frame time factor (approx 1.0 at 60fps)
+    // Relax dt clamping to allow game time to catch up in slow environments
+    const dt = Math.min((now - lastTime) / 16.67, 10);
     lastTime = now;
 
     logic.update(dt, now);
     const state = logic.getState();
 
     const msg: MainMessage = { type: 'STATE', state };
-    self.postMessage(msg);
+    try {
+      self.postMessage(msg);
+    } catch (e) {
+      console.error('[Worker] postMessage failed:', e);
+    }
 
     if (logic.running) {
       scheduleLoop();
