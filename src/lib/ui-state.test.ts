@@ -169,12 +169,12 @@ describe('UI State Reducer', () => {
     it('should set boss state', () => {
       const state = uiReducer(initialUIState, {
         type: 'BOSS_START',
-        name: 'THE HYPE TRAIN',
+        name: 'THE ECHO CHAMBER',
         hp: 100,
       });
 
       expect(state.boss).not.toBeNull();
-      expect(state.boss?.name).toBe('THE HYPE TRAIN');
+      expect(state.boss?.name).toBe('THE ECHO CHAMBER');
       expect(state.boss?.hp).toBe(100);
       expect(state.boss?.maxHp).toBe(100);
     });

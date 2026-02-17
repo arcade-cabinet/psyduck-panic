@@ -227,7 +227,9 @@ export default function Landing() {
           <div className="feature-card">
             <div className="feature-icon">👾</div>
             <h3>Epic Boss Battles</h3>
-            <p>Face THE HYPE TRAIN and THE SINGULARITY in challenging multi-phase encounters.</p>
+            <p>
+              Face THE ECHO CHAMBER and THE GRAND DELUSION in challenging multi-phase encounters.
+            </p>
           </div>
 
           <div className="feature-card">

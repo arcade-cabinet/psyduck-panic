@@ -52,7 +52,7 @@ function syncEnemies(state: GameState): void {
         enemy: {
           gameId: enemy.id,
           word: enemy.word,
-          icon: enemy.type.icon,
+          shape: enemy.type.shape,
           color: enemy.type.color,
           counter: enemy.counter,
           encrypted: !!enemy.encrypted,

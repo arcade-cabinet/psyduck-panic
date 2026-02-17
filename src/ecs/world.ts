@@ -28,7 +28,7 @@ export interface Velocity {
 export interface EnemyData {
   gameId: number;
   word: string;
-  icon: string;
+  shape: string;
   color: string;
   counter: string;
   encrypted: boolean;

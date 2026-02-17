@@ -18,7 +18,7 @@ import {
 } from './boss-ai';
 
 const mockEnemyType: EnemyType = {
-  icon: '🦆',
+  shape: 'denial',
   color: '#fff',
   words: ['test'],
   counter: 'reality',

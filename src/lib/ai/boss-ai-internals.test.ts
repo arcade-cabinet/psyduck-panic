@@ -32,7 +32,7 @@ describe('BossAI Internals', () => {
           counter: 'reality',
           words: ['TEST'],
           color: '#fff',
-          icon: 'T',
+          shape: 'denial',
         },
       ],
       wave: 1,

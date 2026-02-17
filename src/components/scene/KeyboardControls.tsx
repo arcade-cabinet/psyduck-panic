@@ -17,9 +17,116 @@
 
 import { Billboard, Text } from '@react-three/drei';
 import { type ThreeEvent, useFrame } from '@react-three/fiber';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { colors } from '../../design/tokens';
+
+// ─── Portrait Shader (mini raymarched SDF on keycap surface) ─
+
+const PORTRAIT_VERT = `
+varying vec2 v_uv;
+void main() {
+  v_uv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const PORTRAIT_FRAG = `
+precision highp float;
+uniform float u_time;
+uniform int u_shape;
+uniform vec3 u_color;
+varying vec2 v_uv;
+
+const int MAX_STEPS = 32;
+const float MAX_DIST = 5.0;
+const float SURF_DIST = 0.003;
+
+float sdSphere(vec3 p, float r) { return length(p) - r; }
+
+float sdOctahedron(vec3 p, float s) {
+  p = abs(p);
+  float m = p.x + p.y + p.z - s;
+  vec3 q;
+  if (3.0 * p.x < m) q = p.xyz;
+  else if (3.0 * p.y < m) q = p.yzx;
+  else if (3.0 * p.z < m) q = p.zxy;
+  else return m * 0.57735027;
+  float k = clamp(0.5 * (q.z - q.y + s), 0.0, s);
+  return length(vec3(q.x, q.y - s + k, q.z - k));
+}
+
+float sdTorus(vec3 p, vec2 t) {
+  vec2 q = vec2(length(p.xz) - t.x, p.y);
+  return length(q) - t.y;
+}
+
+float opSmoothSubtraction(float d1, float d2, float k) {
+  float h = clamp(0.5 - 0.5 * (d2 + d1) / k, 0.0, 1.0);
+  return mix(d2, -d1, h) + k * h * (1.0 - h);
+}
+
+mat3 rotY(float a) { float s = sin(a), c = cos(a); return mat3(c,0,s,0,1,0,-s,0,c); }
+mat3 rotX(float a) { float s = sin(a), c = cos(a); return mat3(1,0,0,0,c,-s,0,s,c); }
+
+float getSDF(vec3 p) {
+  p = rotY(u_time * 0.6) * rotX(u_time * 0.2) * p;
+  if (u_shape == 0) {
+    float sphere = sdSphere(p, 0.7);
+    return opSmoothSubtraction(p.y - 0.15, sphere, 0.15);
+  } else if (u_shape == 1) {
+    return sdOctahedron(p, 0.65);
+  } else if (u_shape == 2) {
+    return sdTorus(rotX(u_time * 0.4) * p, vec2(0.45, 0.18));
+  } else {
+    // NUKE: sphere with sine-wave displacement (crystalline)
+    float d = sdSphere(p, 0.6);
+    d -= sin(p.x * 8.0) * sin(p.y * 8.0) * sin(p.z * 8.0) * 0.05;
+    return d;
+  }
+}
+
+vec3 calcNormal(vec3 p) {
+  vec2 e = vec2(0.002, 0.0);
+  return normalize(vec3(
+    getSDF(p + e.xyy) - getSDF(p - e.xyy),
+    getSDF(p + e.yxy) - getSDF(p - e.yxy),
+    getSDF(p + e.yyx) - getSDF(p - e.yyx)
+  ));
+}
+
+void main() {
+  vec2 uv = (v_uv - 0.5) * 2.0;
+  vec3 ro = vec3(0.0, 0.0, 2.0);
+  vec3 rd = normalize(vec3(uv, -1.0));
+
+  float totalDist = 0.0;
+  vec3 rayPos = ro;
+  for (int i = 0; i < MAX_STEPS; i++) {
+    float dist = getSDF(rayPos);
+    if (dist < SURF_DIST || totalDist > MAX_DIST) break;
+    totalDist += dist;
+    rayPos = ro + totalDist * rd;
+  }
+
+  if (totalDist >= MAX_DIST) { gl_FragColor = vec4(0.0); return; }
+
+  vec3 n = calcNormal(rayPos);
+  vec3 v = normalize(ro - rayPos);
+  float fresnel = pow(1.0 - max(dot(n, v), 0.0), 2.5);
+  float hue = dot(n, v) * 3.14159 + u_time * 0.6;
+  vec3 iri = u_color * (0.6 + sin(hue) * 0.4) * fresnel * 1.5;
+
+  float diff = max(dot(n, normalize(vec3(-0.4, 0.8, 0.6))), 0.0);
+  vec3 h = normalize(normalize(vec3(-0.4, 0.8, 0.6)) + v);
+  float spec = pow(max(dot(n, h), 0.0), 32.0);
+  float rim = pow(1.0 - max(dot(n, v), 0.0), 3.0);
+
+  vec3 color = vec3(0.05) * (0.15 + diff * 0.35) + iri * 0.9 + vec3(1.0) * spec * 0.4 + u_color * rim * 0.5;
+  float alpha = smoothstep(MAX_DIST, MAX_DIST * 0.3, totalDist);
+  gl_FragColor = vec4(color, alpha);
+}
+`;
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -54,6 +161,8 @@ interface DynamicKeyDef {
   icon: string;
   color: string;
   active: boolean;
+  /** SDF shape index for raymarched portrait (0=denial, 1=delusion, 2=fallacy, 3=nuke) */
+  shapeIndex?: number;
   abilityType?: 'reality' | 'history' | 'logic' | 'nuke';
 }
 
@@ -77,35 +186,39 @@ function getFKeyDefs(mode: ScreenMode, isWin: boolean): DynamicKeyDef[] {
     case 'playing':
       return [
         {
-          label: 'F1',
-          name: 'REALITY',
-          icon: '\u{1F9A0}',
+          label: '',
+          name: 'DENIAL',
+          icon: '',
           color: colors.accent.reality,
           active: true,
+          shapeIndex: 0,
           abilityType: 'reality',
         },
         {
-          label: 'F2',
-          name: 'HISTORY',
-          icon: '\u{1F4C8}',
+          label: '',
+          name: 'DELUSION',
+          icon: '',
           color: colors.accent.history,
           active: true,
+          shapeIndex: 1,
           abilityType: 'history',
         },
         {
-          label: 'F3',
-          name: 'LOGIC',
-          icon: '\u{1F916}',
+          label: '',
+          name: 'FALLACY',
+          icon: '',
           color: colors.accent.logic,
           active: true,
+          shapeIndex: 2,
           abilityType: 'logic',
         },
         {
-          label: 'F4',
+          label: '',
           name: 'NUKE',
-          icon: '\u{1F4A5}',
+          icon: '',
           color: colors.semantic.error,
           active: true,
+          shapeIndex: 3,
           abilityType: 'nuke',
         },
       ];
@@ -595,6 +708,11 @@ function FKey({
           <meshBasicMaterial color="white" transparent opacity={0.6} />
         </mesh>
 
+        {/* Portrait SDF shape on keycap surface (playing mode) */}
+        {keyDef.shapeIndex !== undefined && keyDef.active && (
+          <KeycapPortrait shapeIndex={keyDef.shapeIndex} color={keyDef.color} />
+        )}
+
         {/* Labels — Billboard so always readable from camera */}
         {keyDef.active && (
           <Billboard position={[0, KEY_H / 2 + 0.02, 0]}>
@@ -618,8 +736,8 @@ function FKey({
             )}
             {keyDef.name !== '' && (
               <Text
-                position={[0, -0.06, 0]}
-                fontSize={0.04}
+                position={[0, keyDef.shapeIndex !== undefined ? 0.12 : -0.06, 0]}
+                fontSize={keyDef.shapeIndex !== undefined ? 0.03 : 0.04}
                 color="white"
                 anchorX="center"
                 anchorY="middle"
@@ -633,6 +751,49 @@ function FKey({
         )}
       </group>
     </group>
+  );
+}
+
+// ─── Keycap Portrait (mini raymarched SDF shape) ────────────
+
+function hexToVec3(hex: string): [number, number, number] {
+  const r = Number.parseInt(hex.slice(1, 3), 16) / 255;
+  const g = Number.parseInt(hex.slice(3, 5), 16) / 255;
+  const b = Number.parseInt(hex.slice(5, 7), 16) / 255;
+  return [r, g, b];
+}
+
+function KeycapPortrait({ shapeIndex, color }: { shapeIndex: number; color: string }) {
+  const matRef = useRef<THREE.ShaderMaterial>(null);
+  const [r, g, b] = hexToVec3(color);
+
+  const uniforms = useMemo(
+    () => ({
+      u_time: { value: 0 },
+      u_shape: { value: shapeIndex },
+      u_color: { value: new THREE.Vector3(r, g, b) },
+    }),
+    [shapeIndex, r, g, b]
+  );
+
+  useFrame(({ clock }) => {
+    if (matRef.current) {
+      matRef.current.uniforms.u_time.value = clock.elapsedTime;
+    }
+  });
+
+  return (
+    <mesh position={[0, KEY_H / 2 + 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[KEY_W * 0.75, KEY_D * 0.75]} />
+      <shaderMaterial
+        ref={matRef}
+        uniforms={uniforms}
+        vertexShader={PORTRAIT_VERT}
+        fragmentShader={PORTRAIT_FRAG}
+        transparent
+        depthWrite={false}
+      />
+    </mesh>
   );
 }
 
