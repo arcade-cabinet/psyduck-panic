@@ -7,4 +7,3 @@ public
 pnpm-lock.yaml
 .coderabbit.yaml
 sonar-project.properties
-scripts
