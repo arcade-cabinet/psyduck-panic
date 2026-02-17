@@ -415,7 +415,7 @@ describe('device-utils', () => {
     test('handles orientation change', () => {
       vi.useFakeTimers();
       const callback = vi.fn();
-      createResizeObserver(callback);
+      const cleanup = createResizeObserver(callback);
 
       // Trigger orientation change
       window.dispatchEvent(new Event('orientationchange'));
@@ -427,6 +427,7 @@ describe('device-utils', () => {
       vi.advanceTimersByTime(200);
       expect(callback).toHaveBeenCalled();
 
+      cleanup();
       vi.useRealTimers();
     });
   });
