@@ -91,12 +91,18 @@ export default function Game() {
     if (startInitiatedRef.current) return;
     startInitiatedRef.current = true;
 
-    sfxRef.current?.resume();
-    musicRef.current?.resume();
-    sceneRef.current?.reset();
-
+    // Dispatch immediately to update UI state (hide overlay)
     const endless = currentState.win && currentState.screen === 'gameover';
     dispatch(endless ? { type: 'START_ENDLESS' } : { type: 'START_GAME' });
+
+    // Initialize audio/scene, but don't let failures block game start
+    try {
+      sfxRef.current?.resume();
+      musicRef.current?.resume().catch((e) => console.warn('Music resume failed:', e));
+      sceneRef.current?.reset();
+    } catch (e) {
+      console.error('Failed to initialize game components:', e);
+    }
 
     // Delay worker start to let React commit the screen transition first.
     // Without this delay, the worker's rapid STATE messages can race with

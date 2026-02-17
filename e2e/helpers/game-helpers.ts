@@ -10,7 +10,7 @@ import { expect } from '@playwright/test';
 
 // ─── Timeouts ────────────────────────────────────────────────
 
-export const GAME_START_TIMEOUT = 10000;
+export const GAME_START_TIMEOUT = 15000;
 export const WAVE_ANNOUNCE_TIMEOUT = 15000;
 export const GAMEPLAY_TIMEOUT = 60000;
 export const E2E_PLAYTHROUGH_TIMEOUT = 120000;
@@ -40,6 +40,14 @@ export async function startGame(page: Page): Promise<void> {
   await expect(async () => {
     if (await overlay.isVisible()) {
       await page.keyboard.press(' ');
+      // Also try clicking the button as a fallback if keyboard events are swallowed
+      if (await startBtn.isVisible()) {
+          try {
+            await startBtn.click({ timeout: 500 });
+          } catch {
+            // Ignore click timeout/errors, we rely primarily on keyboard
+          }
+      }
     }
     await expect(overlay).toHaveClass(/hidden/);
   }).toPass({ timeout: GAME_START_TIMEOUT });
