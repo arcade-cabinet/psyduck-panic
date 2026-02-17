@@ -19,7 +19,9 @@ function App() {
       .then(() => {
         clearTimeout(timeoutId);
         setPlatformReady(true);
-        console.log('Capacitor platform initialized');
+        if (import.meta.env.DEV) {
+          console.info('Capacitor platform initialized');
+        }
       })
       .catch((error) => {
         clearTimeout(timeoutId);
