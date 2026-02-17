@@ -92,8 +92,15 @@ export default function Game() {
     startInitiatedRef.current = true;
 
     try {
-      sfxRef.current?.resume();
-      musicRef.current?.resume().catch((err) => console.warn('Music resume failed:', err));
+      const sfxPromise = sfxRef.current?.resume();
+      sfxPromise?.catch((err) => {
+        console.warn('SFX resume failed:', err);
+      });
+
+      const musicPromise = musicRef.current?.resume();
+      musicPromise?.catch((err) => {
+        console.warn('Music resume failed:', err);
+      });
     } catch (e) {
       console.warn('Audio resume failed:', e);
     }
