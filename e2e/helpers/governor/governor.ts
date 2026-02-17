@@ -68,18 +68,23 @@ export class GameGovernor {
 
   /** Main gameplay loop — read state, decide action, execute */
   private async playLoop(): Promise<void> {
-    while (this.isRunning) {
-      if (!(await isGameRunning(this.page))) break;
+    try {
+      while (this.isRunning) {
+        if (!(await isGameRunning(this.page))) break;
 
-      const snapshot = await readSnapshot(this.page);
-      const action = decideAction(snapshot, this.config, this.rng);
+        const snapshot = await readSnapshot(this.page);
+        const action = decideAction(snapshot, this.config, this.rng);
 
-      if (action.type === 'press') {
-        await this.page.keyboard.press(action.key);
+        if (action.type === 'press') {
+          await this.page.keyboard.press(action.key);
+        }
+
+        await this.page.waitForTimeout(this.config.reactionTime);
       }
-
-      await this.page.waitForTimeout(this.config.reactionTime);
+    } finally {
+      this.isRunning = false;
     }
+  }
   }
 }
 
