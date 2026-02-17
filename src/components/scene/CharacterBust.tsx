@@ -378,6 +378,7 @@ function AndroidNeck({ panicRef }: { panicRef: React.RefObject<number> }) {
       {/* Cables */}
       <group ref={cableGroupRef}>
         {cables.map((geo, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: cables is a static list
           <mesh key={`cable-${i}`} geometry={geo}>
             <meshStandardMaterial color={ch.cable} roughness={0.58} metalness={0.28} />
           </mesh>
@@ -448,6 +449,7 @@ function ShoulderAssembly({ side }: { side: 'left' | 'right' }) {
 
       {/* Cable bundle */}
       {shoulderCables.map((geo, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static list
         <mesh key={`shoulder-cable-${side}-${i}`} geometry={geo}>
           <meshStandardMaterial color={ch.cable} roughness={0.58} metalness={0.28} />
         </mesh>
@@ -586,6 +588,7 @@ function CableBundles({ panicRef }: { panicRef: React.RefObject<number> }) {
   return (
     <group ref={groupRef}>
       {cables.map((geo, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static list
         <mesh key={`bundle-cable-${i}`} geometry={geo}>
           <meshStandardMaterial
             ref={(el) => {
