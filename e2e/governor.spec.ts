@@ -56,7 +56,7 @@ test.describe('Automated Playthrough with Governor', () => {
     await page.waitForTimeout(5000);
     await screenshot(page, 'governor-aggressive', '01-gameplay');
 
-    const result = await Promise.race([
+    const aggressiveResult = await Promise.race([
       playthroughPromise,
       new Promise<{ result: 'loss'; score: number }>((resolve) =>
         setTimeout(() => {
@@ -67,9 +67,11 @@ test.describe('Automated Playthrough with Governor', () => {
     ]);
 
     await screenshot(page, 'governor-aggressive', '02-end');
-    expect(result).toBeTruthy();
-    expect(result.score).toBeGreaterThanOrEqual(0);
-    console.log(`Aggressive playthrough: ${result.result}, score: ${result.score}`);
+    expect(aggressiveResult.result).toMatch(/^(win|loss)$/);
+    expect(aggressiveResult.score).toBeGreaterThanOrEqual(0);
+    console.log(
+      `Aggressive playthrough: ${aggressiveResult.result}, score: ${aggressiveResult.score}`
+    );
   });
 
   test('should play defensively with lower accuracy @matrix', async ({ page }) => {
@@ -87,7 +89,7 @@ test.describe('Automated Playthrough with Governor', () => {
     await page.waitForTimeout(5000);
     await screenshot(page, 'governor-defensive', '01-gameplay');
 
-    const result = await Promise.race([
+    const defensiveResult = await Promise.race([
       playthroughPromise,
       new Promise<{ result: 'loss'; score: number }>((resolve) =>
         setTimeout(() => {
@@ -98,8 +100,11 @@ test.describe('Automated Playthrough with Governor', () => {
     ]);
 
     await screenshot(page, 'governor-defensive', '02-end');
-    expect(result).toBeTruthy();
-    console.log(`Defensive playthrough: ${result.result}, score: ${result.score}`);
+    expect(defensiveResult.result).toMatch(/^(win|loss)$/);
+    expect(defensiveResult.score).toBeGreaterThanOrEqual(0);
+    console.log(
+      `Defensive playthrough: ${defensiveResult.result}, score: ${defensiveResult.score}`
+    );
   });
 
   test('should verify game continues running during automated play @matrix', async ({ page }) => {

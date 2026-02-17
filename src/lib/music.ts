@@ -134,6 +134,7 @@ export class AdaptiveMusic {
    */
   stop(): void {
     if (!this.playing) return;
+    Tone.getTransport().bpm.cancelScheduledValues(0);
     Tone.getTransport().stop();
     Tone.getTransport().cancel();
 
@@ -149,6 +150,7 @@ export class AdaptiveMusic {
     this.kickLoop = null;
     this.hihatLoop = null;
 
+    this.lastBpmPanic = -1;
     this.playing = false;
   }
 

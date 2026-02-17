@@ -8,6 +8,7 @@
 export class SFX {
   public ctx: AudioContext | null = null;
   public musicInterval: number | null = null;
+  private musicGain: GainNode | null = null;
   private pendingTimers: number[] = [];
 
   /** Initialize the AudioContext (must be called after user interaction) */
@@ -51,6 +52,10 @@ export class SFX {
     gainNode.connect(this.ctx.destination);
     oscillator.start();
     oscillator.stop(this.ctx.currentTime + duration);
+    oscillator.onended = () => {
+      oscillator.disconnect();
+      gainNode.disconnect();
+    };
   }
 
   /** Play ascending counter SFX with pitch scaled by combo multiplier */
@@ -113,9 +118,10 @@ export class SFX {
     const bass = [110, 110, 130.81, 110, 146.83, 130.81, 110, 98];
     const mel = [440, 0, 550, 0, 440, 660, 550, 0];
     let beat = 0;
-    const gainNode = this.ctx.createGain();
-    gainNode.gain.value = 0.06;
-    gainNode.connect(this.ctx.destination);
+    this.musicGain = this.ctx.createGain();
+    this.musicGain.gain.value = 0.06;
+    this.musicGain.connect(this.ctx.destination);
+    const gainNode = this.musicGain;
     this.musicInterval = window.setInterval(() => {
       if (!this.ctx) return;
       const i = beat % 8;
@@ -129,6 +135,10 @@ export class SFX {
       gain.connect(gainNode);
       oscillator.start();
       oscillator.stop(this.ctx.currentTime + ms / 1000);
+      oscillator.onended = () => {
+        oscillator.disconnect();
+        gain.disconnect();
+      };
       if (i % 2 === 0) {
         const kick = this.ctx.createOscillator();
         const kickGain = this.ctx.createGain();
@@ -140,6 +150,10 @@ export class SFX {
         kickGain.connect(gainNode);
         kick.start();
         kick.stop(this.ctx.currentTime + 0.07);
+        kick.onended = () => {
+          kick.disconnect();
+          kickGain.disconnect();
+        };
       }
       if (wave > 1 && mel[i] > 0) {
         const melody = this.ctx.createOscillator();
@@ -155,6 +169,10 @@ export class SFX {
         melodyGain.connect(gainNode);
         melody.start();
         melody.stop(this.ctx.currentTime + (ms / 1000) * 0.5);
+        melody.onended = () => {
+          melody.disconnect();
+          melodyGain.disconnect();
+        };
       }
       beat++;
     }, ms);
@@ -165,6 +183,10 @@ export class SFX {
     if (this.musicInterval) {
       clearInterval(this.musicInterval);
       this.musicInterval = null;
+    }
+    if (this.musicGain) {
+      this.musicGain.disconnect();
+      this.musicGain = null;
     }
   }
 

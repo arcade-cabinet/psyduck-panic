@@ -6,8 +6,10 @@ const mockOscillator = {
   type: 'square',
   frequency: { setValueAtTime: vi.fn(), value: 0 },
   connect: vi.fn(),
+  disconnect: vi.fn(),
   start: vi.fn(),
   stop: vi.fn(),
+  onended: null as (() => void) | null,
 };
 
 const mockGain = {
@@ -17,6 +19,7 @@ const mockGain = {
     exponentialRampToValueAtTime: vi.fn(),
   },
   connect: vi.fn(),
+  disconnect: vi.fn(),
 };
 
 // Capture the spies to verify calls

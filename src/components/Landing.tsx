@@ -7,7 +7,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const bubblesRef = useRef<HTMLDivElement>(null);
 
-  // Stabilize random bubble values using useMemo
+  // Stabilize random bubble values using useMemo — all randomness precomputed
   const bubbleData = useMemo(
     () =>
       Array.from({ length: 20 }, (_, i) => ({
@@ -17,6 +17,11 @@ export default function Landing() {
         duration: 15000 + Math.random() * 10000,
         rotationDuration: 8000 + Math.random() * 4000,
         delay: i * 800 + Math.random() * 2000,
+        driftX: [
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 200,
+        ],
       })),
     []
   );
@@ -46,15 +51,11 @@ export default function Landing() {
         })
       );
 
-      // Create floating animation with anime.js
+      // Create floating animation with anime.js — translateX uses precomputed offsets
       animations.push(
         animate(bubble as HTMLElement, {
           translateY: -window.innerHeight - 100,
-          translateX: [
-            () => (Math.random() - 0.5) * 200,
-            () => (Math.random() - 0.5) * 200,
-            () => (Math.random() - 0.5) * 200,
-          ],
+          translateX: data.driftX,
           rotate: 360,
           opacity: [0.4, 0.4, 0],
           scale: [1, 1.2, 0.8],
@@ -67,7 +68,7 @@ export default function Landing() {
 
     return () => {
       for (const anim of animations) {
-        anim?.pause();
+        anim?.revert();
       }
     };
   }, [bubbleData]);
