@@ -13,12 +13,13 @@ permissions:
   contents: write
   pages: write
   id-token: write
-  checks: write
 
 jobs:
   deploy-web:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -40,6 +41,8 @@ jobs:
   e2e-matrix:
     name: E2E Matrix - ${{ matrix.project }}
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
     container:
       image: mcr.microsoft.com/playwright:v1.50.0-noble
     needs: [deploy-web]
@@ -70,7 +73,6 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/setup
-      - run: pnpm build
       - name: Set project slug
         id: slug
         run: |
@@ -80,6 +82,7 @@ jobs:
         run: xvfb-run pnpm exec playwright test --project="${{ matrix.project }}" --workers=1 --reporter=junit,line
         env:
           HOME: /root
+          PAGE_URL: ${{ needs.deploy-web.outputs.page_url }}
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: junit-${{ steps.slug.outputs.project_slug }}.xml
       - name: Upload JUnit test results
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -108,6 +111,8 @@ jobs:
   e2e-matrix-collector:
     name: E2E Matrix Results
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
     if: always()
     needs: [e2e-matrix]
     steps:
@@ -134,10 +139,11 @@ jobs:
         run: |
           echo "E2E Matrix Test Results: ${{ needs.e2e-matrix.result }}"
           if [[ "${{ needs.e2e-matrix.result }}" != "success" ]]; then
-            echo "E2E matrix did not complete successfully: ${{ needs.e2e-matrix.result }}"
+            echo "E2E matrix did not succeed (result: ${{ needs.e2e-matrix.result }})"
             exit 1
           fi
           echo "All E2E matrix tests passed"
+
   # CD failure handler: targeted Jules fix
   fix-cd-failure:
     name: Fix CD E2E Failures

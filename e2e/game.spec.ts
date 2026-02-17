@@ -66,10 +66,11 @@ test.describe('Psyduck Panic Game', () => {
     await navigateToGame(page);
     await startGame(page);
 
-    // Press ability keys (F1-F4 for 3D keyboard)
+    // Press ability keys (F1-F3 for abilities, F4 for nuke on 3D keyboard)
     await page.keyboard.press('F1');
     await page.keyboard.press('F2');
     await page.keyboard.press('F3');
+    await page.keyboard.press('F4');
 
     // Should not crash
     await verifyGamePlaying(page);

@@ -14,7 +14,7 @@
 
 import { Billboard, Text } from '@react-three/drei';
 import { type ThreeEvent, useFrame } from '@react-three/fiber';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { colors } from '../../design/tokens';
 
@@ -183,6 +183,13 @@ function FKey({ keyDef, position, panicRef, cooldownRef, onPress }: FKeyProps) {
   const cooldownBarRef = useRef<THREE.Mesh>(null);
   const pressYRef = useRef(0);
   const isPressedRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      document.body.style.cursor = 'auto';
+      isPressedRef.current = false;
+    };
+  }, []);
 
   useFrame(({ clock }) => {
     // ── Spring animation for key press ──

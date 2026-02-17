@@ -73,8 +73,15 @@ describe('SFX Audio System', () => {
     sfx.init();
     sfx.counter(1);
 
-    expect(createOscillatorSpy).toHaveBeenCalled();
-    expect(createGainSpy).toHaveBeenCalled();
+    // First tone fires immediately
+    expect(createOscillatorSpy).toHaveBeenCalledTimes(1);
+    expect(createGainSpy).toHaveBeenCalledTimes(1);
+
+    // Advance timers to trigger all 3 scheduled tones (at 0ms, 50ms, 100ms)
+    vi.advanceTimersByTime(150);
+
+    expect(createOscillatorSpy).toHaveBeenCalledTimes(3);
+    expect(createGainSpy).toHaveBeenCalledTimes(3);
   });
 
   it('should play tone for miss', () => {

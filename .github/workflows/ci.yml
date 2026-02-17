@@ -128,6 +128,8 @@ jobs:
 
       - name: Commit test artifacts to PR branch
         if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -137,8 +139,8 @@ jobs:
             cp -r ci-artifacts/* .ci-failure-artifacts/ 2>/dev/null || true
             git add .ci-failure-artifacts/
             git commit -m "[ci-artifacts] Test results from failed code quality checks [skip ci]" --allow-empty || true
-            git pull --rebase origin ${{ github.head_ref }} || true
-            git push origin HEAD:${{ github.head_ref }}
+            git pull --rebase origin "$BRANCH_NAME" || true
+            git push origin HEAD:"$BRANCH_NAME"
           fi
 
       - name: Invoke Jules for code quality fix
@@ -325,6 +327,8 @@ jobs:
 
       - name: Commit E2E artifacts to PR branch
         if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -334,8 +338,8 @@ jobs:
             cp -r e2e-failure-artifacts/* .ci-failure-artifacts/e2e/ 2>/dev/null || true
             git add .ci-failure-artifacts/
             git commit -m "[ci-artifacts] E2E test results from failed smoke tests [skip ci]" --allow-empty || true
-            git pull --rebase origin ${{ github.head_ref }} || true
-            git push origin HEAD:${{ github.head_ref }}
+            git pull --rebase origin "$BRANCH_NAME" || true
+            git push origin HEAD:"$BRANCH_NAME"
           fi
 
       - name: Invoke Jules for E2E fix
@@ -399,13 +403,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Remove CI failure artifacts if present
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
         run: |
           if [ -d ".ci-failure-artifacts" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git rm -rf .ci-failure-artifacts/
             git commit -m "[ci-cleanup] Remove CI failure artifacts after successful run [skip ci]"
-            git push origin HEAD:${{ github.head_ref }}
+            git push origin HEAD:"$BRANCH_NAME"
           else
             echo "No CI failure artifacts to clean up"
           fi

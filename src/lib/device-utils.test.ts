@@ -185,6 +185,95 @@ describe('device-utils', () => {
       expect(vp.aspectRatio).toBeCloseTo(4 / 3);
     });
 
+    test('calculates viewport for tablet landscape', () => {
+      const deviceInfo: DeviceInfo = {
+        type: 'tablet',
+        orientation: 'landscape',
+        screenWidth: 1024,
+        screenHeight: 768,
+        pixelRatio: 2,
+        isTouchDevice: true,
+        isIOS: false,
+        isAndroid: true,
+        hasNotch: false,
+        isFoldable: false,
+      };
+
+      const vp = calculateViewport(baseWidth, baseHeight, deviceInfo);
+      // Screen aspect matches base (both 4:3) → constrain by width at 90%
+      expect(vp.width).toBe(922); // Math.round(1024 * 0.9)
+      expect(vp.height).toBe(691); // Math.round(921.6 / (4/3))
+      expect(vp.scale).toBe(1.152); // 921.6 / 800
+      expect(vp.width / vp.height).toBeCloseTo(baseWidth / baseHeight, 1);
+    });
+
+    test('calculates viewport for tablet portrait', () => {
+      const deviceInfo: DeviceInfo = {
+        type: 'tablet',
+        orientation: 'portrait',
+        screenWidth: 768,
+        screenHeight: 1024,
+        pixelRatio: 2,
+        isTouchDevice: true,
+        isIOS: false,
+        isAndroid: true,
+        hasNotch: false,
+        isFoldable: false,
+      };
+
+      const vp = calculateViewport(baseWidth, baseHeight, deviceInfo);
+      // Portrait tablet: screen narrower than base AR → constrain by width at 90%
+      expect(vp.width).toBe(691); // Math.round(768 * 0.9)
+      expect(vp.height).toBe(518); // Math.round(691.2 / (4/3))
+      expect(vp.scale).toBe(0.864);
+      expect(vp.width / vp.height).toBeCloseTo(baseWidth / baseHeight, 1);
+    });
+
+    test('calculates viewport for foldable unfolded', () => {
+      const deviceInfo: DeviceInfo = {
+        type: 'foldable',
+        orientation: 'portrait',
+        screenWidth: 512,
+        screenHeight: 717,
+        pixelRatio: 3,
+        isTouchDevice: true,
+        isIOS: false,
+        isAndroid: true,
+        hasNotch: false,
+        isFoldable: true,
+        foldState: 'unfolded',
+      };
+
+      const vp = calculateViewport(baseWidth, baseHeight, deviceInfo);
+      // Unfolded foldable: screen narrower than base AR → constrain by width at 92%
+      expect(vp.width).toBe(471); // Math.round(512 * 0.92)
+      expect(vp.height).toBe(353); // Math.round(471.04 / (4/3))
+      expect(vp.scale).toBe(0.589);
+      expect(vp.width / vp.height).toBeCloseTo(baseWidth / baseHeight, 1);
+    });
+
+    test('calculates viewport for phone landscape', () => {
+      const deviceInfo: DeviceInfo = {
+        type: 'phone',
+        orientation: 'landscape',
+        screenWidth: 667,
+        screenHeight: 375,
+        pixelRatio: 2,
+        isTouchDevice: true,
+        isIOS: false,
+        isAndroid: true,
+        hasNotch: false,
+        isFoldable: false,
+      };
+
+      const vp = calculateViewport(baseWidth, baseHeight, deviceInfo);
+      // Landscape phone: width=653.66 yields height=490.25, exceeds 367.5 → constrain by height
+      expect(vp.width).toBe(490); // Math.round(367.5 * (4/3))
+      expect(vp.height).toBe(368); // Math.round(375 * 0.98)
+      expect(vp.scale).toBe(0.613);
+      expect(vp.width / vp.height).toBeCloseTo(baseWidth / baseHeight, 1);
+    });
+
     test('handles notch safely', () => {
       const deviceInfo: DeviceInfo = {
         type: 'phone',

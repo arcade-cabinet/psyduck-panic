@@ -65,7 +65,7 @@ function BossMesh({
   });
 
   const iFrameFlash = entity.boss.iFrame > 0;
-  const bossEmoji = waveRef.current >= 4 ? '\u{1F9E0}' : '\u{1F682}'; // brain : train
+  const bossEmoji = (waveRef.current ?? 0) >= 4 ? '\u{1F9E0}' : '\u{1F682}'; // brain : train
 
   return (
     <group ref={groupRef}>

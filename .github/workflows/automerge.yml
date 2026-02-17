@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   # ── Dependabot auto-merge ──────────────────────────
@@ -71,10 +72,10 @@ jobs:
 
       - name: Try rebase onto base branch
         id: rebase
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
-          HEAD_REF="${{ github.event.pull_request.head.ref }}"
-
           echo "Rebasing ${HEAD_REF} onto origin/${BASE_REF}..."
           git fetch origin "${BASE_REF}"
 
@@ -98,8 +99,10 @@ jobs:
 
       - name: Push rebased branch
         if: steps.rebase.outputs.status == 'success' && steps.rebase.outputs.changed == 'true'
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          git push --force-with-lease origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push --force-with-lease origin "HEAD:${HEAD_REF}"
 
       - name: Close PR on conflict
         if: steps.rebase.outputs.status == 'conflict'

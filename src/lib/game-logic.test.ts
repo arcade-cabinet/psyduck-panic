@@ -342,10 +342,12 @@ describe('GameLogic', () => {
       game.spawnEnemy();
       const enemy = game.enemies[0];
       const initialX = enemy.x;
+      const initialY = enemy.y;
 
       game.update(1.0, 1000);
 
-      expect(enemy.x).not.toBe(initialX);
+      const distance = Math.sqrt((enemy.x - initialX) ** 2 + (enemy.y - initialY) ** 2);
+      expect(distance).toBeGreaterThan(0);
     });
 
     it('should remove enemies out of bounds and penalize', () => {

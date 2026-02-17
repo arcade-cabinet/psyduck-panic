@@ -104,14 +104,7 @@ export class AIDirector extends GameEntity {
   /** Record a player action (counter or miss) */
   recordAction(hit: boolean, now: number): void {
     this.recentActions.push({ time: now, hit });
-    // Prune old actions efficiently
-    const cutoff = now - this.actionWindow;
-    const firstValid = this.recentActions.findIndex((a) => a.time >= cutoff);
-    if (firstValid > 0) {
-      this.recentActions = this.recentActions.slice(firstValid);
-    } else if (firstValid === -1) {
-      this.recentActions = [];
-    }
+    this.pruneRecentActions(now);
   }
 
   /** Update rolling accuracy from recent actions */
@@ -124,10 +117,8 @@ export class AIDirector extends GameEntity {
     this.performance.accuracy = hits / this.recentActions.length;
   }
 
-  /** Feed current game state to the director */
-  updatePerformance(perf: Partial<PlayerPerformance>, now: number): void {
-    Object.assign(this.performance, perf);
-    // Prune old actions efficiently
+  /** Remove actions older than the rolling window */
+  private pruneRecentActions(now: number): void {
     const cutoff = now - this.actionWindow;
     const firstValid = this.recentActions.findIndex((a) => a.time >= cutoff);
     if (firstValid > 0) {
@@ -135,6 +126,12 @@ export class AIDirector extends GameEntity {
     } else if (firstValid === -1) {
       this.recentActions = [];
     }
+  }
+
+  /** Feed current game state to the director */
+  updatePerformance(perf: Partial<PlayerPerformance>, now: number): void {
+    Object.assign(this.performance, perf);
+    this.pruneRecentActions(now);
     this.updateAccuracy();
   }
 

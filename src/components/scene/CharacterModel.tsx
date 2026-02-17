@@ -12,7 +12,7 @@
 import { Billboard, Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type React from 'react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import * as THREE from 'three';
 import { colors } from '../../design/tokens';
 
@@ -33,6 +33,8 @@ export function CharacterModel({ panicRef }: CharacterModelProps) {
   const auraRef = useRef<THREE.Group>(null);
   const skinMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const bodyMatRef = useRef<THREE.MeshStandardMaterial>(null);
+  const [panicState, setPanicState] = useState<CharacterState>('normal');
+  const [showLightning, setShowLightning] = useState(false);
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
@@ -84,10 +86,19 @@ export function CharacterModel({ panicRef }: CharacterModelProps) {
         bodyMatRef.current.color.copy(panicShirt).lerp(psyduckBody, lerpT);
       }
     }
+
+    // Update structural state when crossing thresholds
+    const newState: CharacterState = panic < 33 ? 'normal' : panic < 66 ? 'panic' : 'psyduck';
+    if (newState !== panicState) {
+      setPanicState(newState);
+    }
+    const lightning = panic > 80;
+    if (lightning !== showLightning) {
+      setShowLightning(lightning);
+    }
   });
 
-  const panic = panicRef.current;
-  const state: CharacterState = panic < 33 ? 'normal' : panic < 66 ? 'panic' : 'psyduck';
+  const state = panicState;
 
   const speechText =
     state === 'normal'
@@ -162,7 +173,7 @@ export function CharacterModel({ panicRef }: CharacterModelProps) {
       </group>
 
       {/* Lightning bolts at extreme panic */}
-      {panic > 80 && <LightningBolts />}
+      {showLightning && <LightningBolts />}
 
       {/* Speech bubble */}
       <Billboard position={[0, 1.1, 0]}>

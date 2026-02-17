@@ -4,6 +4,9 @@ import { defineConfig, devices } from '@playwright/test';
 const isCopilotCI = process.env.GITHUB_ACTIONS && process.env.RUNNER_NAME?.includes('copilot');
 const isCI = !!process.env.CI || isCopilotCI;
 
+// Allow overriding the base URL (e.g., from CD pipeline deploying to GitHub Pages)
+const baseURL = process.env.PAGE_URL || 'http://localhost:4173';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -20,7 +23,7 @@ export default defineConfig({
       ]
     : 'html',
   use: {
-    baseURL: 'http://localhost:4173', // Vite preview default port
+    baseURL,
     // Disable animations for stable E2E tests
     contextOptions: {
       reducedMotion: 'reduce',
@@ -211,12 +214,17 @@ export default defineConfig({
       testMatch: /device-responsive\.spec\.ts/,
     },
   ],
-  webServer: {
-    command: 'pnpm exec vite preview --port 4173',
-    port: 4173,
-    reuseExistingServer: !isCI,
-    timeout: 120000,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  },
+  // Only start local webServer when no external PAGE_URL is provided
+  ...(process.env.PAGE_URL
+    ? {}
+    : {
+        webServer: {
+          command: 'pnpm exec vite preview --port 4173',
+          port: 4173,
+          reuseExistingServer: !isCI,
+          timeout: 120000,
+          stdout: 'pipe' as const,
+          stderr: 'pipe' as const,
+        },
+      }),
 });

@@ -113,8 +113,6 @@ function EnemyMesh({ entity }: { entity: (typeof enemies.entities)[number] }) {
         />
       )}
 
-      {/* Point light for bubble glow — each enemy radiates its type color */}
-      <pointLight color={displayColor} intensity={0.8} distance={2} decay={2} />
     </group>
   );
 }

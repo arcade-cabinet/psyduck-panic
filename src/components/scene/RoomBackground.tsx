@@ -14,7 +14,7 @@
 import { Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type React from 'react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type * as THREE from 'three';
 import { colors } from '../../design/tokens';
 
@@ -26,7 +26,7 @@ interface RoomBackgroundProps {
 }
 
 export function RoomBackground({ panicRef, waveRef }: RoomBackgroundProps) {
-  const w = Math.min(waveRef.current, 4);
+  const [wTier, setWTier] = useState(Math.min(Math.floor(waveRef.current || 0), 4));
   const monitorGlowRef = useRef<THREE.PointLight>(null);
   const monitorGlow2Ref = useRef<THREE.PointLight>(null);
   const bgMatRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -64,6 +64,12 @@ export function RoomBackground({ panicRef, waveRef }: RoomBackgroundProps) {
       const g = Math.max(12, 28 - panic * 0.18) / 255;
       const b = Math.min(85, 66 + panic * 0.15) / 255;
       bgMatRef.current.color.setRGB(r, g, b);
+    }
+
+    // Update wave tier state when crossing thresholds
+    const newTier = Math.min(4, Math.floor(wClamped));
+    if (newTier !== wTier) {
+      setWTier(newTier);
     }
   });
 
@@ -249,11 +255,11 @@ export function RoomBackground({ panicRef, waveRef }: RoomBackgroundProps) {
           anchorY="middle"
           textAlign="center"
         >
-          {w < 3 ? 'AGI\nSOON' : 'AGI IS\nHERE'}
+          {wTier < 3 ? 'AGI\nSOON' : 'AGI IS\nHERE'}
         </Text>
       </group>
 
-      {w >= 1 && (
+      {wTier >= 1 && (
         <group position={[1.6, 1.0, -2.9]}>
           <mesh>
             <planeGeometry args={[0.85, 0.65]} />
@@ -267,13 +273,13 @@ export function RoomBackground({ panicRef, waveRef }: RoomBackgroundProps) {
             anchorY="middle"
             textAlign="center"
           >
-            {w < 3 ? 'BUY\nGPU' : 'SELL\nHOUSE'}
+            {wTier < 3 ? 'BUY\nGPU' : 'SELL\nHOUSE'}
           </Text>
         </group>
       )}
 
       {/* Progressive clutter: energy drinks — bright green with glow */}
-      {w >= 1 && (
+      {wTier >= 1 && (
         <group position={[-1.3, -1.8, 0.2]}>
           <mesh>
             <cylinderGeometry args={[0.04, 0.04, 0.28, 8]} />
@@ -292,7 +298,7 @@ export function RoomBackground({ panicRef, waveRef }: RoomBackgroundProps) {
           />
         </group>
       )}
-      {w >= 2 && (
+      {wTier >= 2 && (
         <>
           <mesh position={[-1.15, -1.8, 0.3]}>
             <cylinderGeometry args={[0.04, 0.04, 0.26, 8]} />
@@ -321,7 +327,7 @@ export function RoomBackground({ panicRef, waveRef }: RoomBackgroundProps) {
           </mesh>
         </>
       )}
-      {w >= 3 && (
+      {wTier >= 3 && (
         <>
           {/* Second monitor — vivid blue glow */}
           <group position={[2.0, -0.7, -1.5]}>
@@ -369,7 +375,7 @@ export function RoomBackground({ panicRef, waveRef }: RoomBackgroundProps) {
           </group>
         </>
       )}
-      {w >= 4 && (
+      {wTier >= 4 && (
         <>
           {/* Scattered papers — signs of chaos */}
           <mesh position={[1.0, -1.88, 0.4]} rotation={[-Math.PI / 2, 0, 0.3]}>

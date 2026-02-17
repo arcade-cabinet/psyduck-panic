@@ -88,7 +88,9 @@ Game.tsx
     └── Game over stats
 ```
 
+
 ### 3D Scene (`GameScene.tsx`)
+
 Orchestrates all R3F rendering systems:
 
 ```text
@@ -116,6 +118,7 @@ GameScene
 ```
 
 ### ECS Layer (Miniplex)
+
 Entity Component System for all game entities:
 
 ```text
@@ -133,7 +136,9 @@ ECS (src/ecs/)
     └── clearAllEntities() — reset on game restart
 ```
 
+
 ### Game Logic (`GameLogic`)
+
 Core game mechanics in Web Worker:
 
 ```text
@@ -159,6 +164,7 @@ GameLogic (Worker)
 ## Data Flow
 
 ### Game Loop Flow
+
 ```text
 1. Worker: Update game state (60 FPS)
    ├── Update enemy positions
@@ -183,6 +189,7 @@ GameLogic (Worker)
 ```
 
 ### State Flow
+
 ```text
 GameState (from Worker)
 ├── enemies: Enemy[]
@@ -210,7 +217,9 @@ GameState (from Worker)
 
 ## Platform Integration
 
+
 ### Capacitor Integration
+
 ```text
 Web App
 └── Capacitor Runtime
@@ -278,13 +287,17 @@ Viewport Dimensions
 - Prevents UI blocking
 - Smooth 60 FPS even during intensive calculations
 
+
 ### R3F / Three.js Rendering
+
 - Hardware-accelerated WebGL via Three.js
 - Ref-based updates (no React re-renders at 60fps)
 - ECS archetypes for efficient entity iteration
 - Particle lifecycle management with automatic cleanup
 
+
 ### Memory Management
+
 - ECS entity cleanup on removal
 - Particle/trail/confetti lifecycle with auto-decay
 - Event queue limits

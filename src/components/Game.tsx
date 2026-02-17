@@ -484,7 +484,7 @@ export default function Game() {
               </div>
               <div className="stat-row">
                 <span className="stat-label">WAVES CLEARED</span>
-                <span className="stat-value">{ui.gameOverStats.wavesCleared} / 5</span>
+                <span className="stat-value">{ui.gameOverStats.wavesCleared} / {WAVES.length}</span>
               </div>
               <div className="stat-row">
                 <span className="stat-label">MAX COMBO</span>

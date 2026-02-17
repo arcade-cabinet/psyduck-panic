@@ -14,12 +14,12 @@ describe('Panic System', () => {
       expect(getPanicZone(24)).toBe('calm');
     });
 
-    it('should return uneasy for 25-50', () => {
+    it('should return uneasy for 25-49', () => {
       expect(getPanicZone(25)).toBe('uneasy');
       expect(getPanicZone(49)).toBe('uneasy');
     });
 
-    it('should return panicked for 50-75', () => {
+    it('should return panicked for 50-74', () => {
       expect(getPanicZone(50)).toBe('panicked');
       expect(getPanicZone(74)).toBe('panicked');
     });

@@ -69,6 +69,7 @@ export class BossAI {
   private wanderBehavior: WanderBehavior;
   private arriveBehavior: ArriveBehavior;
   private moveTarget: Vector3;
+  private moveCooldownTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(state: BossState) {
     this.state = state;
@@ -150,10 +151,15 @@ export class BossAI {
     this.moveTarget.set(x, 0, y);
     this.arriveBehavior.active = true;
     this.wanderBehavior.weight = 0.1;
+    // Clear any previous move cooldown to prevent overlapping timeouts
+    if (this.moveCooldownTimer !== null) {
+      clearTimeout(this.moveCooldownTimer);
+    }
     // Re-enable wander after a bit (via cooldown)
-    setTimeout(() => {
+    this.moveCooldownTimer = setTimeout(() => {
       this.arriveBehavior.active = false;
       this.wanderBehavior.weight = 0.3;
+      this.moveCooldownTimer = null;
     }, 1500);
   }
 
