@@ -4,13 +4,17 @@
 
 Psyduck Panic uses a comprehensive design system built on design tokens to ensure visual consistency, maintainability, and scalability across all platforms.
 
+## Visual Target
+
+See **[DESIGN_VISION.md](./DESIGN_VISION.md)** for the full photorealistic procedural generation specification. The design system tokens below provide the color palette and spacing; the vision document defines the quality bar for 3D rendering.
+
 ## Brand Identity
 
 ### Personality
-- **Retro Gaming Aesthetic**: Inspired by 8-bit and 16-bit era games
+- **Photorealistic Procedural**: Fully immersive 3D — complex curves, PBR materials, procedural textures
 - **Playful**: Humorous take on AI hype and tech culture
 - **Satirical**: Commentary on tech industry trends
-- **Accessible**: Easy to understand, hard to master
+- **Visceral**: The human-to-Psyduck transformation is unsettling and organic, not cartoony
 
 ### Core Values
 1. **Consistency**: Unified visual language across all screens

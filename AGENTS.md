@@ -19,6 +19,8 @@ Psyduck Panic: Evolution Deluxe is a browser-based retro arcade game where playe
 
 ### Key Goals
 
+- **Photorealistic procedural visuals** — See `docs/DESIGN_VISION.md` for the full specification. NO low-poly, NO placeholder primitives. Complex curves, PBR materials, procedural textures, sophisticated lighting.
+- **Visceral character transformation** — Continuous morph from human to Psyduck driven by panic 0-100%. Visible tension, headache, skin yellowing, feature morphing. NOT discrete state swaps.
 - Fun, rewarding escalation from calm to full panic
 - Unpredictable boss encounters (missile-command style)
 - Real engagement, not fixed patterns
@@ -222,10 +224,10 @@ All core systems and testing infrastructure complete. Game fully playable with 3
   - Billboard labels (F-key number, emoji icon, ability name)
   - F1-F4 keyboard shortcuts with preventDefault
   - Hidden HTML buttons kept for e2e test IDs
-- **Vibrant Visual Identity** — inspired by original 2D game:
-  - Design tokens overhauled: 20+ scene colors made vibrant
+- **Visual Foundation** — procedural geometry with design token colors and dynamic lighting:
+  - Current 3D elements use placeholder-quality primitives (spheres, boxes, cones)
+  - Target is **photorealistic procedural generation** per `docs/DESIGN_VISION.md`
   - Dual monitor glow lights, emissive screen plane, warm desk lamp
-  - All scene materials use design tokens (CharacterModel, BossSystem, EnemySystem)
   - Progressive room clutter builds with wave (energy drinks, books, monitors)
 - **Lazy Loading** — Game component lazy-loaded, reducing initial bundle by ~75%
 - **E2E Test DRY Refactor**:
