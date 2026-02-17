@@ -184,3 +184,5 @@ issue_enrichment:
         instructions: "Apply when the issue relates to zustand adoption, React state patterns, worker communication, or props drilling."
       - label: "old-index-parity"
         instructions: "Apply when the issue describes a feature present in the original index.html that is missing or incomplete in the 3D version."
+      - label: "triage"
+        instructions: "Always apply this label to every new issue alongside functional labels. It triggers automated AI quality assessment via GitHub Models which evaluates actionability, conflict risk, and specification completeness."

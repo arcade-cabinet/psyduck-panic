@@ -91,36 +91,42 @@ export default function Game() {
     if (startInitiatedRef.current) return;
     startInitiatedRef.current = true;
 
-    try {
-      const sfxPromise = sfxRef.current?.resume();
-      sfxPromise?.catch((err) => {
-        console.warn('SFX resume failed:', err);
-      });
-
-      const musicPromise = musicRef.current?.resume();
-      musicPromise?.catch((err) => {
-        console.warn('Music resume failed:', err);
-      });
-    } catch (e) {
-      console.warn('Audio resume failed:', e);
-    }
-    sceneRef.current?.reset();
-
-    const endless = currentState.win && currentState.screen === 'gameover';
-    dispatch(endless ? { type: 'START_ENDLESS' } : { type: 'START_GAME' });
-
-    // Delay worker start to let React commit the screen transition first.
-    // Without this delay, the worker's rapid STATE messages can race with
-    // React 18's concurrent rendering and prevent the commit.
-    // Also includes retry logic in case worker init is slow.
-    const attemptStart = (retries = 0) => {
-      if (workerRef.current) {
-        workerRef.current.postMessage({ type: 'START', endless });
-      } else if (retries < 50) {
-        setTimeout(() => attemptStart(retries + 1), 200);
+    // Safety timeout: release lock if game hasn't started after 2s
+    setTimeout(() => {
+      if (uiRef.current.screen !== 'playing') {
+        startInitiatedRef.current = false;
       }
-    };
-    setTimeout(() => attemptStart(), 100);
+    }, 2000);
+
+    try {
+      const endless = currentState.win && currentState.screen === 'gameover';
+      dispatch(endless ? { type: 'START_ENDLESS' } : { type: 'START_GAME' });
+
+      try {
+        sfxRef.current?.resume();
+        musicRef.current?.resume();
+        sceneRef.current?.reset();
+      } catch (e) {
+        console.warn('Failed to resume audio or reset scene:', e);
+        throw e;
+      }
+
+      // Delay worker start to let React commit the screen transition first.
+      // Without this delay, the worker's rapid STATE messages can race with
+      // React 18's concurrent rendering and prevent the commit.
+      // Also includes retry logic in case worker init is slow.
+      const attemptStart = (retries = 0) => {
+        if (workerRef.current) {
+          workerRef.current.postMessage({ type: 'START', endless });
+        } else if (retries < 50) {
+          setTimeout(() => attemptStart(retries + 1), 200);
+        }
+      };
+      setTimeout(() => attemptStart(), 100);
+    } catch (e) {
+      console.error('Error starting game:', e);
+      startInitiatedRef.current = false; // Release lock on error
+    }
   }, []);
 
   // Reset start debounce when game is playing
