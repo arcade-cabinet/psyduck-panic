@@ -113,7 +113,7 @@ export default function Game() {
         musicRef.current?.resume();
         sceneRef.current?.reset();
       } catch (e) {
-        console.warn('Failed to resume audio or reset scene:', e);
+        console.warn('Failed to resume audio or reset scene:', e); // NOSONAR
         throw e;
       }
 
