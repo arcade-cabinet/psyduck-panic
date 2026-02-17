@@ -7,10 +7,10 @@ let lastTime = 0;
 let animationFrameId: number | undefined;
 
 // Polyfill for requestAnimationFrame in worker if needed
-const requestFrame =
-  self.requestAnimationFrame ||
-  ((callback: (t: number) => void) => setTimeout(() => callback(performance.now()), 16));
-const cancelFrame = self.cancelAnimationFrame || clearTimeout;
+// Force setTimeout to avoid throttling in background tabs/CI environments
+const requestFrame = (callback: (t: number) => void) =>
+  setTimeout(() => callback(performance.now()), 16) as unknown as number;
+const cancelFrame = clearTimeout;
 
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   try {
@@ -90,7 +90,9 @@ function scheduleLoop() {
 function loop(now: number) {
   if (!running) return;
 
-  const dt = Math.min((now - lastTime) / 16.67, 2); // Frame time factor (approx 1.0 at 60fps)
+  // Frame time factor (approx 1.0 at 60fps)
+  // Clamped to 10 (~160ms) to allow catching up on slow devices/CI without spiraling
+  const dt = Math.min((now - lastTime) / 16.67, 10);
   lastTime = now;
 
   logic.update(dt, now);
