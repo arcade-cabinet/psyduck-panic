@@ -112,6 +112,13 @@ export default function Game() {
     setTimeout(() => attemptStart(), 100);
   }, []);
 
+  // Reset start debounce when game is playing
+  useEffect(() => {
+    if (ui.screen === 'playing') {
+      startInitiatedRef.current = false;
+    }
+  }, [ui.screen]);
+
   const handleStartButton = () => {
     handleStartLogic(ui);
   };
