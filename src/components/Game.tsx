@@ -113,7 +113,6 @@ export default function Game() {
         sceneRef.current?.reset();
       } catch (e) {
         console.warn('Failed to resume audio or reset scene:', e);
-        throw e;
       }
 
       // Delay worker start to let React commit the screen transition first.
@@ -128,7 +127,7 @@ export default function Game() {
           setTimeout(() => attemptStart(retries + 1), 200);
         }
       };
-      setTimeout(() => attemptStart(), 100);
+      setTimeout(() => attemptStart(), 500);
     } catch (e) {
       console.error('Error starting game:', e);
       startInitiatedRef.current = false; // Release lock on error
