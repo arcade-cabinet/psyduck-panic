@@ -104,7 +104,7 @@ Platform Layer
 | Yuka.js | 0.7.8 | Game AI (steering, FSM, goal-driven agents) |
 | Anime.js | 4.3 | UI animations |
 | Capacitor | 8.1 | Native mobile (iOS/Android) |
-| Biome | 2.3 | Linter + formatter |
+| Biome | 2.4 | Linter + formatter |
 | Vitest | 4.0 | Unit tests |
 | Playwright | 1.58 | E2E tests |
 | @testing-library/react | 16.3 | Component tests (RTL) |
