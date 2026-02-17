@@ -9,6 +9,8 @@ const baseURL = process.env.PAGE_URL || 'http://localhost:4173';
 
 export default defineConfig({
   testDir: './e2e',
+  // Ignore unit tests co-located in e2e directory
+  testIgnore: '**/__tests__/**',
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,

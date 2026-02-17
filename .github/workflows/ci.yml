@@ -625,9 +625,12 @@ jobs:
           TOTAL=0
           echo '[]' > all_issues.json
           while true; do
-            curl -sf -H "${AUTH}" \
+            if ! curl -sf -H "${AUTH}" \
               "${BASE}/api/issues/search?componentKeys=${PROJECT}&pullRequest=${PR_NUMBER}&ps=500&p=${PAGE}&issueStatuses=OPEN,CONFIRMED&additionalFields=effort" \
-              -o issues_page.json
+              -o issues_page.json; then
+              echo "::warning::Failed to fetch issues page ${PAGE}"
+              break
+            fi
 
             ISSUES_IN_PAGE=$(jq '.issues | length' issues_page.json)
             TOTAL_AVAILABLE=$(jq '.total' issues_page.json)
