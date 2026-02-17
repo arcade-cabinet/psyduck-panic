@@ -69,7 +69,7 @@ You are a senior software architect performing a weekly deep-dive assessment of 
 - Suggest issues that could be auto-closed based on codebase state
 
 ### 5. Architectural Drift
-- Check if CLAUDE.md memory bank is still accurate against codebase
+- Check if AGENTS.md memory bank is still accurate against codebase
 - Verify docs/ARCHITECTURE.md matches current file structure
 - Identify patterns that diverge from documented conventions
 - Flag any new Math.random() calls in game-state paths

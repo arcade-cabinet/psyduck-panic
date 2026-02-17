@@ -74,7 +74,9 @@ export default function Game() {
     sfxRef.current.init();
 
     const music = new AdaptiveMusic();
-    musicInitRef.current = music.init();
+    musicInitRef.current = music.init().catch((err) => {
+      console.warn('AdaptiveMusic init failed:', err);
+    });
     musicRef.current = music;
 
     return () => {

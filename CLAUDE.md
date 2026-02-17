@@ -24,21 +24,22 @@ React + Three.js (R3F) typing/counter game where a developer character transform
 - `GameLogic` singleton in worker (source of truth)
 - Props drilling: `panicRef` passes through 3 levels (GameScene -> CharacterModel -> HumanHair/Eyes)
 
-## Non-Determinism (Current)
+## Determinism (Seeded RNG)
 
-**No seedrandom.** 47+ `Math.random()` calls in game-state-affecting code:
-- `game-logic.ts`: 12 calls (enemy type, word, position, velocity, encryption, powerups)
-- `boss-ai.ts`: 22+ calls (attack patterns, enemy spawns, repositioning, evaluator noise)
-- `director.ts`: 2 calls (evaluator desirability jitter)
-- `ui-state.ts`: 1 call (feed item ID)
-- Cosmetic-only (acceptable): `music.ts` (2), `state-sync.ts` (15), `RoomBackground.tsx` (5), `CharacterModel.tsx` (1), `Landing.tsx` (3), `ParticleSystem.tsx` (1)
+Game-state randomness uses `src/lib/rng.ts` (mulberry32 PRNG), seeded via `seedRng(Date.now())` at game start. Entity IDs use `nextId()` counter.
 
-Enemy IDs use `Date.now() + Math.random()` (non-deterministic, collision-prone).
+- `game-logic.ts`: All 12 calls use `rng()` + `nextId()`
+- `boss-ai.ts`: All 22+ calls use `rng()`
+- `ui-state.ts`: Feed IDs use sequential counter
+- `music.ts`: Melody uses deterministic counter pattern
+- `game-governor.ts`: E2E governor uses injected seeded PRNG
+- Cosmetic-only (Math.random): `state-sync.ts`, `RoomBackground.tsx`, `CharacterModel.tsx`, `Landing.tsx`, `ParticleSystem.tsx`
 
 ## Key File Locations
 
 | Purpose | File |
 |---------|------|
+| Seeded PRNG (mulberry32) | `src/lib/rng.ts` |
 | Wave/enemy/boss constants | `src/lib/constants.ts` |
 | Game loop + mechanics | `src/lib/game-logic.ts` |
 | Panic damage/decay/zones | `src/lib/panic-system.ts` |
@@ -150,7 +151,7 @@ Enemy IDs use `Date.now() + Math.random()` (non-deterministic, collision-prone).
 
 ### P5 - Code Smell
 22. ui-state.ts:83 - maxCombo updated redundantly
-23. ui-state.ts:110 - Feed IDs use Date.now()+Math.random() (collision-prone)
+23. ~~ui-state.ts:110 - Feed IDs use Date.now()+Math.random() (collision-prone)~~ **FIXED** - Sequential counter
 24. grading.ts:22 - calculateAccuracy returns 0-100, callers divide by 100
 
 ## Old index.html Translation Gaps
@@ -196,7 +197,7 @@ The E2E governor (`e2e/helpers/game-governor.ts`) does NOT use Yuka.js. It is a 
 ## Next Steps (Tracked as GitHub Issues)
 
 ### Milestone: Deterministic Game Engine
-- Replace all game-state Math.random() with seedrandom
+- ~~Replace all game-state Math.random() with seedrandom~~ **DONE** (mulberry32 in `src/lib/rng.ts`)
 - Implement proper game chronometer (microsecond precision)
 - Adjective-adjective-noun seed phrase system
 - New game modal with difficulty selection
@@ -218,10 +219,10 @@ The E2E governor (`e2e/helpers/game-governor.ts`) does NOT use Yuka.js. It is a 
 - Restore panic drain mechanic (or document removal decision)
 
 ### Milestone: Code Quality
-- Add boss-ai destroy() method
+- ~~Add boss-ai destroy() method~~ **DONE** (dispose() added)
 - Fix Landing.tsx animation cleanup
 - Track audio setTimeout IDs
 - Add music.ts unit tests
-- Add worker error boundary
+- ~~Add worker error boundary~~ **DONE** (try-catch with ERROR postMessage)
 - Fix accessibility (focus-visible, reduced-motion, colorblind panic bar)
 - Upgrade E2E governor to use Yuka-based decision making

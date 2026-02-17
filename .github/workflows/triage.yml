@@ -365,9 +365,11 @@ jobs:
       - name: Check if issue is fully unblocked via native dependencies
         id: issue
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          ISSUE_NUMBER: ${{ matrix.issue-number }}
         with:
           script: |
-            const issueNumber = ${{ matrix.issue-number }};
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
 
             const result = await github.graphql(`
               query($owner: String!, $repo: String!, $number: Int!) {

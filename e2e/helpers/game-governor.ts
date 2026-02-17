@@ -17,12 +17,26 @@ export interface GovernorConfig {
   useSpecials?: boolean;
   /** Target accuracy (0-1) */
   accuracy?: number;
+  /** Seed for deterministic RNG (defaults to 42) */
+  seed?: number;
+}
+
+/** Mulberry32 seeded PRNG — deterministic random for reproducible E2E runs */
+function createRng(seed: number): () => number {
+  let state = seed | 0;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 export class GameGovernor {
   private page: Page;
-  private config: Required<GovernorConfig>;
+  private config: Required<Omit<GovernorConfig, 'seed'>>;
   private isRunning = false;
+  private rng: () => number;
 
   constructor(page: Page, config: GovernorConfig = {}) {
     this.page = page;
@@ -32,6 +46,7 @@ export class GameGovernor {
       useSpecials: config.useSpecials ?? true,
       accuracy: config.accuracy ?? 0.8,
     };
+    this.rng = createRng(config.seed ?? 42);
   }
 
   /**
@@ -120,10 +135,10 @@ export class GameGovernor {
    * Try to counter visible enemies
    */
   private async tryCounterEnemies(): Promise<void> {
-    // Random decision based on accuracy
-    if (Math.random() > this.config.accuracy) {
+    // Deterministic decision based on accuracy
+    if (this.rng() > this.config.accuracy) {
       // Miss intentionally to simulate human error
-      const randomKey = ['F1', 'F2', 'F3'][Math.floor(Math.random() * 3)];
+      const randomKey = ['F1', 'F2', 'F3'][Math.floor(this.rng() * 3)];
       await this.page.keyboard.press(randomKey);
       return;
     }
@@ -132,9 +147,9 @@ export class GameGovernor {
     // In a real implementation, we'd analyze the canvas or game state
     // For now, cycle through abilities
     const abilities = ['F1', 'F2', 'F3'];
-    const ability = abilities[Math.floor(Math.random() * abilities.length)];
+    const ability = abilities[Math.floor(this.rng() * abilities.length)];
 
-    if (Math.random() < this.config.aggressiveness) {
+    if (this.rng() < this.config.aggressiveness) {
       await this.page.keyboard.press(ability);
     }
   }

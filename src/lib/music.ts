@@ -40,6 +40,7 @@ export class AdaptiveMusic {
   private wave = 0;
   private beatIndex = 0;
   private arpIndex = 0;
+  private melodyIndex = 0;
 
   async init(): Promise<void> {
     if (this.initialized) return;
@@ -116,6 +117,7 @@ export class AdaptiveMusic {
     this.wave = wave;
     this.beatIndex = 0;
     this.arpIndex = 0;
+    this.melodyIndex = 0;
 
     // Set initial tempo based on wave
     const baseBPM = 120 + wave * 8;
@@ -230,9 +232,10 @@ export class AdaptiveMusic {
       if (this.wave === 0 && this.panic < 20) return;
 
       const notes = this.panic > 66 ? PANIC_NOTES : this.panic > 33 ? TENSE_NOTES : CALM_NOTES;
-      const idx = Math.floor(Math.random() * notes.length);
-      // Sometimes skip notes for rhythm variation
-      if (Math.random() < 0.7) {
+      const idx = this.melodyIndex % notes.length;
+      this.melodyIndex++;
+      // Skip every 3rd and 7th note for rhythm variation (deterministic pattern)
+      if (this.melodyIndex % 3 !== 0 && this.melodyIndex % 7 !== 0) {
         this.leadSynth.triggerAttackRelease(notes[idx], '16n', time);
       }
     }, '4n');

@@ -54,6 +54,9 @@ export class GameLogic {
   private recentResetTimer: number;
   private bossWaveTransitionFrames: number;
 
+  /** Last game-clock timestamp from update(), used by methods called outside the loop */
+  private nowMs: number;
+
   // Event queue
   events: GameEvent[] = [];
 
@@ -100,6 +103,7 @@ export class GameLogic {
     this.recentCounters = 0;
     this.recentResetTimer = 0;
     this.bossWaveTransitionFrames = 0;
+    this.nowMs = 0;
 
     this.reset();
   }
@@ -145,6 +149,7 @@ export class GameLogic {
     this.recentCounters = 0;
     this.recentResetTimer = 0;
     this.bossWaveTransitionFrames = 0;
+    this.nowMs = 0;
   }
 
   startOrContinue(): void {
@@ -328,7 +333,7 @@ export class GameLogic {
       this.combo = 0;
       this.totalM++;
       this.events.push({ type: 'SFX', name: 'miss' });
-      this.director.recordAction(false, performance.now());
+      this.director.recordAction(false, this.nowMs);
     }
   }
 
@@ -380,7 +385,7 @@ export class GameLogic {
     this.events.push({ type: 'SFX', name: 'counter', args: [this.combo] });
     this.events.push({ type: 'PARTICLE', x: e.x, y: e.y, color: e.type.color });
     this.updateMomentum();
-    this.director.recordAction(true, performance.now());
+    this.director.recordAction(true, this.nowMs);
   }
 
   updateMomentum(): void {
@@ -433,6 +438,7 @@ export class GameLogic {
 
   update(dt: number, now: number): void {
     if (!this.running) return;
+    this.nowMs = now;
 
     // Boss wave transition (frame-based delay to allow confetti)
     if (this.bossWaveTransitionFrames > 0) {
