@@ -88,6 +88,10 @@ export async function runAutomatedPlaythrough(
   page: Page,
   config?: GovernorConfig
 ): Promise<PlaythroughResult> {
-  const governor = new GameGovernor(page, config);
+  const governor = new GameGovernor(page, {
+    accuracy: 1,
+    ...(config ?? {}),
+  });
   return governor.playthrough();
+}
 }
