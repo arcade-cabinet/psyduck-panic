@@ -126,4 +126,90 @@ describe('AIDirector', () => {
       expect(skill).toBeCloseTo(0.0);
     });
   });
+
+  describe('Transitions', () => {
+    it('BuildingState -> SURGING', () => {
+      director.fsm.changeTo('BUILDING');
+      director.tension = 0.8;
+      director.stateTimer = 4;
+      // High skill
+      director.performance.accuracy = 1;
+      director.performance.combo = 15;
+      director.performance.recentCounters = 10;
+      director.performance.recentEscapes = 0;
+
+      director.update(0.1);
+      expect(director.fsm.currentState?.constructor.name).toBe('SurgingState');
+    });
+
+    it('BuildingState -> RELIEVING (Panic)', () => {
+      director.fsm.changeTo('BUILDING');
+      director.performance.panic = 90;
+
+      director.update(0.1);
+      expect(director.fsm.currentState?.constructor.name).toBe('RelievingState');
+    });
+
+    it('BuildingState -> SUSTAINING (Struggle)', () => {
+      director.fsm.changeTo('BUILDING');
+      director.performance.panic = 70; // > 60
+
+      director.update(0.1);
+      expect(director.fsm.currentState?.constructor.name).toBe('SustainingState');
+    });
+
+    it('SustainingState -> BUILDING (Recovered)', () => {
+      director.fsm.changeTo('SUSTAINING');
+      director.stateTimer = 5; // > 4
+      director.performance.panic = 30; // < 40
+      // High skill
+      director.performance.accuracy = 1;
+      director.performance.combo = 15;
+      director.performance.recentCounters = 10;
+      director.performance.recentEscapes = 0;
+
+      director.update(0.1);
+      expect(director.fsm.currentState?.constructor.name).toBe('BuildingState');
+    });
+
+    it('SustainingState -> RELIEVING (Collapse)', () => {
+      director.fsm.changeTo('SUSTAINING');
+      director.performance.panic = 80; // > 75
+
+      director.update(0.1);
+      expect(director.fsm.currentState?.constructor.name).toBe('RelievingState');
+    });
+
+    it('RelievingState -> BUILDING (Stabilized)', () => {
+      director.fsm.changeTo('RELIEVING');
+      director.stateTimer = 6; // > 5
+      director.performance.panic = 40; // < 50
+      // Decent skill (> 0.4)
+      director.performance.accuracy = 0.8;
+      director.performance.combo = 10;
+      director.performance.recentCounters = 5;
+      director.performance.recentEscapes = 2;
+
+      director.update(0.1);
+      expect(director.fsm.currentState?.constructor.name).toBe('BuildingState');
+    });
+
+    it('SurgingState -> RELIEVING (Post-Surge Panic)', () => {
+      director.fsm.changeTo('SURGING');
+      director.stateTimer = 5; // > 4
+      director.performance.panic = 60; // > 50
+
+      director.update(0.1);
+      expect(director.fsm.currentState?.constructor.name).toBe('RelievingState');
+    });
+
+    it('SurgingState -> SUSTAINING (Post-Surge Stable)', () => {
+      director.fsm.changeTo('SURGING');
+      director.stateTimer = 5; // > 4
+      director.performance.panic = 40; // <= 50
+
+      director.update(0.1);
+      expect(director.fsm.currentState?.constructor.name).toBe('SustainingState');
+    });
+  });
 });

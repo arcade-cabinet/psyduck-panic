@@ -134,6 +134,37 @@ describe('device-utils', () => {
       const info = detectDevice();
       expect(info.isFoldable).toBe(true);
     });
+
+    test('detectFoldState uses navigator.devicePosture if available', () => {
+      Object.defineProperty(window, 'navigator', {
+        value: {
+          userAgent: 'Mozilla/5.0 (Linux; Android 11; SM-F916U)',
+          devicePosture: {
+            type: 'folded',
+          },
+        },
+        writable: true,
+      });
+
+      const info = detectDevice();
+      expect(info.isFoldable).toBe(true);
+      expect(info.foldState).toBe('folded');
+    });
+
+    test('detectFoldState uses navigator.devicePosture continuous', () => {
+      Object.defineProperty(window, 'navigator', {
+        value: {
+          userAgent: 'Mozilla/5.0 (Linux; Android 11; SM-F916U)',
+          devicePosture: {
+            type: 'continuous',
+          },
+        },
+        writable: true,
+      });
+
+      const info = detectDevice();
+      expect(info.foldState).toBe('unfolded');
+    });
   });
 
   describe('calculateViewport', () => {
@@ -204,6 +235,31 @@ describe('device-utils', () => {
       // Since we can't easily mock getComputedStyle here for env(), we rely on the hardcoded fallback in calculateSafeInsets
       // top notch is 44px
       expect(vp.offsetY).toBeGreaterThanOrEqual(44);
+    });
+
+    test('calculates viewport for phone landscape (height constraint)', () => {
+      // Wide screen phone
+      const deviceInfo: DeviceInfo = {
+        type: 'phone',
+        orientation: 'landscape',
+        screenWidth: 896,
+        screenHeight: 414,
+        pixelRatio: 2,
+        isTouchDevice: true,
+        isIOS: true,
+        isAndroid: false,
+        hasNotch: true,
+        isFoldable: false,
+      };
+
+      const vp = calculateViewport(baseWidth, baseHeight, deviceInfo);
+      // Width would be ~896 * 0.98 = 878.
+      // Height would be 878 / 1.33 = 660.
+      // Available height is ~414.
+      // So height should be constrained to ~414 * 0.98.
+      expect(vp.height).toBeLessThan(414);
+      expect(vp.width).toBeLessThan(800); // Should scale down
+      expect(vp.aspectRatio).toBeCloseTo(4 / 3);
     });
   });
 
@@ -292,6 +348,43 @@ describe('device-utils', () => {
 
       expect(removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function));
       expect(removeEventListener).toHaveBeenCalledWith('orientationchange', expect.any(Function));
+    });
+
+    test('attaches to visualViewport if available', () => {
+      const addEventListener = vi.fn();
+      const removeEventListener = vi.fn();
+
+      Object.defineProperty(window, 'visualViewport', {
+        value: {
+          addEventListener,
+          removeEventListener,
+        },
+        writable: true,
+      });
+
+      const callback = vi.fn();
+      const cleanup = createResizeObserver(callback);
+
+      expect(addEventListener).toHaveBeenCalledWith('resize', expect.any(Function));
+
+      cleanup();
+      expect(removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function));
+    });
+
+    test('handles orientation change', () => {
+      vi.useFakeTimers();
+      const callback = vi.fn();
+      createResizeObserver(callback);
+
+      // Trigger orientationchange
+      window.dispatchEvent(new Event('orientationchange'));
+
+      // Should be debounced
+      expect(callback).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(200);
+      expect(callback).toHaveBeenCalled();
+
+      vi.useRealTimers();
     });
   });
 });
