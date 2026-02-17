@@ -134,6 +134,86 @@ describe('device-utils', () => {
       const info = detectDevice();
       expect(info.isFoldable).toBe(true);
     });
+
+    test('detects fold state via devicePosture API', () => {
+      // Mock devicePosture API
+      Object.defineProperty(window, 'navigator', {
+        value: {
+          userAgent: 'foldable-device',
+          maxTouchPoints: 1,
+          devicePosture: { type: 'folded' },
+        },
+        writable: true,
+      });
+      // Ensure it's detected as foldable
+      Object.defineProperty(window, 'matchMedia', {
+        value: vi.fn().mockImplementation((query) => ({
+          matches: query.includes('viewport-segments'),
+        })),
+      });
+
+      const info = detectDevice();
+      expect(info.type).toBe('foldable');
+      expect(info.foldState).toBe('folded');
+    });
+
+    test('detects unfolded state via devicePosture API', () => {
+      // Mock devicePosture API
+      Object.defineProperty(window, 'navigator', {
+        value: {
+          userAgent: 'foldable-device',
+          maxTouchPoints: 1,
+          devicePosture: { type: 'continuous' },
+        },
+        writable: true,
+      });
+      // Ensure it's detected as foldable
+      Object.defineProperty(window, 'matchMedia', {
+        value: vi.fn().mockImplementation((query) => ({
+          matches: query.includes('viewport-segments'),
+        })),
+      });
+
+      const info = detectDevice();
+      expect(info.type).toBe('foldable');
+      expect(info.foldState).toBe('unfolded');
+    });
+
+    test('detects folded state via wide aspect ratio fallback', () => {
+      // Force foldable detection
+      Object.defineProperty(window, 'navigator', {
+        value: {
+          userAgent: 'foldable-device', // trigger regex
+          maxTouchPoints: 1,
+        },
+      });
+
+      // Wide aspect ratio > 1.7
+      Object.defineProperty(window, 'innerWidth', { value: 1800 });
+      Object.defineProperty(window, 'innerHeight', { value: 1000 }); // AR = 1.8
+
+      const info = detectDevice();
+      expect(info.type).toBe('foldable');
+      expect(info.foldState).toBe('folded');
+    });
+
+    test('detects unfolded state via normal aspect ratio fallback', () => {
+      // Force foldable detection
+      Object.defineProperty(window, 'navigator', {
+        value: {
+          userAgent: 'foldable-device', // trigger regex
+          maxTouchPoints: 1,
+        },
+      });
+
+      // Normal aspect ratio (e.g. square-ish)
+      Object.defineProperty(window, 'innerWidth', { value: 1000 });
+      Object.defineProperty(window, 'innerHeight', { value: 1000 }); // AR = 1.0
+
+      const info = detectDevice();
+      expect(info.type).toBe('foldable');
+      expect(info.foldState).toBe('unfolded');
+    });
   });
 
   describe('calculateViewport', () => {
@@ -293,6 +373,65 @@ describe('device-utils', () => {
       // Since we can't easily mock getComputedStyle here for env(), we rely on the hardcoded fallback in calculateSafeInsets
       // top notch is 44px
       expect(vp.offsetY).toBeGreaterThanOrEqual(44);
+    });
+
+    test('calculates viewport for foldable folded (portrait)', () => {
+      const deviceInfo: DeviceInfo = {
+        type: 'foldable',
+        orientation: 'portrait',
+        screenWidth: 280,
+        screenHeight: 653,
+        pixelRatio: 3,
+        isTouchDevice: true,
+        isIOS: false,
+        isAndroid: true,
+        hasNotch: false,
+        isFoldable: true,
+        foldState: 'folded',
+      };
+
+      const vp = calculateViewport(baseWidth, baseHeight, deviceInfo);
+      expect(vp).toBeDefined();
+      expect(vp.aspectRatio).toBeCloseTo(baseWidth / baseHeight);
+    });
+
+    test('calculates viewport for foldable folded (landscape)', () => {
+      const deviceInfo: DeviceInfo = {
+        type: 'foldable',
+        orientation: 'landscape',
+        screenWidth: 653,
+        screenHeight: 280,
+        pixelRatio: 3,
+        isTouchDevice: true,
+        isIOS: false,
+        isAndroid: true,
+        hasNotch: false,
+        isFoldable: true,
+        foldState: 'folded',
+      };
+
+      const vp = calculateViewport(baseWidth, baseHeight, deviceInfo);
+      expect(vp).toBeDefined();
+      expect(vp.aspectRatio).toBeCloseTo(baseWidth / baseHeight);
+    });
+
+    test('calculates viewport for foldable book mode (unfolded)', () => {
+      const deviceInfo: DeviceInfo = {
+        type: 'foldable',
+        orientation: 'landscape', // book mode usually landscape-ish or square
+        screenWidth: 2200,
+        screenHeight: 2480,
+        pixelRatio: 3,
+        isTouchDevice: true,
+        isIOS: false,
+        isAndroid: true,
+        hasNotch: false,
+        isFoldable: true,
+        foldState: 'book',
+      };
+
+      const vp = calculateViewport(baseWidth, baseHeight, deviceInfo);
+      expect(vp).toBeDefined();
     });
   });
 
