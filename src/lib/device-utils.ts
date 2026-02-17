@@ -48,7 +48,8 @@ export function detectDevice(): DeviceInfo {
   const isTouchDevice =
     'ontouchstart' in window ||
     navigator.maxTouchPoints > 0 ||
-    (navigator.msMaxTouchPoints ?? 0) > 0;
+    // biome-ignore lint/suspicious/noExplicitAny: IE10/11 support
+    ((navigator as any).msMaxTouchPoints ?? 0) > 0;
 
   // Platform detection
   const userAgent = navigator.userAgent.toLowerCase();
@@ -139,8 +140,10 @@ function detectFoldable(): boolean {
  */
 function detectFoldState(): 'folded' | 'unfolded' | 'tent' | 'book' {
   // Try to use Device Posture API if available
-  if (navigator.devicePosture) {
-    const posture = navigator.devicePosture.type;
+  // biome-ignore lint/suspicious/noExplicitAny: Experimental API
+  if ((navigator as any).devicePosture) {
+    // biome-ignore lint/suspicious/noExplicitAny: Experimental API
+    const posture = (navigator as any).devicePosture.type;
     if (posture === 'folded') return 'folded';
     if (posture === 'continuous') return 'unfolded';
   }

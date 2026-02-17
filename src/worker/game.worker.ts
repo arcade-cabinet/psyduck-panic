@@ -7,10 +7,12 @@ let lastTime = 0;
 let animationFrameId: number;
 
 // Polyfill for requestAnimationFrame in worker if needed
-const requestFrame =
-  self.requestAnimationFrame ||
-  ((callback: (t: number) => void) => setTimeout(() => callback(performance.now()), 16));
-const cancelFrame = self.cancelAnimationFrame || clearTimeout;
+// Bind to self to prevent Illegal Invocation in some environments (e.g. Safari, Headless Chrome)
+const requestFrame = self.requestAnimationFrame
+  ? self.requestAnimationFrame.bind(self)
+  : (callback: (t: number) => void) => setTimeout(() => callback(performance.now()), 16);
+
+const cancelFrame = self.cancelAnimationFrame ? self.cancelAnimationFrame.bind(self) : clearTimeout;
 
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   try {
@@ -84,20 +86,31 @@ function scheduleLoop() {
 }
 
 function loop(now: number) {
-  if (!running) return;
+  try {
+    if (!running) return;
 
-  const dt = Math.min((now - lastTime) / 16.67, 2); // Frame time factor (approx 1.0 at 60fps)
-  lastTime = now;
+    const dt = Math.min((now - lastTime) / 16.67, 2); // Frame time factor (approx 1.0 at 60fps)
+    lastTime = now;
 
-  logic.update(dt, now);
-  const state = logic.getState();
+    logic.update(dt, now);
+    const state = logic.getState();
 
-  const msg: MainMessage = { type: 'STATE', state };
-  self.postMessage(msg);
+    const msg: MainMessage = { type: 'STATE', state };
+    self.postMessage(msg);
 
-  if (logic.running) {
-    scheduleLoop();
-  } else {
+    if (logic.running) {
+      scheduleLoop();
+    } else {
+      running = false;
+    }
+  } catch (err) {
     running = false;
+    cancelFrame(animationFrameId);
+    console.error('[game.worker] Unhandled error in game loop:', err);
+    const errorMsg: MainMessage = {
+      type: 'ERROR',
+      message: err instanceof Error ? err.message : String(err),
+    };
+    self.postMessage(errorMsg);
   }
 }
