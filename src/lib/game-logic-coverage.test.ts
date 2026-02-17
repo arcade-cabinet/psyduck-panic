@@ -81,8 +81,10 @@ describe('GameLogic Coverage', () => {
       (game as any).executeBossActions([action]);
 
       expect(game.enemies.length).toBeGreaterThan(0);
-      const enemy = game.enemies[0];
-      expect(enemy.x).toBe(100);
-      expect(enemy.y).toBe(100);
+      if (game.enemies.length > 0) {
+        const enemy = game.enemies[0];
+        expect(enemy.x).toBe(100);
+        expect(enemy.y).toBe(100);
+      }
   });
 });
