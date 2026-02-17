@@ -28,6 +28,7 @@ import {
 import type { GameState } from '../../lib/events';
 import { AtmosphericBackground } from './AtmosphericBackground';
 import { CharacterBust } from './CharacterBust';
+import { gx, gy } from './coordinates';
 import { HeadExplosion } from './HeadExplosion';
 import { type CooldownState, KeyboardControls } from './KeyboardControls';
 import { PostProcessing } from './PostProcessing';
@@ -40,6 +41,7 @@ export interface GameSceneHandle {
   spawnParticles: (x: number, y: number, color: string) => void;
   spawnConfetti: () => void;
   triggerHeadExplosion: () => void;
+  triggerFlinch: () => void;
   reset: () => void;
 }
 
@@ -58,6 +60,10 @@ export const GameScene = forwardRef<GameSceneHandle, GameSceneProps>(function Ga
   const shakeRef = useRef(0);
   const flashRef = useRef({ alpha: 0, color: '#ffffff' });
   const explosionActiveRef = useRef(false);
+  // Nearest enemy position in scene-space for head tracking
+  const targetEnemyRef = useRef<{ x: number; y: number } | null>(null);
+  // Timestamp of last miss for flinch effect
+  const flinchRef = useRef(0);
   const cooldownRef = useRef<CooldownState>({
     abilityCd: { reality: 0, history: 0, logic: 0 },
     abilityMax: { reality: 1, history: 1, logic: 1 },
@@ -89,6 +95,23 @@ export const GameScene = forwardRef<GameSceneHandle, GameSceneProps>(function Ga
 
       // Sync ECS entities
       syncStateToECS(state);
+
+      // Track nearest enemy for head tracking
+      if (state.enemies.length > 0) {
+        let nearest = state.enemies[0];
+        let bestDist = Number.MAX_VALUE;
+        for (const e of state.enemies) {
+          // Prioritize enemies closer to the bottom (higher Y = closer to character)
+          const dist = Math.abs(gx(e.x)) + (3 - gy(e.y));
+          if (dist < bestDist) {
+            bestDist = dist;
+            nearest = e;
+          }
+        }
+        targetEnemyRef.current = { x: gx(nearest.x), y: gy(nearest.y) };
+      } else {
+        targetEnemyRef.current = null;
+      }
     },
     spawnParticles(x: number, y: number, color: string) {
       spawnParticles(x, y, color);
@@ -99,8 +122,13 @@ export const GameScene = forwardRef<GameSceneHandle, GameSceneProps>(function Ga
     triggerHeadExplosion() {
       explosionActiveRef.current = true;
     },
+    triggerFlinch() {
+      flinchRef.current = performance.now();
+    },
     reset() {
       explosionActiveRef.current = false;
+      targetEnemyRef.current = null;
+      flinchRef.current = 0;
       clearAllEntities();
       panicRef.current = 0;
       waveRef.current = 0;
@@ -128,7 +156,7 @@ export const GameScene = forwardRef<GameSceneHandle, GameSceneProps>(function Ga
       <AtmosphericBackground panicRef={panicRef} />
 
       {/* Character bust (rear view) */}
-      <CharacterBust panicRef={panicRef} />
+      <CharacterBust panicRef={panicRef} targetEnemyRef={targetEnemyRef} flinchRef={flinchRef} />
 
       {/* 3D Keyboard Controls — interactive F-keys */}
       <KeyboardControls

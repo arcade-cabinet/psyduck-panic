@@ -1,15 +1,17 @@
 /**
  * 3D Mechanical Keyboard Controls — F1-F4 Function Keys
  *
- * Interactive 3D keycaps replacing the HTML overlay buttons.
- * Part of the diorama — the brother sits at a desk with this keyboard.
+ * The keyboard IS the tension indicator. No separate panic bar needed.
  *
- * Features:
- * - Type-colored keycaps (orange/green/purple/red) from design tokens
- * - RGB LED underglow that shifts with panic (cool cyan → angry red)
- * - Physical key depression on press with haptic feedback
- * - Cooldown: keycap desaturates gray → re-fills with color as CD expires
- * - Billboard labels: F-key number, emoji icon, ability name
+ * RGB Backlighting System:
+ * - Per-key LED strips with independent color animation
+ * - Continuous spectrum: deep blue → cyan → green → yellow → orange → red
+ * - Rolling wave pattern that travels across keys
+ * - Pulse frequency and emissive intensity rise with panic
+ * - Edge-lit RGB strips on the keyboard case
+ * - The whole keyboard glows brighter and more frantically as tension rises
+ *
+ * Also: type-colored keycaps, physical depression, cooldown fill, labels.
  */
 
 import { Billboard, Text } from '@react-three/drei';
@@ -93,14 +95,32 @@ const START_X = -TOTAL_W / 2 + KEY_W / 2;
 // Reusable colors for per-frame updates (avoid allocations)
 const _gray = new THREE.Color('#333333');
 const _full = new THREE.Color();
-const _panicRgb = { r: 0, g: 0, b: 0 };
+const _rgbColor = new THREE.Color();
 
-/** Compute panic-driven RGB (cool cyan -> angry red). Mutates shared object to avoid allocations. */
-function panicToRgb(panic: number): { r: number; g: number; b: number } {
-  _panicRgb.r = Math.min(1, (80 + panic * 2) / 255);
-  _panicRgb.g = Math.max(0.1, (180 - panic * 2) / 255);
-  _panicRgb.b = Math.max(0.15, (220 - panic) / 255);
-  return _panicRgb;
+/**
+ * Compute panic-driven RGB along a continuous spectrum.
+ * 0% = deep blue, 20% = cyan, 40% = green, 60% = yellow, 80% = orange, 100% = red
+ * Returns a THREE.Color to avoid allocations.
+ */
+function panicToRgbColor(panic: number, phaseOffset: number, time: number): THREE.Color {
+  // Rolling wave: each key has a phase offset that creates a traveling wave effect
+  const waveSpeed = 2 + (panic / 100) * 6; // Wave travels faster at high panic
+  const wave = Math.sin(time * waveSpeed + phaseOffset) * 0.5 + 0.5;
+  // The wave shifts the hue position
+  const hueShift = wave * 0.08;
+
+  // Map panic 0-100 to hue: 0.6 (blue) → 0.5 (cyan) → 0.33 (green) → 0.16 (yellow) → 0.08 (orange) → 0 (red)
+  const baseHue = 0.6 - (panic / 100) * 0.6;
+  const hue = Math.max(0, Math.min(1, baseHue + hueShift));
+
+  // Saturation: always high but dips slightly at low panic for calmer feel
+  const saturation = 0.7 + (panic / 100) * 0.3;
+
+  // Lightness: brighter at higher panic
+  const lightness = 0.45 + (panic / 100) * 0.15;
+
+  _rgbColor.setHSL(hue, saturation, lightness);
+  return _rgbColor;
 }
 
 // ─── Main Component ──────────────────────────────────────────
@@ -160,14 +180,19 @@ export function KeyboardControls({
         </mesh>
       ))}
 
-      {/* RGB underglow — single point light driven by panic */}
+      {/* RGB edge-lit strips — left and right sides of case */}
+      <RGBEdgeStrip panicRef={panicRef} side={-1} />
+      <RGBEdgeStrip panicRef={panicRef} side={1} />
+
+      {/* RGB underglow — main point light driven by panic */}
       <RGBUnderglow panicRef={panicRef} />
 
-      {/* F-Keys */}
+      {/* F-Keys with per-key RGB backlighting */}
       {KEY_DEFS.map((def, i) => (
         <FKey
           key={def.id}
           keyDef={def}
+          keyIndex={i}
           position={[START_X + i * KEY_SPACING, 0, 0]}
           panicRef={panicRef}
           cooldownRef={cooldownRef}
@@ -182,6 +207,42 @@ export function KeyboardControls({
   );
 }
 
+// ─── RGB Edge-Lit Strip (left/right case sides) ─────────────
+
+function RGBEdgeStrip({ panicRef, side }: { panicRef: React.RefObject<number>; side: number }) {
+  const matRef = useRef<THREE.MeshStandardMaterial>(null);
+
+  useFrame(({ clock }) => {
+    if (!matRef.current) return;
+    const p = panicRef.current ?? 0;
+    const t = clock.elapsedTime;
+    const pNorm = p / 100;
+
+    const color = panicToRgbColor(p, side * 1.5, t);
+    matRef.current.emissive.copy(color);
+
+    // Pulse: breathing at low panic, frantic strobe at high panic
+    const pulseSpeed = 2 + pNorm * 8;
+    const pulseDepth = 0.15 + pNorm * 0.35;
+    const pulse = 1 - Math.sin(t * pulseSpeed) * pulseDepth;
+    matRef.current.emissiveIntensity = (0.3 + pNorm * 0.7) * pulse;
+  });
+
+  return (
+    <mesh position={[side * (TOTAL_W / 2 + 0.21), -0.03, 0]} rotation={[0, 0, side * 0.05]}>
+      <boxGeometry args={[0.015, 0.04, KEY_D + 0.25]} />
+      <meshStandardMaterial
+        ref={matRef}
+        color="#080812"
+        emissive="#3388ff"
+        emissiveIntensity={0.3}
+        roughness={0.2}
+        metalness={0.1}
+      />
+    </mesh>
+  );
+}
+
 // ─── RGB Underglow Light ─────────────────────────────────────
 
 function RGBUnderglow({ panicRef }: { panicRef: React.RefObject<number> }) {
@@ -190,9 +251,16 @@ function RGBUnderglow({ panicRef }: { panicRef: React.RefObject<number> }) {
   useFrame(({ clock }) => {
     if (!lightRef.current) return;
     const p = panicRef.current ?? 0;
-    const { r, g, b } = panicToRgb(p);
-    lightRef.current.color.setRGB(r, g, b);
-    lightRef.current.intensity = 1.5 + Math.sin(clock.elapsedTime * 3) * 0.3;
+    const t = clock.elapsedTime;
+    const pNorm = p / 100;
+
+    const color = panicToRgbColor(p, 0, t);
+    lightRef.current.color.copy(color);
+
+    // Intensity ramps with panic, with breathing pulse
+    const pulseSpeed = 2 + pNorm * 6;
+    const pulse = 1 + Math.sin(t * pulseSpeed) * (0.1 + pNorm * 0.3);
+    lightRef.current.intensity = (1.2 + pNorm * 2.5) * pulse;
   });
 
   return (
@@ -211,19 +279,24 @@ function RGBUnderglow({ panicRef }: { panicRef: React.RefObject<number> }) {
 
 interface FKeyProps {
   keyDef: KeyDef;
+  keyIndex: number;
   position: [number, number, number];
   panicRef: React.RefObject<number>;
   cooldownRef: React.RefObject<CooldownState>;
   onPress: () => void;
 }
 
-function FKey({ keyDef, position, panicRef, cooldownRef, onPress }: FKeyProps) {
+function FKey({ keyDef, keyIndex, position, panicRef, cooldownRef, onPress }: FKeyProps) {
   const keycapGroupRef = useRef<THREE.Group>(null);
   const keycapMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const ledMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const cooldownBarRef = useRef<THREE.Mesh>(null);
+  const perKeyLightRef = useRef<THREE.PointLight>(null);
   const pressYRef = useRef(0);
   const isPressedRef = useRef(false);
+
+  // Phase offset for wave effect: each key gets a different phase
+  const phaseOffset = keyIndex * 1.2;
 
   useEffect(() => {
     return () => {
@@ -233,6 +306,10 @@ function FKey({ keyDef, position, panicRef, cooldownRef, onPress }: FKeyProps) {
   }, []);
 
   useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    const p = panicRef.current ?? 0;
+    const pNorm = p / 100;
+
     // ── Spring animation for key press ──
     const target = isPressedRef.current ? -0.05 : 0;
     pressYRef.current += (target - pressYRef.current) * 0.25;
@@ -269,7 +346,7 @@ function FKey({ keyDef, position, panicRef, cooldownRef, onPress }: FKeyProps) {
       }
     }
 
-    // ── Cooldown bar: fills from left as ability recharges ──
+    // ── Cooldown bar ──
     if (cooldownBarRef.current) {
       if (ready) {
         cooldownBarRef.current.visible = false;
@@ -280,14 +357,25 @@ function FKey({ keyDef, position, panicRef, cooldownRef, onPress }: FKeyProps) {
       }
     }
 
-    // ── RGB LED strip: panic-driven color ──
+    // ── Per-key RGB LED backlighting ──
+    const rgbColor = panicToRgbColor(p, phaseOffset, t);
+
     if (ledMatRef.current) {
-      const p = panicRef.current ?? 0;
-      const { r: ledR, g: ledG, b: ledB } = panicToRgb(p);
-      ledMatRef.current.emissive.setRGB(ledR, ledG, ledB);
-      ledMatRef.current.emissiveIntensity = ready
-        ? 0.6 + Math.sin(clock.elapsedTime * 3) * 0.1
-        : 0.15;
+      ledMatRef.current.emissive.copy(rgbColor);
+
+      // Pulse: breathing pattern that gets faster and deeper with panic
+      const pulseSpeed = 2 + pNorm * 8;
+      const pulseDepth = 0.1 + pNorm * 0.4;
+      const keyPulse = Math.sin(t * pulseSpeed + phaseOffset * 0.5);
+      const intensityBase = ready ? 0.5 + pNorm * 1.2 : 0.1;
+      ledMatRef.current.emissiveIntensity = intensityBase + keyPulse * pulseDepth * intensityBase;
+    }
+
+    // ── Per-key point light (spills RGB onto desk/case) ──
+    if (perKeyLightRef.current) {
+      perKeyLightRef.current.color.copy(rgbColor);
+      const lightPulse = Math.sin(t * (3 + pNorm * 5) + phaseOffset);
+      perKeyLightRef.current.intensity = (0.2 + pNorm * 0.6) * (1 + lightPulse * 0.3);
     }
   });
 
@@ -335,11 +423,21 @@ function FKey({ keyDef, position, panicRef, cooldownRef, onPress }: FKeyProps) {
         <planeGeometry args={[KEY_W - 0.04, KEY_D - 0.04]} />
         <meshStandardMaterial
           ref={ledMatRef}
-          color="#111111"
-          emissive={colors.scene.monitorGlow}
+          color="#080808"
+          emissive="#3388ff"
           emissiveIntensity={0.6}
         />
       </mesh>
+
+      {/* Per-key RGB point light — spills color below */}
+      <pointLight
+        ref={perKeyLightRef}
+        position={[0, -0.04, 0]}
+        intensity={0.3}
+        distance={1.0}
+        decay={2}
+        color="#3388ff"
+      />
 
       {/* Keycap — sculpted with rounded edges, slight concave dish */}
       <group ref={keycapGroupRef}>

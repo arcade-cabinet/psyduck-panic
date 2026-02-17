@@ -7,12 +7,15 @@
  * - Neck: dark metallic with stacked joint rings, visible cables
  * - Shoulders: shell plate caps over cable bundles, mechanical joints
  *
- * Tension escalation is CONTINUOUS (panic 0-100):
- *   0-25%:  Nominal. LEDs green. Smooth operation. Slow breathing cycle.
- *   25-50%: LEDs amber. Processing load visible. Minor heat shimmer.
- *   50-75%: LEDs red pulsing. Cables tighten. Head micro-jitter. Sparks.
- *   75-99%: Critical. Shell cracks glow. Violent shake. Arc discharge.
- *   100%:   Head explosion (handled by parent via game-over state).
+ * Dynamic behaviors:
+ * - Base idle rotation: subtle Y-axis sway (natural fidgeting)
+ * - Head tracking: pivots toward nearest falling enemy
+ * - Flinch on miss: snaps head back toward camera (cognitive dissonance)
+ *
+ * Tension escalation is FULLY CONTINUOUS (panic 0-100, no fixed stages):
+ *   All effects scale smoothly from low thresholds with quadratic curves.
+ *   Sparks from 15%, shimmer from 20%, cracks from 35%, arcs from 40%.
+ *   100%: Head explosion (handled by parent via game-over state).
  *
  * Materials: MeshPhysicalMaterial (clearcoat, transmission) for shell,
  * MeshStandardMaterial (metalness) for joints/cables. All procedural.
@@ -40,9 +43,17 @@ const _tempColor = new THREE.Color();
 
 interface CharacterBustProps {
   panicRef: React.RefObject<number>;
+  targetEnemyRef: React.RefObject<{ x: number; y: number } | null>;
+  flinchRef: React.RefObject<number>;
 }
 
-export function CharacterBust({ panicRef }: CharacterBustProps) {
+// Smoothed rotation targets (persisted between frames)
+const _smoothRotY = { current: 0 };
+const _smoothTrackY = { current: 0 };
+const _smoothTrackX = { current: 0 };
+const FLINCH_DURATION_MS = 600;
+
+export function CharacterBust({ panicRef, targetEnemyRef, flinchRef }: CharacterBustProps) {
   const groupRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
   const shoulderLRef = useRef<THREE.Group>(null);
@@ -54,13 +65,19 @@ export function CharacterBust({ panicRef }: CharacterBustProps) {
     const t = clock.elapsedTime;
     const panic = panicRef.current ?? 0;
     const pNorm = panic / 100;
+    const now = performance.now();
 
-    // ── Breathing (servo cycle) ──
+    // ── Base idle rotation (subtle Y-axis sway, like naturally fidgeting) ──
+    const idleRotY = Math.sin(t * 0.4) * 0.06 + Math.sin(t * 0.17) * 0.03;
+    _smoothRotY.current += (idleRotY - _smoothRotY.current) * 0.05;
+    groupRef.current.rotation.y = _smoothRotY.current;
+
+    // ── Breathing (servo cycle — rate scales continuously) ──
     const breathFreq = 1.5 + pNorm * 2.5;
     const breathAmp = 0.008 * (1 - pNorm * 0.3);
     const breathY = Math.sin(t * breathFreq) * breathAmp;
 
-    // ── Shoulder rise (servo tension) ──
+    // ── Shoulder rise (servo tension — continuous quadratic) ──
     const shoulderRise = pNorm * pNorm * 0.12;
 
     if (shoulderLRef.current && shoulderRRef.current) {
@@ -73,46 +90,77 @@ export function CharacterBust({ panicRef }: CharacterBustProps) {
       shoulderRRef.current.position.x = 0.38 - pinch;
     }
 
-    // ── Head tremor (servo instability) ──
+    // ── Head: tracking + flinch + tremor ──
     if (headRef.current) {
       headRef.current.position.y = 0.18 + shoulderRise * 0.3 + breathY * 0.3;
 
-      if (panic > 25) {
-        const tremorAmp = Math.min(0.02, ((panic - 25) / 75) * 0.02);
-        const tremorFreq = 10 + pNorm * 25;
-        headRef.current.position.x = Math.sin(t * tremorFreq) * tremorAmp;
+      // Flinch check: did we miss recently?
+      const timeSinceFlinch = now - (flinchRef.current ?? 0);
+      const inFlinch = flinchRef.current > 0 && timeSinceFlinch < FLINCH_DURATION_MS;
+
+      // Compute head rotation targets
+      let targetRotY = 0;
+      let targetRotX = pNorm * 0.15; // Forward tilt scales with tension
+
+      if (inFlinch) {
+        // Flinch: snap head back toward camera (cognitive dissonance)
+        const flinchProgress = timeSinceFlinch / FLINCH_DURATION_MS;
+        // Quick snap (0-30%) then slow return (30-100%)
+        const flinchIntensity =
+          flinchProgress < 0.3 ? flinchProgress / 0.3 : 1 - (flinchProgress - 0.3) / 0.7;
+        targetRotY = flinchIntensity * 0.35; // Turn toward camera (positive Z)
+        targetRotX = -flinchIntensity * 0.12; // Tilt up (surprise)
+      } else if (targetEnemyRef.current) {
+        // Head tracking: turn toward nearest enemy
+        const enemy = targetEnemyRef.current;
+        // enemy.x is in scene-space (-4 to 4), compute lateral rotation
+        targetRotY = Math.atan2(enemy.x, 4) * 0.4; // Subtle Y rotation toward enemy X
+        // enemy.y is scene-space (3 to -3), compute vertical tilt
+        const verticalOffset = enemy.y - 0.18; // relative to head Y
+        targetRotX = pNorm * 0.15 + Math.atan2(-verticalOffset, 4) * 0.15;
+      }
+
+      // Smooth interpolation for head tracking
+      _smoothTrackY.current += (targetRotY - _smoothTrackY.current) * 0.08;
+      _smoothTrackX.current += (targetRotX - _smoothTrackX.current) * 0.08;
+
+      headRef.current.rotation.y = _smoothTrackY.current;
+      headRef.current.rotation.x = _smoothTrackX.current;
+
+      // Tremor: continuous scaling (starts very subtle, ramps up)
+      const tremorAmp = pNorm * pNorm * 0.02;
+      const tremorFreq = 8 + pNorm * 25;
+      if (tremorAmp > 0.001) {
+        headRef.current.position.x += Math.sin(t * tremorFreq) * tremorAmp;
         headRef.current.rotation.z = Math.sin(t * tremorFreq * 1.3) * tremorAmp * 0.4;
       } else {
         headRef.current.position.x = Math.sin(t * 0.3) * 0.002;
         headRef.current.rotation.z = 0;
       }
 
-      // Head tilt forward with stress (like Sonny concentrating)
-      headRef.current.rotation.x = pNorm * 0.15;
-
-      // Head swell at extreme panic
-      if (panic > 75) {
-        const swell = 1 + ((panic - 75) / 25) * 0.06;
-        headRef.current.scale.setScalar(swell);
-      } else {
-        headRef.current.scale.setScalar(1);
-      }
+      // Head swell: continuous from 50%+ (not just 75%+)
+      const swellT = Math.max(0, (panic - 50) / 50);
+      headRef.current.scale.setScalar(1 + swellT * 0.06);
     }
 
-    // ── Shell warm tint under stress ──
+    // ── Shell warm tint under stress (continuous) ──
     if (shellMatRef.current) {
       const warmT = pNorm * pNorm * 0.4;
       _tempColor.copy(_shellBase).lerp(_shellWarm, warmT);
       shellMatRef.current.color.copy(_tempColor);
-      // Increase emissive at high panic (internal heat glow)
-      const emissiveT = Math.max(0, (panic - 60) / 40);
-      shellMatRef.current.emissive.setRGB(emissiveT * 0.15, emissiveT * 0.05, emissiveT * 0.02);
+      // Emissive starts earlier (from 30%+ instead of 60%+)
+      const emissiveT = Math.max(0, pNorm - 0.3) / 0.7;
+      shellMatRef.current.emissive.setRGB(
+        emissiveT * emissiveT * 0.15,
+        emissiveT * emissiveT * 0.05,
+        emissiveT * emissiveT * 0.02
+      );
 
-      // Progressive clearcoat degradation under stress (shell cracking)
+      // Progressive clearcoat degradation
       shellMatRef.current.clearcoat = 0.72 - pNorm * 0.3;
       shellMatRef.current.clearcoatRoughness = 0.09 + pNorm * pNorm * 0.15;
 
-      // Roughness increases with panic (surface degradation)
+      // Roughness increases continuously
       shellMatRef.current.roughness = 0.19 + pNorm * 0.15;
     }
   });
@@ -601,7 +649,7 @@ function CableBundles({ panicRef }: { panicRef: React.RefObject<number> }) {
   );
 }
 
-// ─── Electrical Sparks (50%+ panic) ───────────────────────────
+// ─── Electrical Sparks (continuous from 15%+ panic) ──────────
 
 function ElectricalSparks({ panicRef }: { panicRef: React.RefObject<number> }) {
   const groupRef = useRef<THREE.Group>(null);
@@ -623,22 +671,22 @@ function ElectricalSparks({ panicRef }: { panicRef: React.RefObject<number> }) {
     const panic = panicRef.current ?? 0;
     const t = clock.elapsedTime;
 
-    const visible = panic > 50;
+    // Continuous: faint sparks from 15%, fully visible by 60%
+    const visible = panic > 15;
     groupRef.current.visible = visible;
 
     if (visible) {
-      const intensity = (panic - 50) / 50;
+      const intensity = Math.min(1, (panic - 15) / 45);
       groupRef.current.children.forEach((child, i) => {
         const spark = sparks[i];
-        // Rapid flickering
-        child.visible = Math.sin(t * 20 + spark.phase) > 0.6 - intensity * 0.4;
-        // Jitter position slightly
+        // More sparks visible as panic rises (threshold lowers continuously)
+        child.visible = Math.sin(t * 20 + spark.phase) > 0.9 - intensity * 0.7;
         child.position.set(
           spark.x + Math.sin(t * 15 + spark.phase) * 0.02,
           spark.y + Math.cos(t * 18 + spark.phase) * 0.015,
           spark.z
         );
-        child.scale.setScalar(0.3 + intensity * 0.7);
+        child.scale.setScalar(0.15 + intensity * 0.85);
       });
     }
   });
@@ -655,7 +703,7 @@ function ElectricalSparks({ panicRef }: { panicRef: React.RefObject<number> }) {
   );
 }
 
-// ─── Arc Discharge (75%+ panic) ───────────────────────────────
+// ─── Arc Discharge (continuous from 40%+ panic) ──────────────
 
 function ArcDischarge({ panicRef }: { panicRef: React.RefObject<number> }) {
   const groupRef = useRef<THREE.Group>(null);
@@ -680,22 +728,23 @@ function ArcDischarge({ panicRef }: { panicRef: React.RefObject<number> }) {
     const panic = panicRef.current ?? 0;
     const t = clock.elapsedTime;
 
-    const visible = panic > 75;
+    // Continuous: faint arcs from 40%, full intensity by 90%
+    const visible = panic > 40;
     groupRef.current.visible = visible;
 
     if (visible) {
-      const intensity = (panic - 75) / 25;
+      const intensity = Math.min(1, (panic - 40) / 50);
       groupRef.current.children.forEach((child, i) => {
         const arc = arcs[i];
-        child.visible = Math.sin(t * 14 + arc.phase) > 0.2 - intensity * 0.5;
+        child.visible = Math.sin(t * 14 + arc.phase) > 0.8 - intensity * 0.9;
         child.position.set(
-          arc.x + Math.sin(t * 6 + arc.phase) * 0.04,
-          arc.y + Math.cos(t * 8 + arc.phase) * 0.03,
-          arc.z + Math.sin(t * 7 + arc.phase * 2) * 0.04
+          arc.x + Math.sin(t * 6 + arc.phase) * 0.04 * intensity,
+          arc.y + Math.cos(t * 8 + arc.phase) * 0.03 * intensity,
+          arc.z + Math.sin(t * 7 + arc.phase * 2) * 0.04 * intensity
         );
-        child.scale.setScalar(0.6 + intensity);
+        child.scale.setScalar(0.3 + intensity * 0.7);
       });
-      groupRef.current.rotation.y = t * 0.2;
+      groupRef.current.rotation.y = t * 0.2 * intensity;
     }
   });
 
@@ -711,7 +760,7 @@ function ArcDischarge({ panicRef }: { panicRef: React.RefObject<number> }) {
   );
 }
 
-// ─── Heat Shimmer (40%+ panic) ────────────────────────────────
+// ─── Heat Shimmer (continuous from 20%+ panic) ───────────────
 
 function HeatShimmer({ panicRef }: { panicRef: React.RefObject<number> }) {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -722,12 +771,13 @@ function HeatShimmer({ panicRef }: { panicRef: React.RefObject<number> }) {
     const panic = panicRef.current ?? 0;
     const t = clock.elapsedTime;
 
-    const visible = panic > 40;
+    // Continuous: barely visible from 20%, full shimmer by 80%
+    const visible = panic > 20;
     meshRef.current.visible = visible;
 
     if (visible) {
-      const intensity = (panic - 40) / 60;
-      matRef.current.opacity = intensity * 0.08;
+      const intensity = Math.min(1, (panic - 20) / 60);
+      matRef.current.opacity = intensity * intensity * 0.1;
 
       // Wobble effect: subtle scale oscillation simulating heat distortion
       const wobbleX = 1 + Math.sin(t * 4) * intensity * 0.04;
@@ -754,7 +804,7 @@ function HeatShimmer({ panicRef }: { panicRef: React.RefObject<number> }) {
   );
 }
 
-// ─── Shell Crack Glow (60%+ panic) ──────────────────────────
+// ─── Shell Crack Glow (continuous from 35%+ panic) ──────────
 
 function ShellCrackGlow({ panicRef }: { panicRef: React.RefObject<number> }) {
   const groupRef = useRef<THREE.Group>(null);
@@ -781,11 +831,12 @@ function ShellCrackGlow({ panicRef }: { panicRef: React.RefObject<number> }) {
     const panic = panicRef.current ?? 0;
     const t = clock.elapsedTime;
 
-    const visible = panic > 60;
+    // Continuous: hairline cracks from 35%, glowing intensely by 85%
+    const visible = panic > 35;
     groupRef.current.visible = visible;
 
     if (visible) {
-      const intensity = (panic - 60) / 40;
+      const intensity = Math.min(1, (panic - 35) / 50);
       groupRef.current.children.forEach((child, i) => {
         const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
         // Pulsing glow from cracks

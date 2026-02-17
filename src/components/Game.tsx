@@ -233,6 +233,7 @@ export default function Game() {
                     break;
                   case 'miss':
                     sfx.miss();
+                    sceneRef.current?.triggerFlinch();
                     break;
                   case 'panicHit':
                     sfx.panicHit();
@@ -438,17 +439,13 @@ export default function Game() {
 
           <div className="hud-top">
             <div className="hud-left">
-              <div>PANIC</div>
-              <div className="meter-container">
-                <div className="marker" style={{ left: '33%' }}></div>
-                <div className="marker" style={{ left: '66%' }}></div>
-                <div id="panic-bar" style={{ width: `${ui.panic}%` }}></div>
-              </div>
-              <div className="panic-zone-icons">
-                <span>{ui.panic < 33 ? '\u{2714}' : ui.panic < 66 ? '\u{26A0}' : '\u{1F525}'}</span>
-                <span className="panic-pct">{Math.round(ui.panic)}%</span>
-              </div>
+              {/* No panic bar — tension conveyed entirely through 3D feedback:
+                  robot eye glow, keyboard RGB, shoulder/neck tensing, flinch */}
               <div id="combo-display">COMBO: x{ui.combo}</div>
+              {/* Hidden for E2E test compatibility */}
+              <span id="panic-bar" className="sr-only">
+                {Math.round(ui.panic)}%
+              </span>
             </div>
             <div className="hud-center">
               <div id="wave-display">
