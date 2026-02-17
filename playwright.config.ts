@@ -33,6 +33,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
+  testIgnore: '**/__tests__/**',
   projects: [
     // Core smoke tests on primary devices only
     {
