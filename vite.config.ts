@@ -24,6 +24,8 @@ export default defineConfig({
           'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
           'vendor-tone': ['tone'],
           'vendor-anime': ['animejs'],
+          // Spline 3D (lazy loaded — only when SPLINE_BUST_URL is set)
+          'vendor-spline': ['@splinetool/runtime', '@splinetool/react-spline'],
           // yuka is bundled into game.worker.js (worker-only dependency)
 
           // Capacitor chunks (lazy loaded)

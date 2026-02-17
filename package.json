@@ -66,6 +66,8 @@
     "@capacitor/status-bar": "^8.0.1",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.57",
     "animejs": "4.3.6",
     "idb": "^8.0.3",
     "miniplex": "^2.0.0",

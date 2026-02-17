@@ -9,7 +9,7 @@
  *   CALM     (0-25)  — Peaceful, normal gameplay. Forgiving.
  *   UNEASY   (25-50) — Tension building. Monitor glow shifts.
  *   PANICKED (50-75) — Full crisis. Music intense. Enemies aggressive.
- *   MELTDOWN (75-100) — Psyduck transformation. Near-death spiral.
+ *   MELTDOWN (75-100) — Head explosion imminent. Near-death spiral.
  *
  * Key mechanics:
  *   - Logarithmic damage: early hits sting less, high-panic hits HURT
@@ -142,38 +142,41 @@ export function getPanicModifiers(panic: number, wave: number): PanicModifiers {
 }
 
 /**
- * Character transformation thresholds.
- * Maps panic level to which visual state the character should be in.
+ * Character tension level thresholds.
+ * Maps panic level to which visual tension state the character should be in.
  *
- * The transformation isn't linear either — uses hysteresis to prevent
- * flickering between states (you need to go 5% past the threshold to
- * transform, and 5% below to revert).
+ * Note: The bust composition uses raw panic (0-100) for continuous deformation.
+ * These discrete states are retained for systems that need categorical thresholds
+ * (e.g., game logic, music layers, HUD effects).
+ *
+ * Uses hysteresis to prevent flickering between states (5% past threshold
+ * to transition, 5% below to revert).
  */
 export interface TransformState {
-  state: 'normal' | 'panic' | 'psyduck';
+  state: 'normal' | 'panic' | 'meltdown';
   intensity: number; // 0-1 within current state
 }
 
 export function getTransformState(
   panic: number,
-  previousState: 'normal' | 'panic' | 'psyduck'
+  previousState: 'normal' | 'panic' | 'meltdown'
 ): TransformState {
   // Hysteresis thresholds
   const NORMAL_TO_PANIC = 33;
   const PANIC_TO_NORMAL = 28;
-  const PANIC_TO_PSYDUCK = 66;
-  const PSYDUCK_TO_PANIC = 61;
+  const PANIC_TO_MELTDOWN = 66;
+  const MELTDOWN_TO_PANIC = 61;
 
-  let state: 'normal' | 'panic' | 'psyduck';
+  let state: 'normal' | 'panic' | 'meltdown';
   if (previousState === 'normal') {
     state = panic >= NORMAL_TO_PANIC ? 'panic' : 'normal';
   } else if (previousState === 'panic') {
-    if (panic >= PANIC_TO_PSYDUCK) state = 'psyduck';
+    if (panic >= PANIC_TO_MELTDOWN) state = 'meltdown';
     else if (panic <= PANIC_TO_NORMAL) state = 'normal';
     else state = 'panic';
   } else {
-    // psyduck
-    state = panic <= PSYDUCK_TO_PANIC ? 'panic' : 'psyduck';
+    // meltdown
+    state = panic <= MELTDOWN_TO_PANIC ? 'panic' : 'meltdown';
   }
 
   // Calculate intensity within current state band
@@ -183,10 +186,10 @@ export function getTransformState(
       intensity = Math.min(1, panic / NORMAL_TO_PANIC);
       break;
     case 'panic':
-      intensity = Math.min(1, (panic - PANIC_TO_NORMAL) / (PANIC_TO_PSYDUCK - PANIC_TO_NORMAL));
+      intensity = Math.min(1, (panic - PANIC_TO_NORMAL) / (PANIC_TO_MELTDOWN - PANIC_TO_NORMAL));
       break;
-    case 'psyduck':
-      intensity = Math.min(1, (panic - PSYDUCK_TO_PANIC) / (100 - PSYDUCK_TO_PANIC));
+    case 'meltdown':
+      intensity = Math.min(1, (panic - MELTDOWN_TO_PANIC) / (100 - MELTDOWN_TO_PANIC));
       break;
   }
 

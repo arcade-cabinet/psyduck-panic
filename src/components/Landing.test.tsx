@@ -74,7 +74,7 @@ describe('Landing Page', () => {
     renderLanding();
     expect(screen.getByText('NORMAL')).toBeInTheDocument();
     expect(screen.getByText('PANIC')).toBeInTheDocument();
-    expect(screen.getByText('PSYDUCK')).toBeInTheDocument();
+    expect(screen.getByText('MELTDOWN')).toBeInTheDocument();
   });
 
   it('should display game features', () => {

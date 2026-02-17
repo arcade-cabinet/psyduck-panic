@@ -7,20 +7,21 @@
 
 ## Project Brief
 
-Psyduck Panic: Evolution Deluxe is a browser-based retro arcade game where players counter AI hype thought bubbles before their brother transforms into Psyduck from panic overload. Built with React, TypeScript, React Three Fiber (3D), Tone.js (adaptive music), and Miniplex ECS. Deployed as a PWA and native mobile app via Capacitor.
+Psyduck Panic: Evolution Deluxe is a browser-based retro arcade game where players counter AI hype thought bubbles before their brother's head explodes from panic overload. Built with React, TypeScript, React Three Fiber (3D), Tone.js (adaptive music), and Miniplex ECS. Deployed as a PWA and native mobile app via Capacitor.
 
 ### Core Loop
 
-1. Thought bubbles (enemies) float toward the player
+1. Thought bubbles (enemies) descend toward the character's head
 2. Player counters them by type (Reality/History/Logic) via 3D keyboard F-keys or click
 3. Missed bubbles increase the PANIC meter
-4. At 100% panic → game over with grading (S/A/B/C/D)
-5. Character visually transforms: Normal (0-33%) → Panic (33-66%) → Psyduck (66-100%)
+4. At 100% panic → head explodes → game over with grading (S/A/B/C/D)
+5. Tension escalates continuously: relaxed shoulders → bunched/locked → head explosion
 
 ### Key Goals
 
 - **Photorealistic procedural visuals** — See `docs/DESIGN_VISION.md` for the full specification. NO low-poly, NO placeholder primitives. Complex curves, PBR materials, procedural textures, sophisticated lighting.
-- **Visceral character transformation** — Continuous morph from human to Psyduck driven by panic 0-100%. Visible tension, headache, skin yellowing, feature morphing. NOT discrete state swaps.
+- **Rear bust composition** — Camera behind/above the character. Back of head (brown hair), shoulders (t-shirt), keyboard row. No face rendering. Tension communicated through body language.
+- **Visceral tension escalation** — Continuous shoulder bunching, head trembling, neck veins, hair standing on end. Culminates in an effects-driven head explosion (anime.js), NOT a character transformation.
 - Fun, rewarding escalation from calm to full panic
 - Unpredictable boss encounters (missile-command style)
 - Real engagement, not fixed patterns
@@ -36,8 +37,8 @@ Psyduck Panic: Evolution Deluxe is a browser-based retro arcade game where playe
 Presentation Layer (Main Thread)
 ├── React Components (UI/HUD) — Game.tsx (lazy loaded), Landing.tsx
 ├── R3F Canvas (3D Scene) — GameScene.tsx
-│   ├── RoomBackground — 3D diorama, monitor glow shifts with panic
-│   ├── CharacterModel — Normal/Panic/Psyduck states, dynamic eyes
+│   ├── AtmosphericBackground — Dark atmosphere, monitor glow, rim light
+│   ├── CharacterBust — Rear bust: back of head (hair), shoulders (t-shirt), neck
 │   ├── KeyboardControls — Interactive 3D F1-F4 mechanical keys with RGB underglow
 │   ├── EnemySystem — ECS-driven enemy bubbles with glow
 │   ├── BossSystem — Pulsing boss with orbiting orbs
@@ -76,7 +77,7 @@ Platform Layer
 
 ### Spinal Systems (AI + Panic)
 
-- **Panic Escalation** (`panic-system.ts`): Logarithmic sigmoid damage curve, natural combo-based decay, zones (Calm/Uneasy/Panicked/Meltdown), hysteresis on character transformations, dynamic difficulty modifiers
+- **Panic Escalation** (`panic-system.ts`): Logarithmic sigmoid damage curve, natural combo-based decay, zones (Calm/Uneasy/Panicked/Meltdown), hysteresis on tension levels, dynamic difficulty modifiers
 - **AI Director** (`ai/director.ts`): Yuka.js StateMachine with 4 states (Building/Sustaining/Relieving/Surging), observes player performance, adjusts spawn rate, speed, max enemies, boss aggression
 - **Boss AI** (`ai/boss-ai.ts`): Yuka.js Vehicle + Think + GoalEvaluators. Goals: BurstAttack, SweepAttack, SpiralAttack, Reposition, Summon, Rage. Unpredictable pattern selection based on HP ratio, aggression, and randomness
 
@@ -151,9 +152,9 @@ src/
 │   ├── Layout.astro          # Astro page layout
 │   └── scene/
 │       ├── GameScene.tsx     # R3F scene orchestrator (camera, shake, flash)
-│       ├── CharacterModel.tsx # 3D character: Normal → Panic → Psyduck
+│       ├── CharacterBust.tsx  # Rear bust: back of head, hair, shoulders, t-shirt
 │       ├── KeyboardControls.tsx # 3D mechanical F1-F4 keys with RGB underglow
-│       ├── RoomBackground.tsx # 3D diorama room (desk, window, posters, clutter)
+│       ├── AtmosphericBackground.tsx # Dark atmosphere, monitor glow, rim light
 │       └── systems/
 │           ├── EnemySystem.tsx    # ECS enemy bubble rendering
 │           ├── BossSystem.tsx     # ECS boss rendering
@@ -211,48 +212,52 @@ e2e/
 
 ### Current Focus
 
-All core systems and testing infrastructure complete. Game fully playable with 3D mechanical keyboard controls. Needs playtesting for AI/panic tuning and balance.
+Implementing the **rear bust composition** — camera behind the character showing back of head (brown hair), shoulders (t-shirt), and keyboard row. Replacing the old full-body front-facing diorama view with a tighter, more photorealistic bust view. Game over is now a head explosion effect, not a Psyduck transformation.
 
 ### Recent Changes (This Session)
 
-- **3D Mechanical Keyboard Controls** (`KeyboardControls.tsx`):
-  - 4 interactive F-key meshes (F1 Reality, F2 History, F3 Logic, F4 Nuke)
-  - Type-colored keycaps from design tokens (orange/green/purple/red)
-  - RGB LED underglow shifting with panic (cool cyan → angry red)
-  - Spring physics key depression on press + haptic feedback
-  - Cooldown visualization: keycap desaturates gray → re-fills with color
-  - Billboard labels (F-key number, emoji icon, ability name)
-  - F1-F4 keyboard shortcuts with preventDefault
-  - Hidden HTML buttons kept for e2e test IDs
-- **Visual Foundation** — procedural geometry with design token colors and dynamic lighting:
-  - Current 3D elements use placeholder-quality primitives (spheres, boxes, cones)
-  - Target is **photorealistic procedural generation** per `docs/DESIGN_VISION.md`
-  - Dual monitor glow lights, emissive screen plane, warm desk lamp
-  - Progressive room clutter builds with wave (energy drinks, books, monitors)
-- **Lazy Loading** — Game component lazy-loaded, reducing initial bundle by ~75%
-- **E2E Test DRY Refactor**:
-  - Created shared `game-helpers.ts` with navigateToGame, startGame, verifyHUD, etc.
-  - All 4 test suites refactored to use shared helpers
-  - Fixed for 3D keyboard: hidden buttons → toBeAttached, F1-F4 keys
-  - Governor updated to use F1-F4 instead of 1/2/3/Q
-- **New Unit Tests** (94 total, up from 59):
-  - `ui-state.test.ts` — 14 tests for UI reducer (all actions)
-  - `grading.test.ts` — 9 tests for grade calculation + accuracy
-  - `Landing.test.tsx` — 12 RTL component tests (rendering, navigation, content)
-  - Fixed flaky nuke test (now accounts for encrypted enemies)
+- **Design Vision Pivot** — Rear bust view replacing full-body diorama:
+  - Camera behind/above character, looking over their shoulder
+  - Character: back of head (textured brown hair) + shoulders (t-shirt) + neck
+  - No face rendering needed — massive simplification for photorealistic procedural gen
+  - Tension via body language: shoulder bunching, head trembling, neck veins
+  - Game over: head explodes (anime.js + Three.js particles), NOT Psyduck transformation
+  - Background: dark atmospheric lighting, not a detailed room
+- **CharacterBust.tsx** — New component replacing CharacterModel.tsx:
+  - Anatomically proportioned skull (back view) with occipital curve
+  - Procedural brown hair with layered shells and noise-based highlights
+  - Shoulders with trapezius slope, deltoid curve, scapula suggestion
+  - T-shirt fabric with procedural weave texture and wrinkle displacement
+  - Continuous tension: shoulders rise, neck stiffens, head trembles (panic 0-100)
+  - Breathing animation: frequency increases with panic
+  - Neck skin: SSS approximation, veins emerge at high panic, sweat beads
+  - Hair responds to panic: settled → disheveled → standing on end
+  - Energy crackling around skull at 75%+ panic
+- **AtmosphericBackground.tsx** — Replaces RoomBackground.tsx:
+  - Dark atmospheric void instead of detailed room geometry
+  - Monitor glow (RectAreaLight) from in front, shifts with panic
+  - Rim light from behind defines head/shoulder silhouette
+  - Floating dust particles in monitor light
+- **Head Explosion Game Over** — anime.js timeline:
+  - Screen flash → particle burst → shockwave ring → debris rain → shoulders slump
+  - ~2.5 second cinematic sequence
+  - Replaces the old Psyduck transformation / aura rings
 
 ### Next Steps
 
 1. **Panic system tuning** — Playtesting to balance the sigmoid curve, decay rates, and zone thresholds
 2. **Boss AI tuning** — Balance attack cooldowns, aggression scaling, rage threshold
 3. **Visual regression testing** — Set up Playwright screenshot comparison baselines
+4. **PBR material refinement** — Improve hair anisotropy, fabric weave, skin SSS on the bust
 
 ### Active Decisions
 
+- **Rear bust composition** — Camera behind the character. Back of head + shoulders + keyboard. No face, no room.
+- **Head explosion game over** — Replaces Psyduck transformation. Effects-driven (anime.js + Three.js particles).
+- **Continuous tension** — No discrete character states (normal/panic/psyduck). Panic 0-100 directly drives all deformation.
 - **3D keyboard replaces HTML buttons** — F1-F4 keys are the primary input; hidden HTML buttons remain for e2e compatibility
 - Coordinate space is 800x600 game → (-4,4) / (3,-3) scene. All systems use `gx()`/`gy()` helpers.
 - VFX (particles, trails, confetti) are render-only — spawned by events, not synced from worker.
-- The `wave` ref is passed into systems that need wave-dependent visuals (boss emoji, room clutter).
 - Music layers are controlled by panic level and wave number.
 - Yuka.js runs entirely in the Web Worker alongside GameLogic.
 - Boss AI communicates via BossAction queue (move/spawn_enemies/flash/shake).
@@ -266,8 +271,8 @@ All core systems and testing infrastructure complete. Game fully playable with 3
 - [x] R3F 3D rendering (replacing PixiJS 2D)
 - [x] Miniplex ECS with proper miniplex-react bindings
 - [x] 3D room diorama (desk, window, moon, stars, posters, progressive clutter)
-- [x] 3D character model with Normal/Panic/Psyduck transformations
-- [x] Dynamic eye system (pupil tracking speed scales with panic)
+- [x] ~~3D character model with Normal/Panic/Psyduck transformations~~ → Replaced by rear bust composition
+- [x] ~~Dynamic eye system~~ → Replaced (no face in bust view)
 - [x] ECS enemy system with bubble glow and type icons
 - [x] ECS boss system with pulse, orbs, iFrame flash
 - [x] ECS particle/trail/confetti VFX systems
@@ -292,6 +297,8 @@ All core systems and testing infrastructure complete. Game fully playable with 3
 
 ### In Progress
 
+- [ ] Rear bust composition implementation (CharacterBust + AtmosphericBackground)
+- [ ] Head explosion game-over effect
 - [ ] Panic/AI tuning and balance (requires playtesting)
 
 ### Known Issues
@@ -311,5 +318,8 @@ All core systems and testing infrastructure complete. Game fully playable with 3
 | Worker for game logic | Keep main thread free for rendering |
 | Logic in `/lib/`, not `.tsx` | No monolith components; thin rendering layers |
 | 3D keyboard over HTML buttons | Visual storytelling (RGB → panic), physical feedback, diorama integration |
+| Rear bust over full-body diorama | Fewer surfaces = better photorealism, player identification, physical tension |
+| Head explosion over Psyduck transformation | No copyright risk, easier photorealism, more visceral |
+| Dark atmosphere over detailed room | Focus on bust + keyboard, reduce geometry budget |
 | Lazy loading Game route | Defer ~1.5MB of Three.js/R3F until user navigates to /game |
 | Shared E2E helpers | DRY test utilities, consistent patterns across all test suites |

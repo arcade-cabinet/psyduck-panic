@@ -1,12 +1,14 @@
 /**
- * Main Game Scene
+ * Main Game Scene — Rear Bust Composition
  *
  * Orchestrates all 3D rendering systems within the R3F Canvas.
+ * Camera is behind/above the character, looking over their shoulder.
+ *
  * Receives game state from the worker via ref and distributes to:
- * - RoomBackground: 3D diorama environment
- * - CharacterModel: Brother/Psyduck with panic state transitions
+ * - AtmosphericBackground: Dark void with monitor glow + rim light
+ * - CharacterBust: Back of head (hair), shoulders (t-shirt), neck
  * - KeyboardControls: Interactive 3D F-keys with RGB underglow
- * - EnemySystem: ECS-driven enemy bubble rendering
+ * - EnemySystem: ECS-driven enemy bubbles descending toward head
  * - ParticleSystem, TrailSystem, ConfettiSystem: ECS-driven VFX
  * - BossSystem: Boss encounter rendering
  * - Screen shake via camera displacement
@@ -24,9 +26,9 @@ import {
   syncStateToECS,
 } from '../../ecs/state-sync';
 import type { GameState } from '../../lib/events';
-import { CharacterModel } from './CharacterModel';
+import { AtmosphericBackground } from './AtmosphericBackground';
+import { CharacterBust } from './CharacterBust';
 import { type CooldownState, KeyboardControls } from './KeyboardControls';
-import { RoomBackground } from './RoomBackground';
 import { BossSystem } from './systems/BossSystem';
 import { EnemySystem } from './systems/EnemySystem';
 import { ConfettiSystem, ParticleSystem, TrailSystem } from './systems/ParticleSystem';
@@ -114,11 +116,11 @@ export const GameScene = forwardRef<GameSceneHandle, GameSceneProps>(function Ga
       {/* Camera and post-processing */}
       <CameraController shakeRef={shakeRef} />
 
-      {/* Environment */}
-      <RoomBackground panicRef={panicRef} waveRef={waveRef} />
+      {/* Atmospheric void + lighting */}
+      <AtmosphericBackground panicRef={panicRef} />
 
-      {/* Character */}
-      <CharacterModel panicRef={panicRef} />
+      {/* Character bust (rear view) */}
+      <CharacterBust panicRef={panicRef} />
 
       {/* 3D Keyboard Controls — interactive F-keys */}
       <KeyboardControls
@@ -144,11 +146,12 @@ export const GameScene = forwardRef<GameSceneHandle, GameSceneProps>(function Ga
 /** Camera with screen shake */
 function CameraController({ shakeRef }: { shakeRef: React.RefObject<number> }) {
   const { camera } = useThree();
-  const basePosRef = useRef(new THREE.Vector3(0, 0.5, 6));
+  // Camera behind and slightly above the character, looking at the back of head
+  const basePosRef = useRef(new THREE.Vector3(0, 0.3, 4));
 
   useEffect(() => {
     camera.position.copy(basePosRef.current);
-    camera.lookAt(0, -0.5, 0);
+    camera.lookAt(0, -0.6, 0);
   }, [camera]);
 
   useFrame(() => {

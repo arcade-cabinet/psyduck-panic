@@ -2,7 +2,7 @@
  * Design Tokens
  *
  * Centralized design system values for consistent styling across the application.
- * These tokens define the visual language and brand identity of Psyduck Panic.
+ * These tokens define the visual language and brand identity of the game.
  */
 
 // =============================================================================
@@ -12,7 +12,7 @@
 export const colors = {
   // Primary Colors - Retro gaming palette
   primary: {
-    main: '#f1c40f', // Golden yellow (Psyduck)
+    main: '#f1c40f', // Golden yellow (brand)
     light: '#f9e79f',
     dark: '#d4ac0d',
     darker: '#b7950b',
@@ -95,25 +95,17 @@ export const colors = {
     double: '#f1c40f', // 2X Score
   },
 
-  // Character States
+  // Character Bust (rear view — back of head, shoulders, t-shirt)
   character: {
-    normal: {
-      skin: '#ffdbac',
-      shirt: '#3498db',
-      hair: '#3d2b1f',
-      pants: '#1a1a2e',
-    },
-    panic: {
-      skin: '#f5cba7',
-      shirt: '#2471a3',
-      hair: '#3d2b1f',
-      pants: '#1a1a2e',
-    },
-    psyduck: {
-      body: '#f1c40f',
-      beak: '#f0b27a',
-      outline: '#d4ac0d',
-    },
+    hair: '#3d2b1f', // Brown hair base
+    hairHighlight: '#5a3f2b', // Lighter streaks
+    hairDark: '#2a1d14', // Shadow tones
+    skin: '#ffdbac', // Neck/ear skin
+    skinFlush: '#e8967a', // Flushed red at high panic
+    shirt: '#2c3e50', // Dark blue-charcoal t-shirt
+    shirtWrinkle: '#1a2733', // Wrinkle shadow color
+    neckVein: '#c0392b', // Vein color at high panic
+    sweat: '#d4e6f1', // Sweat bead glossy color
   },
 
   // Boss Colors
@@ -146,7 +138,7 @@ export const colors = {
 export const typography = {
   // Font Families - Vision-aligned for Psyduck Panic
   fonts: {
-    display: '"Righteous", sans-serif', // Bold, playful headers - perfect for Psyduck
+    display: '"Righteous", sans-serif', // Bold, playful headers
     body: '"Space Mono", monospace', // Readable, tech aesthetic for gameplay
     accent: '"Bungee", sans-serif', // Extra punch for special elements
     mono: '"VT323", monospace', // Terminal/retro for stats and technical info

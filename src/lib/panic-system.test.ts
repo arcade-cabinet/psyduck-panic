@@ -116,27 +116,27 @@ describe('Panic System', () => {
       expect(getTransformState(25, 'panic').state).toBe('normal');
     });
 
-    it('should transform to psyduck at high panic', () => {
+    it('should transform to meltdown at high panic', () => {
       // Threshold is 66
-      expect(getTransformState(70, 'panic').state).toBe('psyduck');
+      expect(getTransformState(70, 'panic').state).toBe('meltdown');
     });
 
-    it('should have hysteresis when returning from psyduck', () => {
+    it('should have hysteresis when returning from meltdown', () => {
       // Psyduck -> Panic threshold is 61
-      // If at 63, stay psyduck
-      expect(getTransformState(63, 'psyduck').state).toBe('psyduck');
+      // If at 63, stay meltdown
+      expect(getTransformState(63, 'meltdown').state).toBe('meltdown');
       // If at 60, return panic
-      expect(getTransformState(60, 'psyduck').state).toBe('panic');
+      expect(getTransformState(60, 'meltdown').state).toBe('panic');
     });
 
-    it('should handle direct jump to psyduck (if possible)', () => {
+    it('should handle direct jump to meltdown (if possible)', () => {
       // If somehow we are normal and jump to 80 panic
       expect(getTransformState(80, 'normal').state).toBe('panic'); // Logic says normal -> panic first?
 
       // Logic check:
       // if (previousState === 'normal') { state = panic >= 33 ? 'panic' : 'normal'; }
-      // So it goes to 'panic', not 'psyduck' immediately.
-      // This is intentional? The code doesn't check for psyduck threshold if previous was normal.
+      // So it goes to 'panic', not 'meltdown' immediately.
+      // This is intentional? The code doesn't check for meltdown threshold if previous was normal.
       // Assuming gradual transition.
     });
 

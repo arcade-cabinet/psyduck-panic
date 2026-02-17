@@ -104,7 +104,7 @@ export default function Landing() {
             <p className="tagline-text">
               <span className="accent">Counter AI hype</span> thought bubbles before your brother's
               brain
-              <span className="highlight"> transforms into Psyduck</span>
+              <span className="highlight"> explodes from panic</span>
             </p>
           </div>
 
@@ -160,9 +160,9 @@ export default function Landing() {
             <div className="arrow" aria-hidden="true">
               →
             </div>
-            <div className="character psyduck">
-              <div className="character-label">PSYDUCK</div>
-              <div className="emoji-character evolved">🦆</div>
+            <div className="character meltdown">
+              <div className="character-label">MELTDOWN</div>
+              <div className="emoji-character evolved">🤯</div>
               <div className="panic-indicator">
                 <div className="panic-bar danger" style={{ width: '100%' }}></div>
               </div>
@@ -193,7 +193,7 @@ export default function Landing() {
             <h3>The Problem</h3>
             <p>
               His brain can't handle it. The panic meter rises. Reality distorts. Logic crumbles.
-              He's transforming... into a Psyduck.
+              He's reaching meltdown... his head is going to explode.
             </p>
           </div>
 

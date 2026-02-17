@@ -14,6 +14,7 @@ import { AdaptiveMusic } from '../lib/music';
 import { saveScore } from '../lib/storage';
 import { initialUIState, type UIState, uiReducer } from '../lib/ui-state';
 import { GameScene, type GameSceneHandle } from './scene/GameScene';
+import { SPLINE_BUST_URL, SplineCharacter } from './scene/SplineCharacter';
 import '../styles/game.css';
 
 // Worker type definition
@@ -343,7 +344,21 @@ export default function Game() {
         }}
         onPointerDown={handleCanvasPointerDown}
       >
-        {/* R3F 3D Canvas */}
+        {/* Spline Character Bust — photorealistic base layer (behind R3F) */}
+        {SPLINE_BUST_URL && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 0,
+              pointerEvents: 'none',
+            }}
+          >
+            <SplineCharacter />
+          </div>
+        )}
+
+        {/* R3F 3D Canvas — transparent when Spline bust is active */}
         <Canvas
           id="gameCanvas"
           style={{
@@ -351,10 +366,12 @@ export default function Game() {
             width: '100%',
             height: '100%',
             display: 'block',
+            position: SPLINE_BUST_URL ? 'relative' : undefined,
+            zIndex: SPLINE_BUST_URL ? 1 : undefined,
           }}
-          camera={{ position: [0, 0.5, 6], fov: 45 }}
+          camera={{ position: [0, 0.3, 4], fov: 45 }}
           dpr={[1, 2]}
-          gl={{ antialias: true, alpha: false }}
+          gl={{ antialias: true, alpha: !!SPLINE_BUST_URL }}
           tabIndex={0}
           aria-label="Game Area: Tap enemies to counter them"
         >
@@ -498,7 +515,7 @@ export default function Game() {
             )}
             {ui.screen === 'gameover' && !ui.win && (
               <>
-                Full Psyduck transformation complete.
+                Brain meltdown complete. Head exploded.
                 <br />
                 He just pre-ordered 5,000 H100s.
               </>
