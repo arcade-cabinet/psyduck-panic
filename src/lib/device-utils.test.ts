@@ -306,6 +306,15 @@ describe('device-utils', () => {
       expect(getUIScale(info)).toBe(0.8); // 375*2 = 750 < 1000
     });
 
+    test('returns correct scale for large phone', () => {
+      const info = {
+        type: 'phone',
+        screenWidth: 414,
+        pixelRatio: 3,
+      } as Partial<DeviceInfo> as DeviceInfo;
+      expect(getUIScale(info)).toBe(0.9); // 1242 > 1000
+    });
+
     test('returns correct scale for tablet', () => {
       const info = {
         type: 'tablet',
@@ -381,6 +390,35 @@ describe('device-utils', () => {
 
       expect(removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function));
       expect(removeEventListener).toHaveBeenCalledWith('orientationchange', expect.any(Function));
+    });
+
+    test('handles visualViewport listeners if available', () => {
+      vi.useFakeTimers();
+      const addEventListenerSpy = vi.fn();
+      const removeEventListenerSpy = vi.fn();
+
+      const mockVisualViewport = {
+        addEventListener: addEventListenerSpy,
+        removeEventListener: removeEventListenerSpy,
+        width: 800,
+        height: 600,
+        scale: 1,
+      };
+
+      Object.defineProperty(window, 'visualViewport', {
+        value: mockVisualViewport,
+        writable: true,
+      });
+
+      const callback = vi.fn();
+      const cleanup = createResizeObserver(callback);
+
+      expect(addEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+
+      cleanup();
+      vi.useRealTimers();
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
     });
   });
 });
