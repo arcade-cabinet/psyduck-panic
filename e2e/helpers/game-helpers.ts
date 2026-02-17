@@ -39,6 +39,7 @@ export async function startGame(page: Page): Promise<void> {
   // Use a retry loop to robustly handle delayed event listener attachment
   await expect(async () => {
     if (await overlay.isVisible()) {
+      await startBtn.focus();
       await page.keyboard.press(' ');
     }
     await expect(overlay).toHaveClass(/hidden/);
@@ -83,9 +84,17 @@ export async function verifyGamePlaying(page: Page): Promise<void> {
 
   const timeDisplay = page.locator('#time-display');
   const initialTime = await timeDisplay.textContent();
-  await expect
-    .poll(async () => await timeDisplay.textContent(), { timeout: 5000 })
-    .not.toBe(initialTime);
+  try {
+    await expect
+      .poll(async () => await timeDisplay.textContent(), { timeout: 5000 })
+      .not.toBe(initialTime);
+  } catch (error) {
+    const workerError = await page.locator('#worker-error').textContent();
+    if (workerError?.trim()) {
+      throw new Error(`Game stalled. Worker Error: ${workerError}`);
+    }
+    throw error;
+  }
 }
 
 // ─── Canvas ──────────────────────────────────────────────────

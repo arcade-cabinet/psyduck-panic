@@ -1,18 +1,28 @@
 import type { MainMessage, WorkerMessage } from '../lib/events';
 import { GameLogic } from '../lib/game-logic';
 
-const logic = new GameLogic();
+// Use setTimeout for game loop to prevent issues in headless environments (CI)
+const requestFrame = (callback: (t: number) => void) => setTimeout(() => callback(Date.now()), 16);
+const cancelFrame = clearTimeout;
+
+let logic: GameLogic | undefined;
+try {
+  logic = new GameLogic();
+} catch (err) {
+  console.error('[game.worker] Failed to initialize GameLogic:', err);
+  const errorMsg: MainMessage = {
+    type: 'ERROR',
+    message: `Worker Init Failed: ${err instanceof Error ? err.message : String(err)}`,
+  };
+  self.postMessage(errorMsg);
+}
+
 let running = false;
 let lastTime = 0;
 let animationFrameId: number | undefined;
 
-// Polyfill for requestAnimationFrame in worker if needed
-const requestFrame =
-  self.requestAnimationFrame ||
-  ((callback: (t: number) => void) => setTimeout(() => callback(performance.now()), 16));
-const cancelFrame = self.cancelAnimationFrame || clearTimeout;
-
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
+  if (!logic) return;
   try {
     const msg = e.data;
     switch (msg.type) {
@@ -21,12 +31,18 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
           cancelFrame(animationFrameId);
         }
         running = true;
-        if (msg.endless) {
-          logic.startEndlessMode();
-        } else {
-          logic.start(msg.seed);
+        try {
+          if (msg.endless) {
+            logic.startEndlessMode();
+          } else {
+            logic.start(msg.seed);
+          }
+        } catch (startErr) {
+          console.error('[game.worker] Failed to start game logic:', startErr);
+          self.postMessage({ type: 'ERROR', message: `Start Failed: ${startErr}` });
+          return;
         }
-        lastTime = performance.now();
+        lastTime = Date.now();
         scheduleLoop();
         break;
       case 'PAUSE':
@@ -38,7 +54,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       case 'RESUME':
         if (!running) {
           running = true;
-          lastTime = performance.now();
+          lastTime = Date.now();
           scheduleLoop();
         }
         break;
@@ -84,24 +100,37 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
 };
 
 function scheduleLoop() {
-  animationFrameId = requestFrame(loop) as number;
+  // Cast to number because in browser environment setTimeout returns number,
+  // even though @types/node might infer NodeJS.Timeout.
+  animationFrameId = requestFrame(loop) as unknown as number;
 }
 
 function loop(now: number) {
-  if (!running) return;
+  if (!running || !logic) return;
 
-  const dt = Math.min((now - lastTime) / 16.67, 2); // Frame time factor (approx 1.0 at 60fps)
+  // Relax clamping to allow catching up in slow environments (CI)
+  const dt = Math.min((now - lastTime) / 16.67, 60); // Frame time factor (approx 1.0 at 60fps)
   lastTime = now;
 
-  logic.update(dt, now);
-  const state = logic.getState();
+  try {
+    logic.update(dt, now);
+    const state = logic.getState();
 
-  const msg: MainMessage = { type: 'STATE', state };
-  self.postMessage(msg);
+    const msg: MainMessage = { type: 'STATE', state };
+    self.postMessage(msg);
 
-  if (logic.running) {
-    scheduleLoop();
-  } else {
+    if (logic.running) {
+      scheduleLoop();
+    } else {
+      running = false;
+    }
+  } catch (err) {
+    console.error('[game.worker] Error in game loop:', err);
+    self.postMessage({ type: 'ERROR', message: `Loop Error: ${err}` });
     running = false;
   }
 }
+
+// Signal ready
+const readyMsg: MainMessage = { type: 'READY' };
+self.postMessage(readyMsg);

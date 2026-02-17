@@ -29,6 +29,7 @@ export default function Game() {
   const waveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startInitiatedRef = useRef(false);
   const [ui, dispatch] = useReducer(uiReducer, initialUIState);
+  const [workerError, setWorkerError] = useState<string>('');
   const [viewport, setViewport] = useState<ViewportDimensions>(() => {
     if (typeof window !== 'undefined') {
       const deviceInfo = detectDevice();
@@ -187,10 +188,20 @@ export default function Game() {
     const worker = new GameWorker();
     workerRef.current = worker;
 
+    worker.onerror = (err) => {
+      console.error('[Game] Worker script error:', err);
+      setWorkerError(`Script Error: ${err instanceof Error ? err.message : String(err)}`);
+    };
+
     worker.onmessage = (e: MessageEvent) => {
       const msg = e.data;
       if (msg.type === 'ERROR') {
         console.error('[game.worker] Worker error:', msg.message);
+        setWorkerError(msg.message);
+        return;
+      }
+      if (msg.type === 'READY') {
+        console.log('[Game] Worker READY');
         return;
       }
       if (msg.type === 'STATE') {
@@ -586,6 +597,9 @@ export default function Game() {
             {ui.screen === 'start' ? 'START DEBATE' : ui.win ? 'CONTINUE ENDLESS' : 'RETRY'}
           </button>
         </div>
+      </div>
+      <div id="worker-error" style={{ display: 'none' }}>
+        {workerError}
       </div>
     </div>
   );
