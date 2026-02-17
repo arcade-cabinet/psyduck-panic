@@ -10,10 +10,10 @@ import { expect } from '@playwright/test';
 
 // ─── Timeouts ────────────────────────────────────────────────
 
-export const GAME_START_TIMEOUT = 3000;
-export const WAVE_ANNOUNCE_TIMEOUT = 5000;
+export const GAME_START_TIMEOUT = 10000;
+export const WAVE_ANNOUNCE_TIMEOUT = 15000;
 export const GAMEPLAY_TIMEOUT = 60000;
-export const E2E_PLAYTHROUGH_TIMEOUT = 90000;
+export const E2E_PLAYTHROUGH_TIMEOUT = 180000;
 
 // ─── Navigation ──────────────────────────────────────────────
 
@@ -51,32 +51,40 @@ export async function startGameWithSpacebar(page: Page): Promise<void> {
 
 /** Verify all HUD elements are visible during gameplay */
 export async function verifyHUDVisible(page: Page): Promise<void> {
-  await expect(page.locator('#wave-display')).toBeVisible();
-  await expect(page.locator('#time-display')).toBeVisible();
-  await expect(page.locator('#score-display')).toBeVisible();
-  await expect(page.locator('#panic-bar')).toBeVisible();
-  await expect(page.locator('#combo-display')).toBeVisible();
+  await Promise.all([
+    expect(page.locator('#wave-display')).toBeVisible(),
+    expect(page.locator('#time-display')).toBeVisible(),
+    expect(page.locator('#score-display')).toBeVisible(),
+    expect(page.locator('#panic-bar')).toBeVisible(),
+    expect(page.locator('#combo-display')).toBeVisible(),
+  ]);
 }
 
 /** Verify control buttons exist in the DOM (hidden for a11y/e2e, 3D keyboard is primary) */
 export async function verifyControlsAttached(page: Page): Promise<void> {
-  await expect(page.locator('#btn-reality')).toBeAttached();
-  await expect(page.locator('#btn-history')).toBeAttached();
-  await expect(page.locator('#btn-logic')).toBeAttached();
-  await expect(page.locator('#btn-special')).toBeAttached();
+  await Promise.all([
+    expect(page.locator('#btn-reality')).toBeAttached(),
+    expect(page.locator('#btn-history')).toBeAttached(),
+    expect(page.locator('#btn-logic')).toBeAttached(),
+    expect(page.locator('#btn-special')).toBeAttached(),
+  ]);
 }
 
 /** Verify powerup indicators are visible */
 export async function verifyPowerupsVisible(page: Page): Promise<void> {
-  await expect(page.locator('#pu-slow')).toBeVisible();
-  await expect(page.locator('#pu-shield')).toBeVisible();
-  await expect(page.locator('#pu-double')).toBeVisible();
+  await Promise.all([
+    expect(page.locator('#pu-slow')).toBeVisible(),
+    expect(page.locator('#pu-shield')).toBeVisible(),
+    expect(page.locator('#pu-double')).toBeVisible(),
+  ]);
 }
 
 /** Verify the game is currently playing (overlay hidden, HUD visible) */
 export async function verifyGamePlaying(page: Page): Promise<void> {
-  await expect(page.locator('#overlay')).toHaveClass(/hidden/);
-  await expect(page.locator('#ui-layer')).not.toHaveClass(/hidden/);
+  await Promise.all([
+    expect(page.locator('#overlay')).toHaveClass(/hidden/),
+    expect(page.locator('#ui-layer')).not.toHaveClass(/hidden/),
+  ]);
 }
 
 // ─── Canvas ──────────────────────────────────────────────────

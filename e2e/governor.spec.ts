@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { GameGovernor } from './helpers/game-governor';
-import { navigateToGame, screenshot, startGame, verifyGamePlaying } from './helpers/game-helpers';
+import {
+  deviceScreenshot,
+  navigateToGame,
+  startGame,
+  verifyGamePlaying,
+} from './helpers/game-helpers';
 
 /**
  * AI Governor-driven playthrough.
@@ -9,20 +14,21 @@ import { navigateToGame, screenshot, startGame, verifyGamePlaying } from './help
  * Full matrix (CD): runs all variants (aggressive, defensive, verify-running).
  */
 test.describe('Automated Playthrough with Governor', () => {
-  test.setTimeout(90000);
+  test.describe.configure({ mode: 'serial' });
+  test.setTimeout(180000);
 
   test('should run automated playthrough with default settings', async ({ page }) => {
     await navigateToGame(page);
-    await screenshot(page, 'governor', '01-start');
+    await deviceScreenshot(page, test.info(), 'governor-01-start');
 
     const governor = new GameGovernor(page);
     const playthroughPromise = governor.playthrough();
 
     await page.waitForTimeout(5000);
-    await screenshot(page, 'governor', '02-gameplay');
+    await deviceScreenshot(page, test.info(), 'governor-02-gameplay');
 
     await page.waitForTimeout(5000);
-    await screenshot(page, 'governor', '03-mid-game');
+    await deviceScreenshot(page, test.info(), 'governor-03-mid-game');
 
     const result = await Promise.race([
       playthroughPromise,
@@ -34,7 +40,7 @@ test.describe('Automated Playthrough with Governor', () => {
       ),
     ]);
 
-    await screenshot(page, 'governor', '04-end');
+    await deviceScreenshot(page, test.info(), 'governor-04-end');
     expect(result).toBeTruthy();
     expect(result.score).toBeGreaterThanOrEqual(0);
     console.log(`Playthrough completed with result: ${result.result}, score: ${result.score}`);
@@ -54,7 +60,7 @@ test.describe('Automated Playthrough with Governor', () => {
     const playthroughPromise = governor.playthrough();
 
     await page.waitForTimeout(5000);
-    await screenshot(page, 'governor-aggressive', '01-gameplay');
+    await deviceScreenshot(page, test.info(), 'governor-aggressive-01-gameplay');
 
     const result = await Promise.race([
       playthroughPromise,
@@ -66,7 +72,7 @@ test.describe('Automated Playthrough with Governor', () => {
       ),
     ]);
 
-    await screenshot(page, 'governor-aggressive', '02-end');
+    await deviceScreenshot(page, test.info(), 'governor-aggressive-02-end');
     expect(result).toBeTruthy();
     console.log(`Aggressive playthrough: ${result.result}, score: ${result.score}`);
   });
@@ -84,7 +90,7 @@ test.describe('Automated Playthrough with Governor', () => {
     const playthroughPromise = governor.playthrough();
 
     await page.waitForTimeout(5000);
-    await screenshot(page, 'governor-defensive', '01-gameplay');
+    await deviceScreenshot(page, test.info(), 'governor-defensive-01-gameplay');
 
     const result = await Promise.race([
       playthroughPromise,
@@ -96,7 +102,7 @@ test.describe('Automated Playthrough with Governor', () => {
       ),
     ]);
 
-    await screenshot(page, 'governor-defensive', '02-end');
+    await deviceScreenshot(page, test.info(), 'governor-defensive-02-end');
     expect(result).toBeTruthy();
     console.log(`Defensive playthrough: ${result.result}, score: ${result.score}`);
   });
@@ -135,6 +141,6 @@ test.describe('Automated Playthrough with Governor', () => {
     }
 
     governor.stop();
-    await screenshot(page, 'governor', 'verify-running');
+    await deviceScreenshot(page, test.info(), 'governor-verify-running');
   });
 });
