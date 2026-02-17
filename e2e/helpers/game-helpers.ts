@@ -142,30 +142,14 @@ export async function deviceScreenshot(
 // ─── Keyboard Abilities ──────────────────────────────────────
 // The 3D keyboard uses F1-F4 keys (not 1/2/3/Q)
 
-/** Press all ability keys in sequence with optional condition-based waits */
-export async function pressAllAbilities(
-  page: Page,
-  delayMs = 300,
-  useConditionalWait = false
-): Promise<void> {
+/** Press all ability keys in sequence with a delay between each */
+export async function pressAllAbilities(page: Page, delayMs = 300): Promise<void> {
   const keys = ['F1', 'F2', 'F3'] as const;
 
   for (const key of keys) {
     await page.keyboard.press(key);
-    if (useConditionalWait) {
-      // Wait for the cooldown indicator to appear on the key
-      await page
-        .waitForFunction(
-          () => {
-            const bar = document.querySelector('#panic-bar');
-            return bar !== null;
-          },
-          { timeout: 2000 }
-        )
-        .catch(() => {});
-    } else {
-      await page.waitForTimeout(delayMs);
-    }
+    // Cooldown is rendered in the Three.js scene, no DOM indicator to wait on
+    await page.waitForTimeout(delayMs);
   }
 }
 
