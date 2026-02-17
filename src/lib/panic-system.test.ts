@@ -14,7 +14,7 @@ describe('Panic System', () => {
       expect(getPanicZone(24)).toBe('calm');
     });
 
-    it('should return uneasy for 25-50', () => {
+    it('should return uneasy for 25-49', () => {
       expect(getPanicZone(25)).toBe('uneasy');
       expect(getPanicZone(49)).toBe('uneasy');
     });
