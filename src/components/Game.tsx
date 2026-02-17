@@ -59,6 +59,10 @@ export default function Game() {
 
   // Initialize responsive viewport
   useLayoutEffect(() => {
+    // Ensure window has focus for keyboard events
+    if (typeof window !== 'undefined') {
+      window.focus();
+    }
     const deviceInfo = detectDevice();
     const initialViewport = calculateViewport(GAME_WIDTH, GAME_HEIGHT, deviceInfo);
     setViewport(initialViewport);
@@ -68,19 +72,13 @@ export default function Game() {
     return cleanup;
   }, []);
 
-  // Initialize SFX + Music
+  // Cleanup SFX + Music on unmount
   useEffect(() => {
-    sfxRef.current = new SFX();
-    sfxRef.current.init();
-
-    const music = new AdaptiveMusic();
-    musicInitRef.current = music.init();
-    musicRef.current = music;
-
     return () => {
       sfxRef.current?.destroy();
       sfxRef.current = null;
-      music.destroy();
+      musicRef.current?.destroy();
+      musicRef.current = null;
     };
   }, []);
 
@@ -91,12 +89,27 @@ export default function Game() {
     if (startInitiatedRef.current) return;
     startInitiatedRef.current = true;
 
-    sfxRef.current?.resume();
-    musicRef.current?.resume();
-    sceneRef.current?.reset();
-
     const endless = currentState.win && currentState.screen === 'gameover';
     dispatch(endless ? { type: 'START_ENDLESS' } : { type: 'START_GAME' });
+
+    try {
+      // Lazy init audio on user interaction
+      if (!sfxRef.current) {
+        sfxRef.current = new SFX();
+        sfxRef.current.init();
+      }
+      if (!musicRef.current) {
+        const music = new AdaptiveMusic();
+        musicInitRef.current = music.init();
+        musicRef.current = music;
+      }
+
+      sfxRef.current?.resume();
+      musicRef.current?.resume();
+      sceneRef.current?.reset();
+    } catch (e) {
+      console.warn('Failed to initialize game systems:', e);
+    }
 
     // Delay worker start to let React commit the screen transition first.
     // Without this delay, the worker's rapid STATE messages can race with
@@ -109,13 +122,17 @@ export default function Game() {
         setTimeout(() => attemptStart(retries + 1), 200);
       }
     };
-    setTimeout(() => attemptStart(), 100);
+    setTimeout(() => attemptStart(), 500);
   }, []);
 
   // Reset start debounce when game is playing
   useEffect(() => {
     if (ui.screen === 'playing') {
       startInitiatedRef.current = false;
+    } else if (ui.screen === 'start') {
+      // Ensure start button has focus for keyboard accessibility
+      const btn = document.getElementById('start-btn');
+      btn?.focus();
     }
   }, [ui.screen]);
 
@@ -160,9 +177,10 @@ export default function Game() {
   );
 
   useLayoutEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
+    // Use capture phase to ensure we catch events even if propagation is stopped
+    window.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [handleKeyDown]);
 
@@ -526,6 +544,7 @@ export default function Game() {
             type="button"
             className="start-btn"
             id="start-btn"
+            autoFocus
             onClick={handleStartButton}
             aria-label={
               ui.screen === 'start'
