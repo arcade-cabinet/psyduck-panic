@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { CustomEase } from 'gsap/CustomEase';
 import { useEffect, useRef } from 'react';
 import { useScene } from 'reactylon';
+import { KEYCAP_COLORS } from '@/lib/keycap-colors';
 import { useGameStore } from '@/store/game-store';
 import { useInputStore } from '@/store/input-store';
 import { useLevelStore } from '@/store/level-store';
@@ -155,13 +156,9 @@ export default function Platter() {
       }),
     );
 
-    // Decorative keycaps around the rim
+    // Decorative keycaps around the rim — each gets a unique color from the palette
     const decorKeys: BABYLON.Mesh[] = [];
-    const decorMat = new BABYLON.PBRMaterial('decorKeyMat', scene);
-    decorMat.albedoColor = new BABYLON.Color3(0.22, 0.22, 0.26);
-    decorMat.metallic = 0.85;
-    decorMat.roughness = 0.3;
-    decorMat.emissiveColor = new BABYLON.Color3(0.06, 0.1, 0.2);
+    const keycapMaterials: BABYLON.PBRMaterial[] = [];
 
     for (let i = 0; i < 12; i++) {
       const side = i < 6 ? -1 : 1;
@@ -170,9 +167,18 @@ export default function Platter() {
       const key = BABYLON.MeshBuilder.CreateBox(`decorKey${i}`, { width: 0.12, height: 0.08, depth: 0.12 }, scene);
       key.position = new BABYLON.Vector3(Math.sin(angle) * 1.4, 0, Math.cos(angle) * 1.4 - 0.35);
       key.rotation.y = angle;
-      key.material = decorMat;
       key.parent = platterGroup;
       key.isPickable = true;
+
+      // Per-keycap colored material — color from the shared palette
+      const kc = KEYCAP_COLORS[i];
+      const mat = new BABYLON.PBRMaterial(`decorKeyMat${i}`, scene);
+      mat.albedoColor = new BABYLON.Color3(kc.color3.r * 0.3 + 0.1, kc.color3.g * 0.3 + 0.1, kc.color3.b * 0.3 + 0.1);
+      mat.metallic = 0.85;
+      mat.roughness = 0.3;
+      mat.emissiveColor = kc.color3.scale(0.4);
+      key.material = mat;
+      keycapMaterials.push(mat);
 
       // Keycap hold interaction for pattern stabilization
       key.actionManager = new BABYLON.ActionManager(scene);
@@ -220,12 +226,20 @@ export default function Platter() {
         platterGroupRef.current.rotation.y = Math.sin(t * 0.165) * 1.72;
       }
 
-      // Decorative key RGB pulsing based on tension
+      // Decorative key emissive pulsing — each key keeps its unique hue
+      // but intensity ramps with tension, and all shift toward red at high tension
       const cur = useLevelStore.getState().tension;
-      keycapMeshes.current.forEach((key) => {
+      keycapMeshes.current.forEach((key, i) => {
         const mat = key.material as BABYLON.PBRMaterial;
         if (mat) {
-          mat.emissiveColor = new BABYLON.Color3(lerp(0.06, 0.4, cur), lerp(0.1, 0.12, cur), lerp(0.2, 0.04, cur));
+          const kc = KEYCAP_COLORS[i];
+          const intensity = 0.4 + cur * 0.6;
+          // Blend toward red as tension increases
+          mat.emissiveColor = new BABYLON.Color3(
+            lerp(kc.color3.r * intensity, 0.9, cur * 0.4),
+            lerp(kc.color3.g * intensity, 0.15, cur * 0.4),
+            lerp(kc.color3.b * intensity, 0.08, cur * 0.4),
+          );
         }
       });
     });
