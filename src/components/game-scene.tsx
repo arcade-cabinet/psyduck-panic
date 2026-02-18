@@ -8,6 +8,7 @@ import AudioEngineSystem from '@/components/audio-engine';
 import DiegeticGUI from '@/components/diegetic-gui';
 import EnemySpawner from '@/components/enemy-spawner';
 import PatternStabilizer from '@/components/pattern-stabilizer';
+import PhysicsKeys from '@/components/physics-keys';
 import Platter from '@/components/platter';
 import PostProcessCorruption from '@/components/post-process-corruption';
 import SpatialAudio from '@/components/spatial-audio';
@@ -64,6 +65,7 @@ function SceneContent({ coherence }: { coherence: number }) {
       <SPSEnemies />
       <DiegeticGUI coherence={coherence} />
       <AudioEngineSystem />
+      <PhysicsKeys />
       <XRSession />
     </>
   );

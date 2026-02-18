@@ -27,6 +27,7 @@ export default function Platter() {
   const continueTopRef = useRef<BABYLON.Mesh | null>(null);
   const continueBottomRef = useRef<BABYLON.Mesh | null>(null);
   const recessLightRef = useRef<BABYLON.PointLight | null>(null);
+  const rimMatRef = useRef<BABYLON.PBRMaterial | null>(null);
   const keycapMeshes = useRef<BABYLON.Mesh[]>([]);
 
   const { generateNewSeed, replayLastSeed } = useSeedStore.getState();
@@ -63,6 +64,21 @@ export default function Platter() {
     rim.position.y = 0.15;
     rim.material = rimMat;
     rim.parent = platterGroup;
+
+    // "MAINTAIN COHERENCE" etched text on rim — glows brighter with tension
+    const rimTextTex = new BABYLON.DynamicTexture('rimTextTex', { width: 1024, height: 128 }, scene, false);
+    const rimTextCtx = rimTextTex.getContext() as unknown as CanvasRenderingContext2D;
+    rimTextCtx.clearRect(0, 0, 1024, 128);
+    rimTextCtx.font = '24px Courier New';
+    rimTextCtx.fillStyle = '#ffffff';
+    rimTextCtx.textAlign = 'center';
+    rimTextCtx.textBaseline = 'middle';
+    // Repeat text around the circumference
+    const rimLabel = 'MAINTAIN COHERENCE  ·  MAINTAIN COHERENCE  ·  MAINTAIN COHERENCE  ·  ';
+    rimTextCtx.fillText(rimLabel, 512, 64);
+    rimTextTex.update();
+    rimMat.emissiveTexture = rimTextTex;
+    rimMatRef.current = rimMat;
 
     // Recessed circular track for sphere
     const trackMat = new BABYLON.PBRMaterial('trackMat', scene);
@@ -180,15 +196,28 @@ export default function Platter() {
       key.material = mat;
       keycapMaterials.push(mat);
 
-      // Keycap hold interaction for pattern stabilization
-      key.actionManager = new BABYLON.ActionManager(scene);
+      // Invisible touch target (1.8x size) for mobile — easier to hit
+      const touchTarget = BABYLON.MeshBuilder.CreateBox(
+        `touchTarget${i}`,
+        { width: 0.22, height: 0.14, depth: 0.22 },
+        scene,
+      );
+      touchTarget.position = key.position.clone();
+      touchTarget.rotation.y = angle;
+      touchTarget.parent = platterGroup;
+      touchTarget.isPickable = true;
+      touchTarget.visibility = 0; // Invisible but pickable
+
+      // Register interactions on the touch target (not the visible key)
+      key.isPickable = false;
+      touchTarget.actionManager = new BABYLON.ActionManager(scene);
       const keycapIndex = i;
-      key.actionManager.registerAction(
+      touchTarget.actionManager.registerAction(
         new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickDownTrigger, () => {
           useInputStore.getState().pressKeycap(keycapIndex);
         }),
       );
-      key.actionManager.registerAction(
+      touchTarget.actionManager.registerAction(
         new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickUpTrigger, () => {
           useInputStore.getState().releaseKeycap(keycapIndex);
         }),
@@ -227,8 +256,13 @@ export default function Platter() {
         platterGroupRef.current.rotation.y = Math.sin(t * 0.165) * 1.72;
       }
 
-      // Recess glow: intensity ramps with tension + organic pulse
+      // "MAINTAIN COHERENCE" rim text glow — faint at low tension, bright at high
       const cur = useLevelStore.getState().tension;
+      if (rimMatRef.current) {
+        rimMatRef.current.emissiveIntensity = 0.05 + cur * 0.6;
+      }
+
+      // Recess glow: intensity ramps with tension + organic pulse
       if (recessLightRef.current) {
         recessLightRef.current.intensity = 0.2 + cur * 2.5 + Math.sin(t * 3) * 0.3 * cur;
         // Color shifts from blue to red with tension
