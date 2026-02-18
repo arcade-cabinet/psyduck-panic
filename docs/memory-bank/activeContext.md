@@ -59,7 +59,7 @@ All 15 items from the Turn 164 "deep audit" are implemented. The game is feature
 
 #### Testing
 
-- **55 Vitest unit tests** — all passing
+- **59 Vitest unit tests** — all passing
 - **18 Playwright E2E tests** — all passing under xvfb-run
 - **Governor**: 30s survival + 3 restart cycles stable
 
@@ -67,7 +67,7 @@ All 15 items from the Turn 164 "deep audit" are implemented. The game is feature
 
 - Visual quality human eye-test in desktop browser
 - XR hand tracking → keycap interaction wiring
-- Accessibility: prefers-reduced-motion behavior in 3D components
+- Mobile touch reliability tuning
 ### Release Planning
 
 - Comprehensive production alignment plan: `docs/memory-bank/release-2.0-alignment-plan.md`
@@ -75,6 +75,7 @@ All 15 items from the Turn 164 "deep audit" are implemented. The game is feature
 
 ### Release plan execution (current pass)
 
+- Physics keys now use constrained Havok 6DoF joints with spring-return motors.
 - Deterministic fixed-step scheduling added for pattern and enemy spawning.
 - Game phase lifecycle hardened with explicit `gameover` phase + restart token semantics.
 - Audio store now tracks/disposes Tone resources on shutdown to avoid duplicate/leaked graphs.

@@ -54,7 +54,7 @@
 
 ### Testing
 - [x] 59 Vitest unit tests (stores, utilities, shaders, fixed-step determinism helpers) — all passing
-- [x] 17 Playwright E2E tests (smoke, gameplay, governor) — all passing
+- [x] 18 Playwright E2E tests (smoke, gameplay, governor) — all passing
 - [x] Governor survives 30+ seconds with active play
 - [x] 3 restart cycle stability test
 - [x] No console error monitoring in E2E
@@ -63,13 +63,10 @@
 ## What's Left
 
 - [ ] Execute `docs/memory-bank/release-2.0-alignment-plan.md` for production 2.0 alignment closure
-- [ ] Physics keys (Ammo.js) — stubbed
 - [ ] XR hand tracking → keycap interaction — stub only
 - [ ] Visual quality human eye-test
 - [ ] Mobile touch optimization
-- [ ] Loading screen ("INITIALIZING CORE")
-- [ ] High score + seed sharing (localStorage)
-- [ ] Accessibility (ARIA labels, reduced motion)
+- [ ] Full release-gate E2E run in CI/Xvfb environment
 
 ## Known Issues
 

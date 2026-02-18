@@ -44,7 +44,7 @@ Next.js 16 App Router (Turbopack)
 │   ├── PostProcessCorruption (chromatic aberration + noise)
 │   ├── SPSEnemies (SolidParticleSystem visuals)
 │   ├── DiegeticGUI (coherence ring on platter)
-│   ├── SpatialAudio (Tone.js positioning — placeholder)
+│   ├── SpatialAudio (Tone.js event-driven procedural SFX)
 │   └── AudioEngine (Tone.js adaptive score)
 └── State Layer (Zustand)
     ├── seed-store (seedrandom)
@@ -134,7 +134,7 @@ Raymarched SDF enemies, 3D mechanical keyboard, NS-5 android bust.
 
 ## Known Issues
 
-- Physics-keys component (Ammo.js) is stubbed — needs full physics integration
+- Physics-keys are constrained via Havok 6DoF; tune travel/spring values with visual QA
 - XR hand tracking is stub only — pinch→keycap mapping not wired
 - Runtime visual quality not yet verified (compiles and loads, but no human eye-test)
 - React Native peer dep warnings from reactylon transitive deps (harmless)
