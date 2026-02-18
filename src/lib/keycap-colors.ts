@@ -28,7 +28,8 @@ export interface KeycapColor {
  * Hue is evenly distributed: index 0 = 0°, index 6 = 180°, etc.
  */
 export function getKeycapColor(index: number): KeycapColor {
-  const hue = (index / KEYCAP_COUNT) * 360;
+  const safeIndex = ((index % KEYCAP_COUNT) + KEYCAP_COUNT) % KEYCAP_COUNT;
+  const hue = (safeIndex / KEYCAP_COUNT) * 360;
   const color3 = BABYLON.Color3.FromHSV(hue, 0.85, 0.75);
   const color4 = new BABYLON.Color4(color3.r, color3.g, color3.b, 1.0);
   return { hue, color3, color4 };

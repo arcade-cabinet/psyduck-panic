@@ -20,27 +20,28 @@ import * as BABYLON from '@babylonjs/core';
 import { Scene } from 'reactylon';
 import { NativeEngine } from 'reactylon/native';
 
+// Hoisted constants to avoid allocation on every render
+const LIGHT_DIR = new BABYLON.Vector3(0, 1, 0);
+const CAMERA_TARGET = BABYLON.Vector3.Zero();
+const CLEAR_COLOR = new BABYLON.Color4(0.04, 0.04, 0.06, 1);
+
 export default function App() {
   return (
     <View style={styles.container}>
       <NativeEngine>
         <Scene
           onSceneReady={(scene: BABYLON.Scene) => {
-            scene.clearColor = new BABYLON.Color4(0.04, 0.04, 0.06, 1);
+            scene.clearColor = CLEAR_COLOR;
           }}
         >
           {/* Lighting */}
-          <hemisphericLight
-            name="hemiLight"
-            direction={new BABYLON.Vector3(0, 1, 0)}
-            intensity={0.3}
-          />
+          <hemisphericLight name="hemiLight" direction={LIGHT_DIR} intensity={0.3} />
           <arcRotateCamera
             name="camera"
             alpha={Math.PI / 4}
             beta={Math.PI / 3}
             radius={8}
-            target={BABYLON.Vector3.Zero()}
+            target={CAMERA_TARGET}
             setActiveOnSceneIfNoneActive
           />
 

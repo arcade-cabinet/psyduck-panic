@@ -56,30 +56,43 @@ export default function GameBoard() {
 
   const handleShareSeed = useCallback(async () => {
     const seed = useSeedStore.getState().lastSeedUsed;
-    if (seed && navigator.clipboard) {
+    if (!seed) return;
+    try {
       await navigator.clipboard.writeText(seed);
       setSeedCopied(true);
       setTimeout(() => setSeedCopied(false), 2000);
+    } catch {
+      // Clipboard API may fail in insecure contexts — silently ignore
     }
   }, []);
 
-  // ── Loading → Title sequence ──
+  // ── Loading → Title sequence with proper cleanup ──
   useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
     // Loading screen holds for 2s, then fades → title sizzle
-    const loadTimer = setTimeout(() => {
-      setLoadingOpacity(0);
+    timers.push(
       setTimeout(() => {
-        setShowLoading(false);
-        setShowTitle(true);
-        setTitleOpacity(1);
-        // Title fades after 2.4s
-        setTimeout(() => {
-          setTitleOpacity(0);
-          setTimeout(() => setShowTitle(false), 900);
-        }, 2400);
-      }, 600);
-    }, 2000);
-    return () => clearTimeout(loadTimer);
+        setLoadingOpacity(0);
+        timers.push(
+          setTimeout(() => {
+            setShowLoading(false);
+            setShowTitle(true);
+            setTitleOpacity(1);
+            timers.push(
+              setTimeout(() => {
+                setTitleOpacity(0);
+                timers.push(setTimeout(() => setShowTitle(false), 900));
+              }, 2400),
+            );
+          }, 600),
+        );
+      }, 2000),
+    );
+
+    return () => {
+      for (const t of timers) clearTimeout(t);
+    };
   }, []);
 
   // Initialize audio on first interaction
@@ -92,7 +105,7 @@ export default function GameBoard() {
     return () => window.removeEventListener('click', handleClick);
   }, [initialize]);
 
-  // Game over listener — save high score
+  // Game over listener — save high score with per-field max
   useEffect(() => {
     const handleGameOver = () => {
       const state = useLevelStore.getState();
@@ -100,13 +113,15 @@ export default function GameBoard() {
       const stats = { peakCoherence: state.peakCoherence, levelsSurvived: state.currentLevel };
       setRunStats(stats);
 
-      // Save high score if better
+      // Per-field max to never regress either metric
       const current = loadHighScore();
-      if (stats.peakCoherence > current.peakCoherence || stats.levelsSurvived > current.levelsSurvived) {
-        const newHigh = { ...stats, seed };
-        saveHighScore(newHigh);
-        setHighScore(newHigh);
-      }
+      const newHigh = {
+        peakCoherence: Math.max(stats.peakCoherence, current.peakCoherence),
+        levelsSurvived: Math.max(stats.levelsSurvived, current.levelsSurvived),
+        seed: stats.peakCoherence > current.peakCoherence ? seed : current.seed,
+      };
+      saveHighScore(newHigh);
+      setHighScore(newHigh);
 
       setShowGameOver(true);
       setGameOverOpacity(1);
@@ -118,24 +133,28 @@ export default function GameBoard() {
 
   // Moment of clarity listener
   useEffect(() => {
+    let fadeTimer: ReturnType<typeof setTimeout>;
+    let hideTimer: ReturnType<typeof setTimeout>;
     const handleClarity = () => {
       setShowClarity(true);
       setClarityOpacity(1);
       setSrAnnouncement('Coherence maintained. A moment of clarity.');
-      const fadeTimer = setTimeout(() => {
+      fadeTimer = setTimeout(() => {
         setClarityOpacity(0);
-        setTimeout(() => setShowClarity(false), 900);
+        hideTimer = setTimeout(() => setShowClarity(false), 900);
       }, 2000);
-      return () => clearTimeout(fadeTimer);
     };
     window.addEventListener('coherenceMaintained', handleClarity);
-    return () => window.removeEventListener('coherenceMaintained', handleClarity);
+    return () => {
+      window.removeEventListener('coherenceMaintained', handleClarity);
+      clearTimeout(fadeTimer);
+      clearTimeout(hideTimer);
+    };
   }, []);
 
   // Sync tension to audio store + screen reader announcements
   useEffect(() => {
     useAudioStore.getState().updateTension(tension);
-    // Announce tension changes at 10% increments
     const tensionPct = Math.round(tension * 10) * 10;
     if (tensionPct !== lastAnnouncedTension.current && tensionPct > 0) {
       lastAnnouncedTension.current = tensionPct;
@@ -143,9 +162,9 @@ export default function GameBoard() {
     }
   }, [tension]);
 
-  // Expose Zustand stores on window for E2E test bridge
+  // Expose Zustand stores on window for E2E test bridge (dev only)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
       const w = window as Window & {
         __zustand_level?: typeof useLevelStore;
         __zustand_input?: typeof useInputStore;

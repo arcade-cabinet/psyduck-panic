@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { loadHighScore, saveHighScore } from '../high-score';
+import { loadHighScore, STORAGE_KEY, saveHighScore } from '../high-score';
 
 describe('high-score', () => {
   beforeEach(() => {
@@ -30,16 +30,30 @@ describe('high-score', () => {
   });
 
   it('handles corrupted localStorage gracefully', () => {
-    localStorage.setItem('cognitive-dissonance-highscore', 'not-json');
+    localStorage.setItem(STORAGE_KEY, 'not-json');
     const hs = loadHighScore();
     expect(hs.peakCoherence).toBe(0);
   });
 
   it('handles partial data gracefully', () => {
-    localStorage.setItem('cognitive-dissonance-highscore', JSON.stringify({ peakCoherence: 42 }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ peakCoherence: 42 }));
     const hs = loadHighScore();
     expect(hs.peakCoherence).toBe(42);
     expect(hs.levelsSurvived).toBe(0);
     expect(hs.seed).toBe('');
+  });
+
+  it('rejects negative and NaN values', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ peakCoherence: -5, levelsSurvived: NaN }));
+    const hs = loadHighScore();
+    expect(hs.peakCoherence).toBe(0);
+    expect(hs.levelsSurvived).toBe(0);
+  });
+
+  it('rejects string values for numeric fields', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ peakCoherence: 'high', levelsSurvived: '3' }));
+    const hs = loadHighScore();
+    expect(hs.peakCoherence).toBe(0);
+    expect(hs.levelsSurvived).toBe(0);
   });
 });

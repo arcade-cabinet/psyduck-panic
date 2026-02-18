@@ -23,6 +23,7 @@ interface Enemy {
 export default function EnemySpawner() {
   const scene = useScene();
   const enemies = useRef<Enemy[]>([]);
+  const enemyIdCounter = useRef(0);
   const yukaManager = useRef(new YUKA.EntityManager());
   // Target: the sphere position
   const sphereTarget = useRef(new YUKA.Vector3(0, 0.4, 0));
@@ -44,8 +45,9 @@ export default function EnemySpawner() {
         const startX = (Math.random() - 0.5) * 6;
         const startZ = -2 + Math.random() * 4;
 
+        const eid = enemyIdCounter.current++;
         const plane = BABYLON.MeshBuilder.CreatePlane(
-          `enemy${Date.now()}_${i}`,
+          `enemy${eid}`,
           { size: isBossWave && i === 0 ? 2.0 : 1.2 },
           scene,
         );
@@ -142,7 +144,8 @@ export default function EnemySpawner() {
             const splitPos = e.yukaVehicle.position;
             for (let s = 0; s < 2; s++) {
               const offset = s === 0 ? 0.3 : -0.3;
-              const childPlane = BABYLON.MeshBuilder.CreatePlane(`splitChild${Date.now()}_${s}`, { size: 0.6 }, scene);
+              const childId = enemyIdCounter.current++;
+              const childPlane = BABYLON.MeshBuilder.CreatePlane(`splitChild${childId}`, { size: 0.6 }, scene);
               childPlane.position = new BABYLON.Vector3(splitPos.x + offset, splitPos.y, splitPos.z + offset);
               childPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 

@@ -2,9 +2,11 @@
  * Screenshot capture script — takes game screenshots for PR.
  * Run: xvfb-run npx playwright test e2e/screenshot.ts
  */
+import { mkdirSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 
 async function captureScreenshots() {
+  mkdirSync('screenshots', { recursive: true });
   const browser = await chromium.launch({
     headless: false,
     args: ['--use-gl=angle'],

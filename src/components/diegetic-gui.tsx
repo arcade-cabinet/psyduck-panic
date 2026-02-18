@@ -102,11 +102,18 @@ export default function DiegeticGUI({ coherence }: DiegeticGUIProps) {
     fgArc.material = fgMatRef.current;
   }, [scene, coherence]);
 
-  // Cleanup material on unmount
+  // Cleanup all resources on unmount
   useEffect(() => {
     return () => {
       fgArcRef.current?.dispose();
+      fgArcRef.current = null;
       fgMatRef.current?.dispose();
+      fgMatRef.current = null;
+      bgRingRef.current?.dispose();
+      bgRingRef.current = null;
+      bgMatRef.current?.dispose();
+      bgMatRef.current = null;
+      lastArcCoherence.current = -1;
     };
   }, []);
 
