@@ -41,12 +41,15 @@ export default function GameBoard() {
     };
 
     if (mq.addEventListener) {
-      mq.addEventListener('change', handleChange);
-      return () => mq.removeEventListener('change', handleChange);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      setReducedMotion(mq.matches);
+      const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
     }
-
-    mq.addListener(handleChange);
-    return () => mq.removeListener(handleChange);
   }, []);
 
   // ── Screen reader live region ──
