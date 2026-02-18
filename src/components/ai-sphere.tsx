@@ -2,9 +2,10 @@
 
 import * as BABYLON from '@babylonjs/core';
 import gsap from 'gsap';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useScene } from 'reactylon';
 import { createCelestialShaderMaterial } from '@/lib/shaders/celestial';
+import { useGameStore } from '@/store/game-store';
 import { useLevelStore } from '@/store/level-store';
 
 function lerp(a: number, b: number, t: number) {
@@ -18,17 +19,20 @@ export default function AISphere() {
   const glassMatRef = useRef<BABYLON.PBRMaterial | null>(null);
   const innerMatRef = useRef<BABYLON.ShaderMaterial | null>(null);
   const explodedRef = useRef(false);
+  /** Guards against re-triggering clarity while the pulse animation plays */
+  const clarityActiveRef = useRef(false);
 
-  // Create spheres imperatively
-  useEffect(() => {
-    if (!scene) return;
-
+  /**
+   * Create (or recreate) both sphere meshes + materials.
+   * Called on initial mount and on restart after shatter.
+   */
+  const buildSpheres = useCallback((scn: BABYLON.Scene) => {
     // Outer glass sphere
-    const outerSphere = BABYLON.MeshBuilder.CreateSphere('aiSphereOuter', { diameter: 0.52, segments: 64 }, scene);
+    const outerSphere = BABYLON.MeshBuilder.CreateSphere('aiSphereOuter', { diameter: 0.52, segments: 64 }, scn);
     outerSphere.position.y = 0.4;
     outerSphereRef.current = outerSphere;
 
-    const glassMat = new BABYLON.PBRMaterial('glassMat', scene);
+    const glassMat = new BABYLON.PBRMaterial('glassMat', scn);
     glassMat.albedoColor = new BABYLON.Color3(0.02, 0.04, 0.09);
     glassMat.roughness = 0.02;
     glassMat.metallic = 0.05;
@@ -40,71 +44,172 @@ export default function AISphere() {
     glassMatRef.current = glassMat;
 
     // Inner celestial nebula sphere
-    const innerSphere = BABYLON.MeshBuilder.CreateSphere('aiSphereInner', { diameter: 0.49, segments: 64 }, scene);
+    const innerSphere = BABYLON.MeshBuilder.CreateSphere('aiSphereInner', { diameter: 0.49, segments: 64 }, scn);
     innerSphere.position.y = 0.4;
     innerSphereRef.current = innerSphere;
 
-    const celestialMat = createCelestialShaderMaterial(scene);
+    const celestialMat = createCelestialShaderMaterial(scn);
     innerSphere.material = celestialMat;
     innerMatRef.current = celestialMat;
 
-    // Emerge animation
+    // Emerge animation: scale from nothing
     outerSphere.scaling.setAll(0.01);
     innerSphere.scaling.setAll(0.01);
     gsap.to(outerSphere.scaling, { x: 1, y: 1, z: 1, duration: 3.8, ease: 'power4.out', delay: 2.6 });
     gsap.to(innerSphere.scaling, { x: 1, y: 1, z: 1, duration: 3.8, ease: 'power4.out', delay: 2.6 });
 
-    return () => {
-      outerSphere.dispose();
-      innerSphere.dispose();
-      glassMat.dispose();
-      celestialMat.dispose();
-    };
-  }, [scene]);
+    // Emissive pulse on emergence (blue → white → off)
+    gsap.fromTo(
+      glassMat,
+      { emissiveIntensity: 0 },
+      {
+        emissiveIntensity: 0.8,
+        duration: 1.5,
+        delay: 3.0,
+        yoyo: true,
+        repeat: 1,
+        ease: 'sine.inOut',
+        onStart: () => {
+          glassMat.emissiveColor = new BABYLON.Color3(0.1, 0.4, 1.0);
+        },
+        onComplete: () => {
+          glassMat.emissiveColor = BABYLON.Color3.Black();
+          glassMat.emissiveIntensity = 0;
+        },
+      },
+    );
+  }, []);
 
-  // Animation loop: tension-driven updates
+  // Initial sphere creation
+  useEffect(() => {
+    if (!scene) return;
+    buildSpheres(scene);
+
+    return () => {
+      outerSphereRef.current?.dispose();
+      innerSphereRef.current?.dispose();
+      glassMatRef.current?.dispose();
+      innerMatRef.current?.dispose();
+    };
+  }, [scene, buildSpheres]);
+
+  // Restart ritual: listen for phase transitions to recreate after shatter
+  useEffect(() => {
+    const unsub = useGameStore.subscribe((state, prev) => {
+      if (state.phase === 'playing' && prev.phase !== 'playing' && explodedRef.current && scene) {
+        // Sphere was shattered — recreate it as the "dream again" ritual
+        explodedRef.current = false;
+        clarityActiveRef.current = false;
+        buildSpheres(scene);
+      }
+    });
+    return unsub;
+  }, [scene, buildSpheres]);
+
+  // Animation loop: tension-driven updates + moment of clarity + shatter
   useEffect(() => {
     if (!scene) return;
 
     const observer = scene.onBeforeRenderObservable.add(() => {
+      if (explodedRef.current) return; // Don't process after shatter
+
       const cur = useLevelStore.getState().tension;
+      const coherence = useLevelStore.getState().coherence;
       const t = performance.now() / 1000;
 
-      // Update celestial shader uniforms
-      if (innerMatRef.current) {
-        const mat = innerMatRef.current;
-        mat.setFloat('u_time', t);
-        mat.setFloat('u_cloud_density', 2.5 + cur * 3.5);
-        mat.setFloat('u_glow_intensity', 1.5 + cur * 2.5);
-        mat.setColor3('u_color1', new BABYLON.Color3(lerp(0.03, 0.9, cur), lerp(0.4, 0.2, cur), lerp(1.0, 0.1, cur)));
-        mat.setColor3('u_color2', new BABYLON.Color3(lerp(0.1, 1.0, cur), lerp(0.8, 0.4, cur), lerp(1.0, 0.2, cur)));
+      // ── Moment of Clarity ──
+      // When coherence reaches 100, the AI mind is briefly whole.
+      // A beautiful calm before the inevitable.
+      if (coherence >= 100 && !clarityActiveRef.current) {
+        clarityActiveRef.current = true;
+
+        // Sphere calms: smooth jitter to zero
+        if (outerSphereRef.current) {
+          gsap.to(outerSphereRef.current.position, { x: 0, z: 0, duration: 2, ease: 'power2.out' });
+          gsap.to(outerSphereRef.current.rotation, { x: 0, z: 0, duration: 2, ease: 'power2.out' });
+        }
+
+        // Blue emissive pulse on glass
+        if (glassMatRef.current) {
+          glassMatRef.current.emissiveColor = new BABYLON.Color3(0.1, 0.4, 1.0);
+          gsap.fromTo(
+            glassMatRef.current,
+            { emissiveIntensity: 0 },
+            {
+              emissiveIntensity: 1.5,
+              duration: 1.5,
+              yoyo: true,
+              repeat: 1,
+              ease: 'sine.inOut',
+              onComplete: () => {
+                if (glassMatRef.current) {
+                  glassMatRef.current.emissiveColor = BABYLON.Color3.Black();
+                  glassMatRef.current.emissiveIntensity = 0;
+                }
+                // After the moment passes, entropy resumes
+                clarityActiveRef.current = false;
+                useLevelStore.getState().addCoherence(-75);
+                // Slightly increase base tension — the AI is degrading
+                const curT = useLevelStore.getState().tension;
+                useLevelStore.getState().setTension(Math.min(1, curT + 0.05));
+              },
+            },
+          );
+        }
+
+        // Celestial shader: briefly shift to pure calm blue
+        if (innerMatRef.current) {
+          innerMatRef.current.setFloat('u_cloud_density', 2.0);
+          innerMatRef.current.setFloat('u_glow_intensity', 3.0);
+          innerMatRef.current.setColor3('u_color1', new BABYLON.Color3(0.03, 0.4, 1.0));
+          innerMatRef.current.setColor3('u_color2', new BABYLON.Color3(0.1, 0.8, 1.0));
+        }
+
+        // Dispatch event for gameboard overlay
+        window.dispatchEvent(new Event('coherenceMaintained'));
       }
 
-      // Glass degradation
-      if (glassMatRef.current) {
-        glassMatRef.current.roughness = 0.02 + cur * 0.45;
-        glassMatRef.current.alpha = 0.3 - cur * 0.15;
+      // ── Normal tension-driven updates (skip during clarity) ──
+      if (!clarityActiveRef.current) {
+        // Update celestial shader uniforms
+        if (innerMatRef.current) {
+          const mat = innerMatRef.current;
+          mat.setFloat('u_time', t);
+          mat.setFloat('u_cloud_density', 2.5 + cur * 3.5);
+          mat.setFloat('u_glow_intensity', 1.5 + cur * 2.5);
+          mat.setColor3('u_color1', new BABYLON.Color3(lerp(0.03, 0.9, cur), lerp(0.4, 0.2, cur), lerp(1.0, 0.1, cur)));
+          mat.setColor3('u_color2', new BABYLON.Color3(lerp(0.1, 1.0, cur), lerp(0.8, 0.4, cur), lerp(1.0, 0.2, cur)));
+        }
+
+        // Glass degradation
+        if (glassMatRef.current) {
+          glassMatRef.current.roughness = 0.02 + cur * 0.45;
+          glassMatRef.current.alpha = 0.3 - cur * 0.15;
+        }
+
+        // Physical jitter / bounce
+        if (outerSphereRef.current) {
+          outerSphereRef.current.position.x = Math.sin(t * 14) * cur * 0.06;
+          outerSphereRef.current.position.z = Math.cos(t * 17) * cur * 0.04;
+          outerSphereRef.current.rotation.x = Math.sin(t * 6) * cur * 0.12;
+          outerSphereRef.current.rotation.z = Math.cos(t * 8) * cur * 0.09;
+        }
+
+        // Mirror jitter on inner sphere
+        if (innerSphereRef.current && outerSphereRef.current) {
+          innerSphereRef.current.position.copyFrom(outerSphereRef.current.position);
+          innerSphereRef.current.rotation.copyFrom(outerSphereRef.current.rotation);
+        }
+      } else if (innerMatRef.current) {
+        // During clarity, still update time for shader animation
+        innerMatRef.current.setFloat('u_time', t);
       }
 
-      // Physical jitter / bounce
-      if (outerSphereRef.current) {
-        outerSphereRef.current.position.x = Math.sin(t * 14) * cur * 0.06;
-        outerSphereRef.current.position.z = Math.cos(t * 17) * cur * 0.04;
-        outerSphereRef.current.rotation.x = Math.sin(t * 6) * cur * 0.12;
-        outerSphereRef.current.rotation.z = Math.cos(t * 8) * cur * 0.09;
-      }
-
-      // Mirror jitter on inner sphere
-      if (innerSphereRef.current && outerSphereRef.current) {
-        innerSphereRef.current.position.copyFrom(outerSphereRef.current.position);
-        innerSphereRef.current.rotation.copyFrom(outerSphereRef.current.rotation);
-      }
-
-      // Max tension shatter
+      // ── Max tension shatter ──
       if (cur >= 0.99 && !explodedRef.current) {
         explodedRef.current = true;
 
-        // Remove this observer first to prevent running on disposed meshes
+        // Remove this observer to prevent running on disposed meshes
         scene.onBeforeRenderObservable.remove(observer);
 
         const emitPos = outerSphereRef.current?.position.clone() ?? BABYLON.Vector3.Zero();
@@ -139,9 +244,9 @@ export default function AISphere() {
         outerSphereRef.current?.dispose();
         innerSphereRef.current?.dispose();
 
-        // Trigger game over
+        // Trigger spatial audio shatter + game over
+        window.dispatchEvent(new Event('sphereShattered'));
         window.dispatchEvent(new Event('gameOver'));
-        return; // exit observer early since we removed it
       }
     });
 
