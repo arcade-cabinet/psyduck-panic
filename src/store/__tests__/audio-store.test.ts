@@ -51,6 +51,7 @@ const Loop = vi.fn(function Loop() {
 
 vi.mock('tone', () => ({
   start: vi.fn(),
+  getContext: vi.fn(() => ({ resume: vi.fn().mockResolvedValue(undefined) })),
   Gain,
   Oscillator,
   Filter,
@@ -83,15 +84,15 @@ describe('audio-store', () => {
   beforeEach(() => {
     useAudioStore.setState({
       isInitialized: false,
-      tension: 0.12,
+      tension: 0,
       graph: null,
     });
   });
 
-  it('initial state is not initialized with tension 0.12', () => {
+  it('initial state is not initialized with tension 0', () => {
     const s = useAudioStore.getState();
     expect(s.isInitialized).toBe(false);
-    expect(s.tension).toBe(0.12);
+    expect(s.tension).toBe(0);
     expect(s.graph).toBeNull();
   });
 

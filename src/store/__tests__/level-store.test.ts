@@ -11,7 +11,7 @@ describe('level-store', () => {
     expect(s.currentLevel).toBe(1);
     expect(s.coherence).toBe(25);
     expect(s.peakCoherence).toBe(25);
-    expect(s.tension).toBe(0.12);
+    expect(s.tension).toBe(0);
   });
 
   it('addCoherence increases coherence', () => {
@@ -62,6 +62,47 @@ describe('level-store', () => {
     const s = useLevelStore.getState();
     expect(s.currentLevel).toBe(1);
     expect(s.coherence).toBe(25);
-    expect(s.tension).toBe(0.12);
+    expect(s.tension).toBe(0);
+    expect(s.timeSurvived).toBe(0);
+  });
+
+  it('decayTension reduces tension over time', () => {
+    useLevelStore.getState().setTension(0.5);
+    useLevelStore.getState().decayTension(1.0); // 1 second
+    const t = useLevelStore.getState().tension;
+    expect(t).toBeLessThan(0.5);
+    expect(t).toBeGreaterThan(0);
+  });
+
+  it('decayTension does not go below zero', () => {
+    useLevelStore.getState().setTension(0.01);
+    useLevelStore.getState().decayTension(10);
+    expect(useLevelStore.getState().tension).toBe(0);
+  });
+
+  it('stabilizeTension reduces tension by amount', () => {
+    useLevelStore.getState().setTension(0.5);
+    useLevelStore.getState().stabilizeTension(0.1);
+    expect(useLevelStore.getState().tension).toBeCloseTo(0.4);
+  });
+
+  it('stabilizeTension does not go below zero', () => {
+    useLevelStore.getState().setTension(0.05);
+    useLevelStore.getState().stabilizeTension(0.2);
+    expect(useLevelStore.getState().tension).toBe(0);
+  });
+
+  it('addTime accumulates survival time', () => {
+    useLevelStore.getState().addTime(5);
+    expect(useLevelStore.getState().timeSurvived).toBe(5);
+  });
+
+  it('addTime auto-advances level at 30s intervals', () => {
+    useLevelStore.getState().addTime(31);
+    expect(useLevelStore.getState().currentLevel).toBe(2);
+  });
+
+  it('initial timeSurvived is 0', () => {
+    expect(useLevelStore.getState().timeSurvived).toBe(0);
   });
 });

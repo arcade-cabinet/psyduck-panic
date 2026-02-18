@@ -5,10 +5,11 @@ import { useEffect, useRef } from 'react';
 import { useScene } from 'reactylon';
 import * as YUKA from 'yuka';
 import { type GameEntity, world } from '@/game/world';
-import { runFixedSteps, spawnIntervalSeconds } from '@/lib/fixed-step';
+import { runFixedSteps } from '@/lib/fixed-step';
 import { generateFromSeed } from '@/lib/seed-factory';
 import { createCrystallineCubeMaterial } from '@/lib/shaders/crystalline-cube';
 import { createNeonRaymarcherMaterial } from '@/lib/shaders/neon-raymarcher';
+import { useGameStore } from '@/store/game-store';
 import { useLevelStore } from '@/store/level-store';
 import { useSeedStore } from '@/store/seed-store';
 
@@ -35,28 +36,26 @@ export default function EnemySpawner() {
 
     const fixedStep = 1 / 30;
     const fixedState = { accumulator: 0 };
-    let spawnTimer = 0;
-
-    const scheduleWave = () => {
-      const rng = useSeedStore.getState().rng;
-      const tension = useLevelStore.getState().tension;
-      spawnTimer = spawnIntervalSeconds(tension, rng, 0.3, 1.8);
-    };
+    // Grace period: no enemies for first 3 seconds per Grok definitive
+    let graceTimer = 3;
 
     const spawnWave = () => {
       const { enemyConfig } = generateFromSeed();
       const rng = useSeedStore.getState().rng;
       const curTension = useLevelStore.getState().tension;
       const currentLevel = useLevelStore.getState().currentLevel;
+      // Grok definitive: Math.pow(1.35, currentLevel - 1)
       const levelMultiplier = 1.35 ** (currentLevel - 1);
       const isBossWave = curTension > 0.7 && rng() > 0.6;
 
       const count = Math.floor(enemyConfig.amount * levelMultiplier);
 
       for (let i = 0; i < Math.min(count, 16); i++) {
-        const startY = 8 + rng() * 5 * levelMultiplier;
-        const startX = (rng() - 0.5) * 6;
-        const startZ = -2 + rng() * 4;
+        // Grok definitive: startY = 18 + random * 10 * levelMultiplier
+        const startY = 18 + rng() * 10 * levelMultiplier;
+        // Grok definitive: startX = (random - 0.5) * 14 * levelMultiplier
+        const startX = (rng() - 0.5) * 14 * levelMultiplier;
+        const startZ = -4 + rng() * 6;
 
         const eid = enemyIdCounter.current++;
         const plane = BABYLON.MeshBuilder.CreatePlane(
@@ -82,7 +81,8 @@ export default function EnemySpawner() {
 
         const vehicle = new YUKA.Vehicle();
         vehicle.position.set(startX, startY, startZ);
-        vehicle.maxSpeed = enemyConfig.speed * levelMultiplier * 2;
+        // Grok definitive: speed * levelMultiplier * 5
+        vehicle.maxSpeed = enemyConfig.speed * levelMultiplier * 5;
 
         const behavior = enemyConfig.behavior;
         if (behavior === 'seek') {
@@ -112,7 +112,7 @@ export default function EnemySpawner() {
         enemies.current.push({
           mesh: plane,
           material: mat,
-          speed: enemyConfig.speed * levelMultiplier * 2,
+          speed: vehicle.maxSpeed,
           isBoss: isBossWave && i === 0,
           health: isBossWave && i === 0 ? 8 : 3,
           yukaVehicle: vehicle,
@@ -123,6 +123,9 @@ export default function EnemySpawner() {
     };
 
     const tick = (dt: number) => {
+      const phase = useGameStore.getState().phase;
+      if (phase !== 'playing') return;
+
       const curTension = useLevelStore.getState().tension;
       const t = performance.now() / 1000;
 
@@ -190,6 +193,7 @@ export default function EnemySpawner() {
               });
             }
           } else {
+            // Grok definitive: 0.38 boss, 0.19 normal
             useLevelStore.getState().setTension(Math.min(1, curTension + (e.isBoss ? 0.38 : 0.19)));
           }
 
@@ -201,15 +205,14 @@ export default function EnemySpawner() {
         }
       }
 
-      spawnTimer -= dt;
-      if (spawnTimer <= 0) {
+      // Grok definitive: tension-proportional spawning per frame
+      // Math.random() < curTension * 1.1 * dt * (3 + currentLevel * 0.8)
+      if (graceTimer > 0) {
+        graceTimer -= dt;
+      } else if (Math.random() < curTension * 1.1 * dt * (3 + useLevelStore.getState().currentLevel * 0.8)) {
         spawnWave();
-        scheduleWave();
       }
     };
-
-    scheduleWave();
-    spawnWave();
 
     const observer = scene.onBeforeRenderObservable.add(() => {
       const dt = scene.getEngine().getDeltaTime() / 1000;
@@ -224,8 +227,7 @@ export default function EnemySpawner() {
         world.remove(e.entity);
       });
       enemies.current = [];
-      scheduleWave();
-      spawnWave();
+      graceTimer = 0;
     });
 
     return () => {

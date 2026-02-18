@@ -51,4 +51,15 @@ describe('game-store', () => {
     expect(state.phase).toBe('playing');
     expect(state.restartToken).toBe(1);
   });
+
+  it('startPlaying transitions from title to playing', () => {
+    useGameStore.getState().startPlaying();
+    expect(useGameStore.getState().phase).toBe('playing');
+  });
+
+  it('startPlaying does nothing if not in title phase', () => {
+    useGameStore.getState().setPhase('gameover');
+    useGameStore.getState().startPlaying();
+    expect(useGameStore.getState().phase).toBe('gameover');
+  });
 });

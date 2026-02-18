@@ -4,8 +4,9 @@ import * as BABYLON from '@babylonjs/core';
 import { useEffect, useRef } from 'react';
 import { useScene } from 'reactylon';
 import { world } from '@/game/world';
-import { runFixedSteps, spawnIntervalSeconds } from '@/lib/fixed-step';
+import { runFixedSteps } from '@/lib/fixed-step';
 import { KEYCAP_COLORS, KEYCAP_COUNT } from '@/lib/keycap-colors';
+import { useGameStore } from '@/store/game-store';
 import { useInputStore } from '@/store/input-store';
 import { useLevelStore } from '@/store/level-store';
 import { useSeedStore } from '@/store/seed-store';
@@ -31,13 +32,6 @@ export default function PatternStabilizer() {
 
     const fixedStep = 1 / 30;
     const fixedState = { accumulator: 0 };
-    let spawnTimer = 0;
-
-    const scheduleNextSpawn = () => {
-      const rng = useSeedStore.getState().rng;
-      const tension = useLevelStore.getState().tension;
-      spawnTimer = spawnIntervalSeconds(tension, rng, 0.16, 1.1);
-    };
 
     const spawnPattern = () => {
       const rng = useSeedStore.getState().rng;
@@ -47,7 +41,8 @@ export default function PatternStabilizer() {
       const kc = KEYCAP_COLORS[colorIndex];
       const color = kc.color3;
 
-      const speed = 0.3 + rng() * curTension * 1.2;
+      // Grok definitive: 0.35 + Math.random() * curTension * 1.3
+      const speed = 0.35 + rng() * curTension * 1.3;
       const patternId = idCounter.current++;
 
       const ps = new BABYLON.ParticleSystem(`pattern${patternId}`, 60, scene);
@@ -82,13 +77,20 @@ export default function PatternStabilizer() {
       });
     };
 
-    scheduleNextSpawn();
-
     const tick = (dt: number) => {
-      spawnTimer -= dt;
-      if (spawnTimer <= 0) {
+      const phase = useGameStore.getState().phase;
+      if (phase !== 'playing') return;
+
+      // Natural tension decay — the mind recovers slowly on its own
+      useLevelStore.getState().decayTension(dt);
+      // Track survival time for level advancement
+      useLevelStore.getState().addTime(dt);
+
+      const curTension = useLevelStore.getState().tension;
+      // Grok definitive: tension-proportional spawning per frame
+      // Math.random() < curTension * 1.6 * dt * 7
+      if (Math.random() < curTension * 1.6 * dt * 7) {
         spawnPattern();
-        scheduleNextSpawn();
       }
 
       const heldKeycaps = useInputStore.getState().heldKeycaps;
@@ -108,7 +110,8 @@ export default function PatternStabilizer() {
 
         if (p.progress >= 1.0) {
           const curTension = useLevelStore.getState().tension;
-          useLevelStore.getState().setTension(Math.min(1, curTension + 0.22));
+          // Grok definitive: 0.25 tension penalty on pattern escape
+          useLevelStore.getState().setTension(Math.min(1, curTension + 0.25));
           window.dispatchEvent(
             new CustomEvent('patternEscaped', {
               detail: { colorIndex: p.colorIndex, angle: p.angle },
@@ -123,6 +126,8 @@ export default function PatternStabilizer() {
 
         if (p.progress <= 0) {
           useLevelStore.getState().addCoherence(3);
+          // Tension relief for successful stabilization — pulling patterns back matters
+          useLevelStore.getState().stabilizeTension(0.08);
           window.dispatchEvent(
             new CustomEvent('patternStabilized', {
               detail: { colorIndex: p.colorIndex },

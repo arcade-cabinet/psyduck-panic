@@ -27,14 +27,15 @@ interface AudioState {
 
 export const useAudioStore = create<AudioState>((set, get) => ({
   isInitialized: false,
-  tension: 0.12,
+  tension: 0,
   graph: null,
 
   initialize: async () => {
     if (get().isInitialized || get().graph) return;
 
     const Tone = await import('tone');
-    await Tone.start();
+    // Tone.start() may not survive dynamic import bundling — use getContext().resume() directly
+    await Tone.getContext().resume();
 
     const masterGain = new Tone.Gain(0.85).toDestination();
 

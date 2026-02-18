@@ -51,7 +51,7 @@ export default function GameBoard() {
   const tension = useLevelStore((s) => s.tension);
   const coherence = useLevelStore((s) => s.coherence);
   const initialize = useAudioStore((s) => s.initialize);
-  const _phase = useGameStore((s) => s.phase);
+  const phase = useGameStore((s) => s.phase);
 
   const handleRestart = useCallback(() => {
     useLevelStore.getState().reset();
@@ -74,7 +74,14 @@ export default function GameBoard() {
     }
   }, []);
 
-  // ── Loading → Title sequence with proper cleanup ──
+  // ── Auto-generate seed on mount ──
+  useEffect(() => {
+    if (!useSeedStore.getState().seedString) {
+      useSeedStore.getState().generateNewSeed();
+    }
+  }, []);
+
+  // ── Loading → Title → Playing sequence with proper cleanup ──
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
 
@@ -86,11 +93,16 @@ export default function GameBoard() {
       timers.push(
         setTimeout(() => {
           setTitleOpacity(0);
-          timers.push(setTimeout(() => setShowTitle(false), 120));
+          timers.push(
+            setTimeout(() => {
+              setShowTitle(false);
+              useGameStore.getState().startPlaying();
+            }, 120),
+          );
         }, 500),
       );
     } else {
-      // Loading screen holds for 2s, then fades → title sizzle
+      // Loading screen holds for 2s, then fades → title sizzle → playing
       timers.push(
         setTimeout(() => {
           setLoadingOpacity(0);
@@ -102,7 +114,12 @@ export default function GameBoard() {
               timers.push(
                 setTimeout(() => {
                   setTitleOpacity(0);
-                  timers.push(setTimeout(() => setShowTitle(false), 900));
+                  timers.push(
+                    setTimeout(() => {
+                      setShowTitle(false);
+                      useGameStore.getState().startPlaying();
+                    }, 900),
+                  );
                 }, 2400),
               );
             }, 600),
@@ -125,6 +142,57 @@ export default function GameBoard() {
     window.addEventListener('click', handleClick);
     return () => window.removeEventListener('click', handleClick);
   }, [initialize]);
+
+  // ── Keyboard input bindings ──
+  // Keys 1-6 map to keycaps 0-5 (left side), Q-Y map to keycaps 6-11 (right side)
+  useEffect(() => {
+    const KEY_MAP: Record<string, number> = {
+      '1': 0,
+      '2': 1,
+      '3': 2,
+      '4': 3,
+      '5': 4,
+      '6': 5,
+      q: 6,
+      w: 7,
+      e: 8,
+      r: 9,
+      t: 10,
+      y: 11,
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const idx = KEY_MAP[e.key.toLowerCase()];
+      if (idx !== undefined) {
+        useInputStore.getState().pressKeycap(idx);
+        // Also initialize audio on first key press
+        initialize();
+      }
+      // Space to restart from game over
+      if (e.key === ' ' && phase === 'gameover') {
+        handleRestart();
+      }
+      // Escape to pause/unpause
+      if (e.key === 'Escape' && (phase === 'playing' || phase === 'paused')) {
+        useGameStore.getState().togglePause();
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const idx = KEY_MAP[e.key.toLowerCase()];
+      if (idx !== undefined) {
+        useInputStore.getState().releaseKeycap(idx);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [phase, initialize, handleRestart]);
 
   // Game over listener — save high score with per-field max
   useEffect(() => {

@@ -6,6 +6,7 @@ interface GameState {
   phase: GamePhase;
   restartToken: number;
   setPhase: (phase: GamePhase) => void;
+  startPlaying: () => void;
   togglePause: () => void;
   restart: () => void;
   triggerRestart: () => void;
@@ -16,6 +17,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   restartToken: 0,
 
   setPhase: (phase: GamePhase) => set({ phase }),
+
+  startPlaying: () => {
+    if (get().phase === 'title') set({ phase: 'playing' });
+  },
 
   togglePause: () => {
     const current = get().phase;
