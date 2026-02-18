@@ -16,10 +16,18 @@
 
 ## Commands
 
+```bash
+pnpm dev          # Dev server (Turbopack, 440ms startup)
+pnpm build        # Production build (~21s)
+pnpm start        # Production server
+pnpm lint         # Biome check (0 errors, 0 warnings)
+pnpm test         # Vitest unit tests (60 tests)
+pnpm test:e2e     # Playwright E2E tests (includes build + xvfb-run)
+```
 
 ## System Architecture
 
-```
+```text
 Next.js 16 App Router (Turbopack)
 ├── app/page.tsx: dynamic import of GameBoard with ssr: false
 ├── GameBoard (2D React + Tailwind):
@@ -52,53 +60,68 @@ Next.js 16 App Router (Turbopack)
 ## Key Patterns
 
 ### 1. Imperative Mesh Creation
+
 All Babylon.js meshes/materials created in `useEffect`, NOT as JSX. Only lights and camera use Reactylon JSX (`<hemisphericLight>`, `<arcRotateCamera>`, `<pointLight>`).
 
 ### 2. Render Loop
+
 `scene.onBeforeRenderObservable.add(fn)` / `scene.onBeforeRenderObservable.remove(observer)`
 
 ### 3. CSP-Safe Shader Store
+
 All GLSL in `BABYLON.Effect.ShadersStore` as static string constants. No eval, no dynamic Function constructors.
 
 ### 4. GSAP + Babylon.js
+
 `gsap.to(mesh.position, {...})` works natively with Vector3 number properties. CustomEase for mechanical feel.
 
 ### 5. SSR Bypass
+
 All 3D code in `'use client'` files loaded via `dynamic({ ssr: false })`.
 
 ### 6. Zustand Bridge
+
 Render loop reads `useLevelStore.getState().tension`. React subscribes normally. Stores exposed on window for E2E.
 
 ### 7. Turbopack + Babel
+
 `babel.config.js` has only `@babel/preset-typescript` + `babel-plugin-reactylon`. Turbopack uses Babel for user code, SWC for Next.js internals.
 
 ### 8. Engine Config
+
 `forceWebGL={true}`, `engineOptions` for antialias/adaptToDeviceRatio/audioEngine:false.
 
 ### 9. Per-Color Keycap Matching
+
 `src/lib/keycap-colors.ts` provides 12 evenly-spaced HSL colors. Both platter (material emissive) and pattern-stabilizer (particle color + colorIndex) import from the same source of truth. Pattern stabilization checks `heldKeycaps.has(p.colorIndex)`.
 
 ### 10. Spatial Audio Events
+
 Pattern-stabilizer dispatches `patternEscaped` / `patternStabilized` CustomEvents. AISphere dispatches `sphereShattered`. SpatialAudio component listens and triggers Tone.js synths.
 
 ### 11. Moment of Clarity
+
 At coherence 100, GSAP smoothly eases jitter to zero, pulses blue emissive on glass, shifts celestial shader to calm blue. After 3s, coherence drops -75, tension +0.05. No win state — just a fleeting respite.
 
 ### 12. Enemy Split Behavior
+
 Split-behavior enemies spawn 2 half-size seeker children on contact with sphere instead of adding tension directly. Children add tension when they reach the sphere.
 
 ### 13. Diegetic Coherence Arc
+
 `CreateTube` with a partial circular path (not `CreateTorus` — it lacks `arc` param). Throttled recreation at 2% coherence buckets.
 
 ### 14. Restart Ritual
+
 AISphere subscribes to game-store. On phase transition to `playing` after shatter, recreates both spheres with GSAP scale-in + emissive pulse.
 
 ### 15. Physics-Based Keycaps
+
 Havok V2 6DoF constraints. Keycaps constrained in X/Z and rotation, limited Y travel (-0.055 to +0.006), Y-axis position motor acts as spring-return.
 
 ## File Structure
 
-```
+```text
 src/
   app/          Next.js App Router (layout, page, globals.css)
   components/   All game components (3D + 2D)
