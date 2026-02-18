@@ -16,14 +16,6 @@
 
 ## Commands
 
-```bash
-pnpm dev          # Dev server (Turbopack, 440ms startup)
-pnpm build        # Production build (~21s)
-pnpm start        # Production server
-pnpm lint         # Biome check (0 errors, 0 warnings)
-pnpm test         # Vitest unit tests (60 tests)
-pnpm test:e2e     # Playwright E2E via xvfb-run
-```
 
 ## System Architecture
 
