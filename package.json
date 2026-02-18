@@ -9,7 +9,9 @@
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
-    "test:e2e": "playwright test"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "xvfb-run --auto-servernum pnpm exec playwright test"
   },
   "dependencies": {
     "@babylonjs/core": "^8.51.2",
@@ -40,8 +42,10 @@
     "@types/yuka": "^0.7.4",
     "babel-loader": "^10.0.0",
     "babel-plugin-reactylon": "^1.3.1",
+    "jsdom": "^28.1.0",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=22.0.0"
