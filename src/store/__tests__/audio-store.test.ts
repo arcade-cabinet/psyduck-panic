@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock tone module to avoid ESM resolution issues in test environment
 vi.mock('tone', () => ({

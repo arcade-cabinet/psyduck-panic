@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import seedrandom from 'seedrandom';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { useSeedStore } from '@/store/seed-store';
 import { generateFromSeed } from '../seed-factory';
 

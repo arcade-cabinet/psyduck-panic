@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { KEYCAP_COLORS, KEYCAP_COUNT, getKeycapColor } from '../keycap-colors';
+import { describe, expect, it } from 'vitest';
+import { getKeycapColor, KEYCAP_COLORS, KEYCAP_COUNT } from '../keycap-colors';
 
 describe('keycap-colors', () => {
   it('KEYCAP_COLORS has 12 entries', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { useSeedStore } from '../seed-store';
 
 describe('seed-store', () => {
@@ -41,22 +41,14 @@ describe('seed-store', () => {
     const original = useSeedStore.getState().seedString;
 
     // Generate values from the original rng
-    const firstRun = [
-      useSeedStore.getState().rng(),
-      useSeedStore.getState().rng(),
-      useSeedStore.getState().rng(),
-    ];
+    const firstRun = [useSeedStore.getState().rng(), useSeedStore.getState().rng(), useSeedStore.getState().rng()];
 
     // Replay the last seed
     useSeedStore.getState().replayLastSeed();
     expect(useSeedStore.getState().seedString).toBe(original);
 
     // Should produce the same sequence
-    const secondRun = [
-      useSeedStore.getState().rng(),
-      useSeedStore.getState().rng(),
-      useSeedStore.getState().rng(),
-    ];
+    const secondRun = [useSeedStore.getState().rng(), useSeedStore.getState().rng(), useSeedStore.getState().rng()];
 
     expect(secondRun).toEqual(firstRun);
   });

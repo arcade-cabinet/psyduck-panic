@@ -84,7 +84,8 @@ Next.js 16 App Router (Turbopack)
 | seedrandom | 3.0 | Deterministic procedural generation |
 | Tailwind CSS | 4 | 2D overlay styling |
 | Biome | 2.4 | Linting + formatting |
-| Playwright | 1.58 | E2E testing |
+| Playwright | 1.58 | E2E testing (headed + xvfb) |
+| Vitest | 4.0 | Unit testing |
 
 ### Commands
 
@@ -92,8 +93,9 @@ Next.js 16 App Router (Turbopack)
 pnpm dev          # Development server (Turbopack)
 pnpm build        # Production build
 pnpm start        # Production server
-pnpm lint         # Biome check
-pnpm test:e2e     # Playwright E2E suite
+pnpm lint         # Biome check (0 errors, 0 warnings)
+pnpm test         # Vitest unit tests (48 tests)
+pnpm test:e2e     # Playwright E2E via xvfb-run (17 tests, headed WebGL)
 ```
 
 ---
@@ -133,10 +135,10 @@ Raymarched SDF enemies, 3D mechanical keyboard, NS-5 android bust.
 ## Known Issues
 
 - Physics-keys component (Ammo.js) is stubbed — needs full physics integration
-- Spatial audio positioning is placeholder — needs Tone.js Panner3D connection
-- XR hand tracking requires WebXR session setup
+- XR hand tracking is stub only — pinch→keycap mapping not wired
 - Runtime visual quality not yet verified (compiles and loads, but no human eye-test)
 - React Native peer dep warnings from reactylon transitive deps (harmless)
+- Mobile touch: keycap hit areas may need enlargement
 
 ---
 

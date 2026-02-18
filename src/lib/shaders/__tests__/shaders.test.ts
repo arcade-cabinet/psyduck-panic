@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import * as BABYLON from '@babylonjs/core';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Shader factory tests.

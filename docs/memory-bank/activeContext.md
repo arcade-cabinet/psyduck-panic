@@ -2,53 +2,63 @@
 
 ## Current State (2026-02-18)
 
-### Branch: `feat/reactylon-migration`
+### Branch: `cursor/handoff-documentation-content-4fd6`
 
 ### What's Done
 
-- Full foundation fix: Next.js 16.1.6 + Turbopack + Babylon.js 8 + Reactylon 3.5.4
+- Full foundation: Next.js 16.1.6 + Turbopack + Babylon.js 8 + Reactylon 3.5.4
 - React 19, TypeScript 5.9, Tailwind 4
-- Biome 2.4.1 for linting/formatting (replaced ESLint)
-- `pnpm build` passes in ~11s (Turbopack production)
-- `pnpm dev` starts in 440ms, first page compile ~10s
-- All game code migrated to `src/` directory structure
-- babel-plugin-reactylon working with Turbopack (Babel for user code, SWC for internals)
-- 11 Playwright E2E tests passing (smoke, gameplay, governor)
-- All 15 component files compiling and served at runtime (200 OK)
-- 5 Zustand stores (seed, level, audio, game, input)
-- 3 shader materials ported to Babylon.js (celestial, neon-raymarcher, crystalline-cube)
+- Biome 2.4.1 — 0 errors, 0 warnings
+- `pnpm build` passes (~14s)
+- `pnpm dev` starts in 440ms
+- All game code under `src/` directory structure
+- babel-plugin-reactylon working with Turbopack
+
+#### Core Gameplay (Implemented)
+- **Per-color keycap matching**: 12 keycaps with unique HSL colors. Patterns spawn with a seeded `colorIndex`. Only the matching keycap pulls back a pattern. Wrong presses do nothing.
+- **Pattern stabilization**: Escaping corruption tendrils spawn from sphere center. Hold matching keycaps to pull them back. Missed patterns → tension spike.
+- **Enemy spawner**: Yuka AI with 4 behaviors (seek, wander, zigzag, split). Split enemies spawn 2 smaller seeker children on death.
+- **Moment of clarity**: Coherence at 100 triggers brief sphere calm + blue pulse + "COHERENCE MAINTAINED" flash. Then entropy resumes. No win state.
+- **Glass sphere**: Celestial nebula shader, tension-driven degradation (color shift, roughness, jitter), shatter particle explosion at max tension.
+- **Restart ritual**: After shatter → restart, spheres recreated with GSAP emergence animation + emissive pulse.
+- **Heavy industrial platter**: PBR metal base, rim, track. Garage-door keycap emergence with GSAP CustomEase. Metallic dust particles on door open. Recess glow animation pulsing with tension.
+- **Diegetic GUI**: Two-layer coherence arc — dim background ring + proportional foreground tube arc.
+- **Post-process corruption**: Chromatic aberration + film noise + vignette + scanlines, all driven by tension.
+- **SPS enemies**: SolidParticleSystem for dense enemy wave visuals.
+
+#### Audio (Implemented)
+- **Tone.js ambient score**: 4 seed-driven layers (drone, pads, glitch, chimes) evolving with tension.
+- **Spatial audio**: 3 procedural synth effects — pattern escape whoosh (brown noise + filter sweep), stabilization chime (sine synth, chromatic pitch from colorIndex), glass shatter (white noise + highpass + long reverb).
+
+#### Platform Scaffolds
+- **Web**: Full Next.js app, working.
+- **Android/iOS**: `native/App.tsx` entry point for Metro bundler (excluded from Next.js).
+- **XR**: `xr-session.tsx` stub — checks WebXR, creates default experience with hand tracking.
+
+#### Testing
+- **48 Vitest unit tests** — all passing (stores, utilities, shaders)
+- **17 Playwright E2E tests** — all passing under xvfb-run with headed Chromium + WebGL
+  - Smoke (7): page load, canvas, title, WebGL, console errors, store bridge
+  - Gameplay (5): scene visible, game-over, restart, store manipulation, full flow
+  - Governor (5): 10s survival, restart cycles, 30s active play, no console errors
+
+#### State Management
+- 5 Zustand stores: seed, level, audio, game, input
 - Miniplex ECS world with entity archetypes
-- GSAP CustomEase definitions for mechanical animations
-- Title/game-over overlays with symmetric design
-- ATC WebGL2 background shader (CSP-safe)
+- Zustand bridge exposed on window for E2E test access
 
-### What's NOT Done (Runtime Visual Verification)
+### What's NOT Done
 
-- 3D scene rendering not visually verified (renders 200 OK but no human eye-test)
-- Glass sphere + celestial shader visual quality untested
-- Platter geometry + GSAP garage-door animation untested
-- Pattern stabilization click detection not wired to real gameplay
-- Enemy spawner billboard planes need depth/alpha testing
-- Post-process corruption shader needs visual testing
-- Audio Tone.js initialization requires user gesture flow testing
-- Spatial audio Panner3D not connected
-- Physics keys (Ammo.js) stubbed
+- **Physics keys** (Ammo.js): Stubbed — needs full physics engine integration
+- **Visual verification**: No human eye-test of 3D scene rendering quality
+- **XR hand tracking interaction**: Stub only — pinch→keycap mapping not wired
+- **Mobile touch optimization**: Keycap hit areas may need enlargement for touch
+- **Loading screen**: "INITIALIZING CORE" with static sizzle before title
+- **High score + seed sharing**: LocalStorage persistence, "Share this dream" button
+- **Accessibility**: ARIA labels on keycaps, reduced motion option
 
-### Next Steps (Priority Order)
+### Next Steps
 
-1. Visual smoke test: run dev, verify 3D scene renders correctly in browser
-2. Debug glass sphere + celestial shader display
-3. Verify platter geometry + GSAP garage-door animations
-4. Wire pattern stabilization click detection
-5. Wire enemy spawner tension-threshold spawning
-6. Test audio initialization flow
-7. Test post-process corruption ramp
-8. Connect spatial audio Panner3D nodes
-9. XR hand tracking setup
-
-### Open Decisions
-
-- Physics engine (Ammo.js) for keycap press weight — currently stubbed
-- XR hand tracking session setup — not implemented
-- Spatial audio (Tone.js Panner3D) — placeholder only
-- Whether to keep android/ios scaffolds or remove them
+1. Human operator: pull branch, run `pnpm test:e2e` headed in desktop Chrome
+2. Visually verify 3D scene quality
+3. Merge PR to main
