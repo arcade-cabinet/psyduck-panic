@@ -36,5 +36,5 @@ export function spawnIntervalSeconds(tension: number, rng: () => number, min = 0
   const base = max - clamped * (max - min);
   // Deterministic jitter from seed RNG
   const jitter = 0.8 + rng() * 0.4;
-  return Math.max(min, base * jitter);
+  return Math.min(max, Math.max(min, base * jitter));
 }
