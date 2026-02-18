@@ -206,9 +206,10 @@ export default function Platter() {
     recessLightRef.current = recessLight;
 
     // Garage door emerge after title sizzle
+    const scnRef = scene;
     setTimeout(() => {
-      openGarageDoor(playTopRef.current, playBottomRef.current);
-      openGarageDoor(continueTopRef.current, continueBottomRef.current);
+      openGarageDoor(playTopRef.current, playBottomRef.current, scnRef);
+      openGarageDoor(continueTopRef.current, continueBottomRef.current, scnRef);
     }, 2600);
 
     return () => {
@@ -226,9 +227,16 @@ export default function Platter() {
         platterGroupRef.current.rotation.y = Math.sin(t * 0.165) * 1.72;
       }
 
+      // Recess glow: intensity ramps with tension + organic pulse
+      const cur = useLevelStore.getState().tension;
+      if (recessLightRef.current) {
+        recessLightRef.current.intensity = 0.2 + cur * 2.5 + Math.sin(t * 3) * 0.3 * cur;
+        // Color shifts from blue to red with tension
+        recessLightRef.current.diffuse = new BABYLON.Color3(0.2 + cur * 0.8, 0.8 - cur * 0.5, 1.0 - cur * 0.7);
+      }
+
       // Decorative key emissive pulsing — each key keeps its unique hue
       // but intensity ramps with tension, and all shift toward red at high tension
-      const cur = useLevelStore.getState().tension;
       keycapMeshes.current.forEach((key, i) => {
         const mat = key.material as BABYLON.PBRMaterial;
         if (mat) {
@@ -256,7 +264,7 @@ function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
-function openGarageDoor(top: BABYLON.Mesh | null, bottom: BABYLON.Mesh | null) {
+function openGarageDoor(top: BABYLON.Mesh | null, bottom: BABYLON.Mesh | null, scene?: BABYLON.Scene) {
   if (!top || !bottom) return;
 
   const tl = gsap.timeline();
@@ -280,4 +288,38 @@ function openGarageDoor(top: BABYLON.Mesh | null, bottom: BABYLON.Mesh | null) {
     },
     '-=1.6',
   );
+
+  // Metallic dust burst on door open — mechanical weight feel
+  if (scene) {
+    const emitPos = top.absolutePosition.clone();
+    const dustTex = new BABYLON.DynamicTexture('dustTex', 32, scene, false);
+    const ctx = dustTex.getContext();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(16, 16, 14, 0, Math.PI * 2);
+    ctx.fill();
+    dustTex.update();
+
+    const dust = new BABYLON.ParticleSystem('garageDust', 200, scene);
+    dust.particleTexture = dustTex;
+    dust.emitter = emitPos;
+    dust.minSize = 0.005;
+    dust.maxSize = 0.025;
+    dust.color1 = new BABYLON.Color4(0.6, 0.5, 0.3, 0.9);
+    dust.color2 = new BABYLON.Color4(0.4, 0.35, 0.2, 0.5);
+    dust.emitRate = 300;
+    dust.minLifeTime = 0.5;
+    dust.maxLifeTime = 1.8;
+    dust.direction1 = new BABYLON.Vector3(-0.5, 1, -0.5);
+    dust.direction2 = new BABYLON.Vector3(0.5, 3, 0.5);
+    dust.gravity = new BABYLON.Vector3(0, -4, 0);
+    dust.createPointEmitter(new BABYLON.Vector3(-0.05, 0, -0.05), new BABYLON.Vector3(0.05, 0, 0.05));
+    dust.start();
+    dust.targetStopDuration = 1.5;
+    // Auto-dispose after completion
+    setTimeout(() => {
+      dust.dispose();
+      dustTex.dispose();
+    }, 4000);
+  }
 }

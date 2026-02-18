@@ -137,7 +137,40 @@ export default function EnemySpawner() {
         // Check distance to sphere (radius-based instead of y-threshold)
         const distToSphere = e.yukaVehicle.position.distanceTo(sphereTarget.current);
         if (distToSphere < 0.6) {
-          useLevelStore.getState().setTension(Math.min(1, curTension + (e.isBoss ? 0.38 : 0.19)));
+          // Split behavior: spawn 2 smaller seekers instead of tension spike
+          if (e.behavior === 'split' && e.health > 1) {
+            const splitPos = e.yukaVehicle.position;
+            for (let s = 0; s < 2; s++) {
+              const offset = s === 0 ? 0.3 : -0.3;
+              const childPlane = BABYLON.MeshBuilder.CreatePlane(`splitChild${Date.now()}_${s}`, { size: 0.6 }, scene);
+              childPlane.position = new BABYLON.Vector3(splitPos.x + offset, splitPos.y, splitPos.z + offset);
+              childPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+              const childMat = createNeonRaymarcherMaterial(scene);
+              childMat.setFloat('u_amount', 2);
+              childPlane.material = childMat;
+
+              const childVehicle = new YUKA.Vehicle();
+              childVehicle.position.set(splitPos.x + offset, splitPos.y, splitPos.z + offset);
+              childVehicle.maxSpeed = e.speed * 1.5; // Children are faster
+              childVehicle.steering.add(new YUKA.SeekBehavior(sphereTarget.current));
+              yukaManager.current.add(childVehicle);
+
+              enemies.current.push({
+                mesh: childPlane,
+                material: childMat,
+                speed: e.speed * 1.5,
+                isBoss: false,
+                health: 1, // Children die on contact
+                yukaVehicle: childVehicle,
+                behavior: 'seek',
+              });
+            }
+          } else {
+            // Normal tension spike
+            useLevelStore.getState().setTension(Math.min(1, curTension + (e.isBoss ? 0.38 : 0.19)));
+          }
+
           yukaManager.current.remove(e.yukaVehicle);
           e.mesh.dispose();
           e.material.dispose();
