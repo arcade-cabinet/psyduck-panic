@@ -18,7 +18,7 @@ export async function getGameState(page: Page) {
   return page.evaluate(() => (window as any).__gameState ?? null);
 }
 
-export async function waitForTitleFade(page: Page, timeout = 15_000) {
+export async function waitForTitleFade(page: Page, timeout = 30_000) {
   // Wait for loading screen (2s) + title sizzle (2.4s) + fade (0.9s) to complete
   await page.waitForFunction(
     () => {

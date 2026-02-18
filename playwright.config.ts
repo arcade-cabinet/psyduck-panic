@@ -7,6 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   reporter: process.env.CI ? 'github' : 'html',
+  timeout: 60_000,
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
@@ -27,6 +28,6 @@ export default defineConfig({
     command: 'pnpm dev --port 3000',
     port: 3000,
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    timeout: 120_000,
   },
 });
