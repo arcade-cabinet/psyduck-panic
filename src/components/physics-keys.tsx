@@ -63,11 +63,18 @@ export default function PhysicsKeys() {
           );
 
           for (const mesh of keycapMeshes) {
+            let body: BABYLON.PhysicsBody | null = null;
+            let anchorBody: BABYLON.PhysicsBody | null = null;
+            let constraint: BABYLON.Physics6DoFConstraint | null = null;
+            let shape: BABYLON.PhysicsShape | null = null;
+            let anchorShape: BABYLON.PhysicsShape | null = null;
+            let anchorMesh: BABYLON.Mesh | null = null;
+
             try {
-              const body = new BABYLON.PhysicsBody(mesh, BABYLON.PhysicsMotionType.DYNAMIC, false, scene);
+              body = new BABYLON.PhysicsBody(mesh, BABYLON.PhysicsMotionType.DYNAMIC, false, scene);
 
               const extents = mesh.getBoundingInfo().boundingBox.extendSize.scale(2);
-              const shape = new BABYLON.PhysicsShapeBox(
+              shape = new BABYLON.PhysicsShapeBox(
                 BABYLON.Vector3.Zero(),
                 BABYLON.Quaternion.Identity(),
                 new BABYLON.Vector3(extents.x, extents.y, extents.z),
@@ -79,18 +86,17 @@ export default function PhysicsKeys() {
               body.setLinearDamping(4);
               body.setAngularDamping(12);
 
-              const anchorMesh = BABYLON.MeshBuilder.CreateBox(`${mesh.name}_anchor`, { size: 0.01 }, scene);
-              anchorMesh.position.copyFrom(mesh.position);
-              anchorMesh.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(
-                mesh.rotation.x,
-                mesh.rotation.y,
-                mesh.rotation.z,
-              );
+              anchorMesh = BABYLON.MeshBuilder.CreateBox(`${mesh.name}_anchor`, { size: 0.01 }, scene);
+              const worldPos = mesh.getAbsolutePosition();
+              const worldRotation = BABYLON.Quaternion.FromRotationMatrix(mesh.getWorldMatrix().getRotationMatrix());
+              anchorMesh.position.copyFrom(worldPos);
+              anchorMesh.rotationQuaternion = worldRotation;
               anchorMesh.isVisible = false;
               anchorMesh.isPickable = false;
+              anchorMesh.parent = null;
 
-              const anchorBody = new BABYLON.PhysicsBody(anchorMesh, BABYLON.PhysicsMotionType.STATIC, false, scene);
-              const anchorShape = new BABYLON.PhysicsShapeBox(
+              anchorBody = new BABYLON.PhysicsBody(anchorMesh, BABYLON.PhysicsMotionType.STATIC, false, scene);
+              anchorShape = new BABYLON.PhysicsShapeBox(
                 BABYLON.Vector3.Zero(),
                 BABYLON.Quaternion.Identity(),
                 new BABYLON.Vector3(0.01, 0.01, 0.01),
@@ -98,7 +104,7 @@ export default function PhysicsKeys() {
               );
               anchorBody.shape = anchorShape;
 
-              const constraint = new BABYLON.Physics6DoFConstraint(
+              constraint = new BABYLON.Physics6DoFConstraint(
                 {
                   pivotA: BABYLON.Vector3.Zero(),
                   pivotB: BABYLON.Vector3.Zero(),
@@ -142,6 +148,12 @@ export default function PhysicsKeys() {
                 anchorMesh,
               });
             } catch (err) {
+              constraint?.dispose();
+              body?.dispose();
+              anchorBody?.dispose();
+              shape?.dispose();
+              anchorShape?.dispose();
+              anchorMesh?.dispose();
               console.error(`[Physics] Failed to add constrained body to ${mesh.name}:`, err);
             }
           }

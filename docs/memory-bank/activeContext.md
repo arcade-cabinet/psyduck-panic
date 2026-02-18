@@ -4,9 +4,9 @@
 
 ### Branch: `cursor/handoff-documentation-content-4fd6`
 
-### Status: v2.0 COMPLETE
+### Status: v2.0 feature-complete, release-gating pending
 
-All 15 items from the Turn 164 "deep audit" are implemented. The game is feature-complete.
+All 15 items from the Turn 164 "deep audit" are implemented and the game is feature-complete, but release-gating and validation tasks remain.
 
 ### What's Done
 
@@ -63,11 +63,16 @@ All 15 items from the Turn 164 "deep audit" are implemented. The game is feature
 - **18 Playwright E2E tests** — all passing under xvfb-run
 - **Governor**: 30s survival + 3 restart cycles stable
 
-### What's Left (Future Work)
+### Remaining work
 
 - Visual quality human eye-test in desktop browser
 - XR hand tracking → keycap interaction wiring
 - Mobile touch reliability tuning
+
+### Post-release tasks
+
+- Full XR hand-tracking gameplay integration if not shipped as release MVP
+- Additional platform-specific tuning (mobile edge cases, deep performance tuning)
 ### Release Planning
 
 - Comprehensive production alignment plan: `docs/memory-bank/release-2.0-alignment-plan.md`

@@ -44,6 +44,7 @@ The release is only considered production-ready when **all** gates below are gre
 **Goal:** eliminate ambiguity about what is complete, what is partial, and what is deferred.
 
 #### A1. Build an explicit feature matrix
+
 Create a single matrix (in this file or adjacent doc) with rows for every major system:
 
 - Sphere visuals + degradation + shatter
@@ -66,9 +67,11 @@ Columns:
 - Release action (ship / harden / defer)
 
 #### A2. Resolve contradictory memory-bank claims
+
 Normalize conflicting docs entries (e.g. "complete" vs "stubbed") and establish one canonical status statement.
 
 #### A3. Define release posture for deferred features
+
 For each non-ready item (especially XR), decide:
 
 - Ship as hardened scaffold with explicit defer note, or
@@ -81,6 +84,7 @@ For each non-ready item (especially XR), decide:
 **Goal:** make buried seed truly reproducible and stable.
 
 #### B1. Fixed-step simulation
+
 Refactor frame-dependent spawn chance logic into fixed-timestep accumulators for:
 
 - Pattern spawning/progression
@@ -88,9 +92,11 @@ Refactor frame-dependent spawn chance logic into fixed-timestep accumulators for
 - Any deterministic simulation decision points
 
 #### B2. Deterministic random consumption model
+
 Ensure RNG draw order depends on simulation ticks/events, not render FPS.
 
 #### B3. Reproducibility tests
+
 Add deterministic replay tests asserting same-seed/same-ticks => same outputs for:
 
 - Pattern color/index/spawn sequence
@@ -98,6 +104,7 @@ Add deterministic replay tests asserting same-seed/same-ticks => same outputs fo
 - Critical progression events
 
 #### B4. Seed telemetry for debugging
+
 Expose optional dev-only debug capture of seed + tick + key events (non-invasive, test-only helpers).
 
 ---
@@ -107,12 +114,15 @@ Expose optional dev-only debug capture of seed + tick + key events (non-invasive
 **Goal:** guarantee stable repeated session loops.
 
 #### C1. Phase model normalization
+
 Make game phase transitions explicit across title/playing/paused/gameover/restart.
 
 #### C2. Restart ritual resiliency
+
 Ensure sphere rebuild and gameplay reset triggers are keyed off explicit restart semantics, not fragile implicit transitions.
 
 #### C3. Store lifecycle audits
+
 Audit all stores for reset completeness:
 
 - Level, seed, input, audio, game
@@ -120,6 +130,7 @@ Audit all stores for reset completeness:
 - No lingering subscriptions
 
 #### C4. Long-run governor checks
+
 Re-run and extend 30s+ survival + multi-restart tests under E2E governor.
 
 ---
@@ -129,9 +140,11 @@ Re-run and extend 30s+ survival + multi-restart tests under E2E governor.
 **Goal:** prevent leaks/duplication and lock adaptive behavior.
 
 #### D1. Resource registry
+
 Track every created Tone node/loop in store-managed registry.
 
 #### D2. Complete shutdown/dispose
+
 On teardown/restart:
 
 - Stop transport/loops
@@ -139,9 +152,11 @@ On teardown/restart:
 - Null references and restore clean init state
 
 #### D3. Deterministic evolution mapping
+
 Tie audio evolution decisions to stable seeded sequences/ticks where determinism is expected.
 
 #### D4. Audio soak tests
+
 Add tests for repeated initialize/shutdown cycles and duplicate-init guards.
 
 ---
@@ -151,18 +166,22 @@ Add tests for repeated initialize/shutdown cycles and duplicate-init guards.
 **Goal:** align interaction systems with intended mechanical quality.
 
 #### E1. Physics keys true constraints
+
 Implement actual movement constraints/joints so keycaps behave as vertical switch travel with spring return.
 
 #### E2. Touch/keycap interaction parity
+
 Confirm touch targets and physics-driven visible caps remain semantically aligned.
 
 #### E3. XR production decision
+
 Choose one:
 
 - **Release-ready XR MVP**: pinch-to-keycap mapping + basic feedback; or
 - **Deferred XR**: stable scaffold, disabled by default, documented clearly
 
 #### E4. Device matrix spot checks
+
 Desktop + mobile touch baseline validation for interaction hit reliability.
 
 ---
@@ -172,6 +191,7 @@ Desktop + mobile touch baseline validation for interaction hit reliability.
 **Goal:** deliver accessible production behavior, not just hooks.
 
 #### F1. Reduced motion implementation
+
 Apply prefers-reduced-motion branches to:
 
 - Overlay transitions
@@ -179,9 +199,11 @@ Apply prefers-reduced-motion branches to:
 - Post-process corruption intensity
 
 #### F2. Announcements and semantics audit
+
 Validate SR live region events and dialog/button semantics across game-over and restart.
 
 #### F3. Input fallback expectations
+
 Document minimum accessible control expectations (pointer/touch baseline, keyboard where applicable).
 
 ---
@@ -191,6 +213,7 @@ Document minimum accessible control expectations (pointer/touch baseline, keyboa
 **Goal:** human-eye validated shipping baseline.
 
 #### G1. Art direction pass
+
 Perform manual QA pass for visual readability:
 
 - Sphere shader readability by tension level
@@ -198,9 +221,11 @@ Perform manual QA pass for visual readability:
 - Diegetic ring visibility and legibility
 
 #### G2. Performance budget pass
+
 Capture rough FPS/memory baseline in representative scenes.
 
 #### G3. Regression screenshot set
+
 Capture key scenes (title, gameplay low/high tension, clarity, game over) for release validation record.
 
 ---
@@ -210,9 +235,11 @@ Capture key scenes (title, gameplay low/high tension, clarity, game over) for re
 **Goal:** lock confidence before tagging 2.0.
 
 #### H1. Test inventory alignment
+
 Synchronize stated unit/E2E counts with actual suite.
 
 #### H2. Add missing tests for high-risk areas
+
 Priority:
 
 1. Determinism and fixed-step simulation
@@ -221,6 +248,7 @@ Priority:
 4. Reduced-motion behavior
 
 #### H3. CI release checklist
+
 Standard pre-tag checklist:
 
 - lint/test/build/e2e
@@ -228,6 +256,7 @@ Standard pre-tag checklist:
 - manual smoke checklist
 
 #### H4. Release notes and rollback plan
+
 Prepare clear changelog summary + known limitations + rollback procedure.
 
 ---
@@ -308,7 +337,7 @@ All are required:
 - ✅ Exit gates all pass
 - ✅ P0 backlog complete
 - ✅ P1 either complete or explicitly documented as accepted risk
-- ✅ Deferred items explicitly feature-flagged or excluded from release critical path
+- ✅ Deferred items clearly feature-flagged or excluded from release critical path
 - ✅ Memory-bank and AGENTS context reflect final shipped truth
 
 ---

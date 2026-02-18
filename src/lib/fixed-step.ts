@@ -12,6 +12,10 @@ export function runFixedSteps(
   runStep: (stepSeconds: number) => void,
   maxStepsPerFrame = 8,
 ): void {
+  if (!Number.isFinite(stepSeconds) || stepSeconds <= 0) {
+    throw new Error(`runFixedSteps requires stepSeconds to be a finite positive number. Received: ${stepSeconds}`);
+  }
+
   state.accumulator += dtSeconds;
 
   let steps = 0;

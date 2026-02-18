@@ -26,6 +26,7 @@ export default function AISphere({ reducedMotion }: AISphereProps) {
   const explodedRef = useRef(false);
   /** Guards against re-triggering clarity while the pulse animation plays */
   const clarityActiveRef = useRef(false);
+  const shatterCleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Miniplex entity — synced every frame with current tension/coherence/exploded state */
   const sphereEntityRef = useRef(
     world.add({
@@ -125,6 +126,10 @@ export default function AISphere({ reducedMotion }: AISphereProps) {
       if (outerSphereRef.current) gsap.killTweensOf(outerSphereRef.current.position);
       if (outerSphereRef.current) gsap.killTweensOf(outerSphereRef.current.rotation);
       if (glassMatRef.current) gsap.killTweensOf(glassMatRef.current);
+      if (shatterCleanupTimerRef.current) {
+        clearTimeout(shatterCleanupTimerRef.current);
+        shatterCleanupTimerRef.current = null;
+      }
       outerSphereRef.current?.dispose();
       innerSphereRef.current?.dispose();
       glassMatRef.current?.dispose();
@@ -287,6 +292,13 @@ export default function AISphere({ reducedMotion }: AISphereProps) {
         shatterParticles.createPointEmitter(new BABYLON.Vector3(-0.1, -0.1, -0.1), new BABYLON.Vector3(0.1, 0.1, 0.1));
         shatterParticles.start();
         shatterParticles.targetStopDuration = 2.8;
+
+        const shatterCleanupDelayMs = (shatterParticles.targetStopDuration + shatterParticles.maxLifeTime) * 1000;
+        shatterCleanupTimerRef.current = setTimeout(() => {
+          shatterParticles.dispose();
+          particleTex.dispose();
+          shatterCleanupTimerRef.current = null;
+        }, shatterCleanupDelayMs);
 
         // Dispose spheres after capturing position
         outerSphereRef.current?.dispose();

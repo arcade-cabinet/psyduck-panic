@@ -40,4 +40,15 @@ describe('fixed-step', () => {
 
     expect(high).toBeLessThan(low);
   });
+
+  it('throws when stepSeconds is not finite positive', () => {
+    const s = { accumulator: 0 };
+
+    expect(() => runFixedSteps(s, 0.016, 0, () => {})).toThrowError(
+      'runFixedSteps requires stepSeconds to be a finite positive number',
+    );
+    expect(() => runFixedSteps(s, 0.016, Number.NaN, () => {})).toThrowError(
+      'runFixedSteps requires stepSeconds to be a finite positive number',
+    );
+  });
 });

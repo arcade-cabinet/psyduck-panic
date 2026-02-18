@@ -31,9 +31,22 @@ export default function GameBoard() {
   // ── Accessibility: reduced motion ──
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (typeof window === 'undefined') return;
+
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReducedMotion(mq.matches);
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      setReducedMotion(event.matches);
+    };
+
+    if (mq.addEventListener) {
+      mq.addEventListener('change', handleChange);
+      return () => mq.removeEventListener('change', handleChange);
     }
+
+    mq.addListener(handleChange);
+    return () => mq.removeListener(handleChange);
   }, []);
 
   // ── Screen reader live region ──

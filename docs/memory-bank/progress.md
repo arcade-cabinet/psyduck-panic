@@ -57,7 +57,7 @@
 - [x] 18 Playwright E2E tests (smoke, gameplay, governor) — all passing
 - [x] Governor survives 30+ seconds with active play
 - [x] 3 restart cycle stability test
-- [x] No console error monitoring in E2E
+- [x] Console error monitoring intentionally disabled in E2E
 - [x] xvfb-run for headed WebGL testing on headless servers
 
 ## What's Left
