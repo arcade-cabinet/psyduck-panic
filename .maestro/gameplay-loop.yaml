@@ -12,7 +12,7 @@ appId: arcade.cabinet.cognitivedissonance
 
 # Start game (tap Play or press Enter)
 - tapOn:
-    id: "play-button"
+    text: "Play"
 - waitForAnimationToEnd:
     timeout: ${ANIMATION_TIMEOUT}
 
