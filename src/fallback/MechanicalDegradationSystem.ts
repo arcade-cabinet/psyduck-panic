@@ -1,7 +1,7 @@
 import type { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
+import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { Scene } from '@babylonjs/core/scene';
-import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
 import type { TensionSystem } from '../systems/TensionSystem';
 
 /**
