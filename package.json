@@ -38,6 +38,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.2",
+    "react-native-web": "^0.21.2",
     "reactylon": "^3.5.4",
     "seedrandom": "^3.0.5",
     "tone": "^14.9.17",
