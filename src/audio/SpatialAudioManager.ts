@@ -159,7 +159,7 @@ export class SpatialAudioManager {
         this.leverSynth?.triggerAttackRelease(frequency * 0.5, duration * 2, now, event.intensity);
         break;
       case 'platter':
-        this.platterSynth?.triggerAttackRelease(now, event.intensity);
+        this.platterSynth?.triggerAttackRelease(duration, now, event.intensity);
         break;
       case 'tendril':
         this.tendrilSynth?.triggerAttackRelease(duration, now, event.intensity);
@@ -168,8 +168,8 @@ export class SpatialAudioManager {
         this.enemySynth?.triggerAttackRelease(frequency * 1.5, duration * 1.5, now, event.intensity);
         break;
       case 'boss':
-        // DuoSynth.triggerAttackRelease(note0, note1, duration, time, velocity)
-        this.bossSynth?.triggerAttackRelease(frequency * 0.25, frequency * 0.5, duration * 3, now);
+        // DuoSynth.triggerAttackRelease(note, duration, time?, velocity?)
+        this.bossSynth?.triggerAttackRelease(frequency * 0.25, duration * 3, now, event.intensity);
         break;
       case 'shatter':
         this.shatterSynth?.triggerAttackRelease(duration * 4, now, 1.0);
@@ -206,6 +206,7 @@ export class SpatialAudioManager {
     this.shatterSynth = null;
 
     this.isInitialized = false;
+    SpatialAudioManager.instance = null;
   }
 
   /**

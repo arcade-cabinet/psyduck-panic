@@ -61,7 +61,7 @@ pnpm test:e2e:mobile:ios     # Maestro iOS only
 
 ## Architecture
 
-```
+```text
 Entry Points (Metro)
 ├── index.web.tsx       → Web (WebGPU / WebGL2)
 └── index.native.tsx    → Native (Babylon Native Metal/Vulkan)

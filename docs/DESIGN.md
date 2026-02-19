@@ -10,7 +10,7 @@ Cognitive Dissonance v3.0 is a cross-platform (web + Android + iOS) interactive 
 
 The player sees a heavy industrial black metal platter lying flat, with a transparent glass sphere sitting in a recessed circular track at center. Inside the sphere, a celestial nebula shader (GLSL, registered in `Effect.ShadersStore`) evolves from calm blue through yellows/greens to violent reds as tension rises. Around the platter rim, mechanical keycaps emerge through garage-door slits with satisfying GSAP CustomEase animations. In AR, the platter is anchored to a real-world horizontal surface; on phone, it is camera-projected via tap-to-place.
 
-```
+```text
 ┌──────────────────────────────────────────────────────┐
 │                                                      │
 │          (enemies descend from above)                │

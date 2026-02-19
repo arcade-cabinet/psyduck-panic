@@ -108,6 +108,7 @@ export class ImmersionAudioBridge {
     }
     this.isInitialized = false;
     this.currentTension = 0.0;
+    ImmersionAudioBridge.instance = null;
   }
 
   /**

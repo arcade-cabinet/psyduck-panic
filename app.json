@@ -21,8 +21,7 @@
         "NSCameraUsageDescription": "Cognitive Dissonance uses the camera for AR gameplay, anchoring the platter and sphere in your physical space.",
         "NSMicrophoneUsageDescription": "Cognitive Dissonance uses the microphone for voice command accessibility features.",
         "UIRequiredDeviceCapabilities": [
-          "arkit",
-          "hand-tracking"
+          "arkit"
         ]
       }
     },

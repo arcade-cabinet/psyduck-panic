@@ -26,7 +26,8 @@ appId: arcade.cabinet.cognitivedissonance
     timeout: 60000
 
 # Check for game-over text (may or may not appear depending on gameplay)
-- assertVisible: "COGNITION SHATTERED"
-  optional: true
+- assertVisible:
+    text: "COGNITION SHATTERED"
+    optional: true
 
 - screenshot: game-over-check

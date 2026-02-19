@@ -172,8 +172,8 @@ describe('CrystallineCubeBossSystem', () => {
     it('boss spawns if tension >= threshold', () => {
       fc.assert(
         fc.property(
-          fc.float({ min: Math.fround(0.6), max: Math.fround(0.92) }),
-          fc.float({ min: Math.fround(0.6), max: Math.fround(0.999) }),
+          fc.float({ min: Math.fround(0.6), max: Math.fround(0.92), noNaN: true, noDefaultInfinity: true }),
+          fc.float({ min: Math.fround(0.6), max: Math.fround(0.999), noNaN: true, noDefaultInfinity: true }),
           (threshold, tension) => {
             const testSystem = createBossSystem();
             const mockPlatterMesh = { position: { x: 0, y: 0, z: 0 } } as any;

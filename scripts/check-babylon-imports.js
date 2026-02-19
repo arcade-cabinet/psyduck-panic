@@ -11,8 +11,9 @@ const path = require('node:path');
 const srcDir = path.join(__dirname, '..', 'src');
 let hasErrors = false;
 
-// Regex to match barrel imports: import { ... } from '@babylonjs/core' or 'babylonjs'
-const barrelImportRegex = /import\s+{[^}]+}\s+from\s+['"](@babylonjs\/core|babylonjs)['"]/g;
+// Regex to match barrel imports from '@babylonjs/core' or 'babylonjs'
+// Catches: named imports, default imports, namespace imports, side-effect imports, and re-exports
+const barrelImportRegex = /(?:import\s+(?:{[^}]+}|[*\w][^\n]*?)\s+from\s+['"](@babylonjs\/core|babylonjs)['"]|import\s+['"](@babylonjs\/core|babylonjs)['"]|export\s+(?:{[^}]+}|\*)\s+from\s+['"](@babylonjs\/core|babylonjs)['"])/g;
 
 function checkFile(filePath) {
   const content = fs.readFileSync(filePath, 'utf-8');

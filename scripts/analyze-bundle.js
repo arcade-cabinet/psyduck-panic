@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * Bundle Analysis Script
- * Generates a visual treemap of the production bundle
+ * Measures gzipped sizes of all JS files in the production bundle
  * Requirement 40.2: Bundle analysis on CI
  */
 
-const { visualizer } = require('rollup-plugin-visualizer');
 const fs = require('node:fs');
 const path = require('node:path');
+const zlib = require('node:zlib');
 
 const distDir = path.join(__dirname, '..', 'dist');
 const outputFile = path.join(__dirname, '..', 'bundle-analysis.html');
@@ -39,47 +39,59 @@ if (jsFiles.length === 0) {
   process.exit(1);
 }
 
-// Calculate total bundle size (gzipped)
-const { execSync } = require('node:child_process');
+// Calculate per-file and total bundle sizes (gzipped)
+const fileSizes = [];
 let totalSize = 0;
 for (const file of jsFiles) {
-  const gzipSize = execSync(`gzip -c "${file}" | wc -c`, { encoding: 'utf-8' });
-  totalSize += Number.parseInt(gzipSize.trim(), 10);
+  const content = fs.readFileSync(file);
+  const rawSize = content.length;
+  const gzipSize = zlib.gzipSync(content).length;
+  totalSize += gzipSize;
+  fileSizes.push({
+    name: path.relative(distDir, file),
+    raw: rawSize,
+    gzip: gzipSize,
+  });
 }
+
+// Sort by gzipped size descending
+fileSizes.sort((a, b) => b.gzip - a.gzip);
 
 const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
 console.log(`Total bundle size (gzipped): ${totalSizeMB} MB`);
+console.log(`Files: ${jsFiles.length}`);
+console.log('');
+
+// Print top files
+for (const f of fileSizes.slice(0, 10)) {
+  const kb = (f.gzip / 1024).toFixed(1);
+  console.log(`  ${kb} KB  ${f.name}`);
+}
 
 if (totalSize >= 5242880) {
-  console.error(`Error: Bundle size ${totalSizeMB} MB exceeds 5 MB limit`);
+  console.error(`\nError: Bundle size ${totalSizeMB} MB exceeds 5 MB limit`);
   process.exit(1);
 }
 
-// Generate bundle analysis HTML
-console.log('Generating bundle analysis...');
-const plugin = visualizer({
-  filename: outputFile,
-  open: false,
-  gzipSize: true,
-  brotliSize: false,
-  template: 'treemap',
-  title: 'Cognitive Dissonance v3.0 Bundle Analysis',
-});
+// Generate bundle analysis HTML report
+const rows = fileSizes
+  .map(
+    (f) =>
+      `<tr><td>${f.name}</td><td>${(f.raw / 1024).toFixed(1)} KB</td><td>${(f.gzip / 1024).toFixed(1)} KB</td></tr>`,
+  )
+  .join('\n');
 
-// Create a minimal rollup config to analyze the bundle
-const rollup = require('rollup');
-(async () => {
-  try {
-    const bundle = await rollup.rollup({
-      input: jsFiles[0], // Use the first JS file as entry point
-      plugins: [plugin],
-      external: () => true, // Treat all imports as external
-    });
-    await bundle.close();
-    console.log(`Bundle analysis saved to: ${outputFile}`);
-    console.log(`Bundle size check: PASSED (${totalSizeMB} MB / 5.00 MB)`);
-  } catch (error) {
-    console.error('Error generating bundle analysis:', error);
-    process.exit(1);
-  }
-})();
+const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Bundle Analysis</title>
+<style>body{font-family:system-ui;max-width:800px;margin:2rem auto;padding:0 1rem}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:0.5rem;border-bottom:1px solid #ddd}
+th{background:#f5f5f5}.pass{color:green}.fail{color:red}</style></head>
+<body><h1>Cognitive Dissonance v3.0 Bundle Analysis</h1>
+<p>Total gzipped: <strong>${totalSizeMB} MB</strong> / 5.00 MB
+<span class="${totalSize >= 5242880 ? 'fail' : 'pass'}">${totalSize >= 5242880 ? 'FAIL' : 'PASS'}</span></p>
+<table><thead><tr><th>File</th><th>Raw</th><th>Gzip</th></tr></thead>
+<tbody>${rows}</tbody></table></body></html>`;
+
+fs.writeFileSync(outputFile, html);
+console.log(`\nBundle analysis saved to: ${outputFile}`);
+console.log(`Bundle size check: PASSED (${totalSizeMB} MB / 5.00 MB)`);

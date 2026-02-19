@@ -8,7 +8,7 @@ The project uses **Metro** as the universal bundler for all platforms, **Expo SD
 
 ## High-Level Architecture
 
-```
+```text
 Entry Points (Metro)
 ├── index.web.tsx       → Web (Metro + Expo web + WebGPU)
 └── index.native.tsx    → Native (Metro + Expo SDK 55 + Babylon Native)
@@ -76,7 +76,7 @@ State Layer (Zustand)
 
 ## Build Pipeline
 
-```
+```text
 Web:    Metro → Expo web → babel-plugin-reactylon → esnext bundle
 Native: Metro → Expo SDK 55 dev-client → Reactylon Native → Babylon Native
 Shared: TypeScript 5.9 strict, @babylonjs/core subpath imports, tree-shaking
@@ -178,7 +178,7 @@ Babylon audio engine disabled. All audio through Tone.js + expo-audio bridge on 
 
 ## Game Phase State Machine
 
-```
+```text
 Loading → Title → Playing → Shattered → Title (with new seed)
    ↓
  Error (no WebGL2/WebGPU)

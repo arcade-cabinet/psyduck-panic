@@ -288,7 +288,17 @@ export class CrystallineCubeBossSystem {
       const offset = new Vector3(Math.cos(angle) * 0.3, 0, Math.sin(angle) * 0.3);
       const shardPos = bossPos.add(offset);
 
-      this.morphSystem.createMorphedEnemy(trait, shardPos);
+      const { mesh, manager } = this.morphSystem.createMorphedEnemy(trait, shardPos);
+
+      // Register shard in ECS world so it can be tracked and properly disposed
+      world.add({
+        enemy: true,
+        yuka: true,
+        currentTrait: trait,
+        morphProgress: 0.5,
+        morphTarget: { mesh, manager },
+        position: { x: shardPos.x, y: shardPos.y, z: shardPos.z },
+      });
     }
 
     this.disposeBoss();

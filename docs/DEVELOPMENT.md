@@ -164,7 +164,7 @@ pnpm test:e2e:mobile:ios
 rm -rf node_modules/.cache
 
 # Reinstall dependencies
-rm -rf node_modules pnpm-lock.yaml
+rm -rf node_modules
 pnpm install
 ```
 
@@ -227,7 +227,7 @@ class MySystem {
 
 ## Project Structure
 
-```
+```text
 /
 ├── index.web.tsx              # Web entry (Metro + Expo web + WebGPU)
 ├── index.native.tsx           # Native entry (Metro + Expo SDK 55 dev-client)

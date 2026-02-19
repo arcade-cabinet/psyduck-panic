@@ -4,12 +4,12 @@
 
 The project uses GitHub Actions for continuous integration and deployment across all platforms (web, Android, iOS). The CI/CD pipeline is split into two workflows:
 
-- **CI** (`.github/workflows/ci.yml`): Runs on all pull requests and pushes to `main`
+- **CI** (`.github/workflows/ci.yml`): Runs on all pull requests
 - **CD** (`.github/workflows/cd.yml`): Runs on pushes to `main` only
 
 ## CI Workflow
 
-**Trigger**: Pull requests, pushes to `main`
+**Trigger**: Pull requests only (with concurrency group that cancels in-progress runs)
 
 **Jobs**:
 
@@ -23,6 +23,7 @@ steps:
   - Setup Node.js 22 + pnpm
   - Install dependencies
   - Run Biome lint: pnpm lint
+  - Check Babylon.js imports (tree-shakable only): pnpm check-imports
   - Run TypeScript type-check: pnpm exec tsc --noEmit
   - Run Jest unit tests: pnpm test
 ```
@@ -40,8 +41,9 @@ steps:
   - Setup Node.js 22 + pnpm
   - Install dependencies
   - Build Expo web: pnpm build:web
-  - Check bundle size: gzip -c dist/assets/*.js | wc -c
-  - Fail if > 5242880 bytes (5 MB gzipped)
+  - Generate bundle analysis: pnpm analyze-bundle
+  - Upload bundle-analysis.html artifact
+  - Verify bundle size (< 5 MB gzipped)
 ```
 
 **Exit criteria**: Bundle size < 5 MB gzipped
@@ -171,18 +173,50 @@ steps:
 
 ## Automerge Workflow
 
-**Trigger**: Pull requests with `automerge` label
+**File**: `.github/workflows/automerge.yml`
 
-**Behavior**: Automatically merges PR after CI passes
+**Triggers**: Pull requests (`opened`, `synchronize`, `reopened`, `labeled`) and pushes to non-main branches
+
+**Jobs**:
+
+### 1. dependabot-automerge
+
+Automatically approves and squash-merges Dependabot PRs.
 
 ```yaml
-needs: [ci-success]
-if: contains(github.event.pull_request.labels.*.name, 'automerge')
+if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
 steps:
-  - Merge PR via GitHub API
+  - Auto-approve Dependabot PR (gh pr review --approve)
+  - Squash-merge with auto flag (gh pr merge --squash --auto)
 ```
 
-**Note**: Dependabot PRs are no longer excluded from CI — all PRs run full test suite.
+### 2. auto-merge-fix-pr
+
+Handles bot-created fix PRs (e.g., Jules) targeting non-main branches, or PRs with the `auto-merge` label.
+
+```yaml
+if: (bot PR targeting non-main branch) OR (has 'auto-merge' label)
+steps:
+  - Create 'auto-merge' label if missing
+  - Checkout and rebase onto base branch
+  - Push rebased branch (force-with-lease)
+  - Close PR on rebase conflict
+  - Squash-merge and delete branch on success
+```
+
+### 3. rebase-on-push
+
+When a branch receives new commits, finds all open PRs with the `auto-merge` label targeting that branch and rebases them. Closes any PRs that have conflicts.
+
+```yaml
+if: github.event_name == 'push'
+steps:
+  - Find open auto-merge PRs targeting the pushed branch
+  - Rebase each onto updated base
+  - Close PRs with conflicts
+```
+
+**Note**: Dependabot PRs run the full CI test suite like all other PRs.
 
 ## Removed from v2.0
 
@@ -264,7 +298,7 @@ pnpm build:web
 rm -rf node_modules/.cache
 
 # Reinstall dependencies
-rm -rf node_modules pnpm-lock.yaml
+rm -rf node_modules
 pnpm install
 ```
 

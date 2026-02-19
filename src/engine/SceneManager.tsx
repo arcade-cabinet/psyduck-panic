@@ -3,7 +3,7 @@ import type { WebGPUEngine } from '@babylonjs/core/Engines/webgpuEngine';
 import { Color4 } from '@babylonjs/core/Maths/math.color';
 import { Scene } from '@babylonjs/core/scene';
 import type React from 'react';
-import { createContext, type ReactNode, useContext, useEffect, useRef } from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
 import type { DeviceQuality } from '../utils/DeviceQuality';
 
 interface SceneContextValue {
@@ -28,35 +28,35 @@ interface SceneManagerProps {
 }
 
 export const SceneManager: React.FC<SceneManagerProps> = ({ engine, deviceQuality, children }) => {
-  const sceneRef = useRef<Scene | null>(null);
+  const [scene, setScene] = useState<Scene | null>(null);
 
   useEffect(() => {
     if (!engine) return;
 
     // Create scene with black clear color and right-handed coordinate system
-    const scene = new Scene(engine);
-    scene.clearColor = new Color4(0, 0, 0, 1);
-    scene.useRightHandedSystem = true;
+    const newScene = new Scene(engine);
+    newScene.clearColor = new Color4(0, 0, 0, 1);
+    newScene.useRightHandedSystem = true;
 
     // Apply device quality config to scene
     if (deviceQuality) {
-      deviceQuality.applyToScene(scene);
+      deviceQuality.applyToScene(newScene);
       console.log(`[SceneManager] Scene created with ${deviceQuality.getTier()} quality tier`);
     } else {
       console.log('[SceneManager] Scene created with right-handed coordinates');
     }
 
-    sceneRef.current = scene;
+    setScene(newScene);
 
     return () => {
-      scene.dispose();
-      sceneRef.current = null;
+      newScene.dispose();
+      setScene(null);
     };
   }, [engine, deviceQuality]);
 
-  if (!sceneRef.current) {
+  if (!scene) {
     return null;
   }
 
-  return <SceneContext.Provider value={{ scene: sceneRef.current, engine }}>{children}</SceneContext.Provider>;
+  return <SceneContext.Provider value={{ scene, engine }}>{children}</SceneContext.Provider>;
 };

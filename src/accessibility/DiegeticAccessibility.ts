@@ -128,13 +128,15 @@ export class DiegeticAccessibility {
    */
   private triggerErrorHaptic(): void {
     if (Platform.OS === 'web') {
-      // Web: long vibration pattern
-      if (navigator.vibrate) {
+      // Web: long vibration pattern (guard for SSR/non-web platforms)
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([100, 50, 100, 50, 100]);
       }
     } else {
       // Native: Heavy impact style
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch((err) => {
+        console.warn('[DiegeticAccessibility] Error haptic failed:', err);
+      });
     }
   }
 
@@ -144,13 +146,15 @@ export class DiegeticAccessibility {
    */
   private triggerMediumHaptic(): void {
     if (Platform.OS === 'web') {
-      // Web: medium vibration
-      if (navigator.vibrate) {
+      // Web: medium vibration (guard for SSR/non-web platforms)
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(50);
       }
     } else {
       // Native: Medium impact style
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch((err) => {
+        console.warn('[DiegeticAccessibility] Medium haptic failed:', err);
+      });
     }
   }
 

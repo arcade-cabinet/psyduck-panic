@@ -3,11 +3,12 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e/web',
   timeout: 30_000,
-  retries: 1,
+  retries: process.env.CI ? 2 : 0,
   use: {
     baseURL: 'http://localhost:8081',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    trace: 'on-first-retry',
   },
   webServer: {
     command: 'pnpm web',

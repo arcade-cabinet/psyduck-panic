@@ -25,7 +25,7 @@ export class MechanicalDegradationSystem {
   private currentTension = 0.0;
   private isActive = false;
   private jitterStartTime = 0;
-  private baseRotationY = 0;
+  private previousJitter = 0;
   private boundSetTension: (tension: number) => void;
 
   private constructor(scene: Scene, tensionSystem: TensionSystem) {
@@ -53,7 +53,7 @@ export class MechanicalDegradationSystem {
   activate(platterMesh: Mesh, _leverMesh: Mesh): void {
     this.isActive = true;
     this.platterMesh = platterMesh;
-    this.baseRotationY = platterMesh.rotation.y;
+    this.previousJitter = 0;
 
     // Create crack normal map
     this.createCrackNormalMap();
@@ -75,9 +75,10 @@ export class MechanicalDegradationSystem {
       this.crackNormalMap = null;
     }
 
-    // Reset platter rotation
+    // Remove residual jitter from platter rotation
     if (this.platterMesh) {
-      this.platterMesh.rotation.y = this.baseRotationY;
+      this.platterMesh.rotation.y -= this.previousJitter;
+      this.previousJitter = 0;
     }
   }
 
@@ -162,8 +163,9 @@ export class MechanicalDegradationSystem {
     // Sinusoidal jitter
     const jitter = Math.sin((elapsed / jitterPeriod) * Math.PI * 2) * jitterAmplitude * this.currentTension;
 
-    // Apply jitter to rotation (additive to any existing rotation)
-    this.platterMesh.rotation.y = this.baseRotationY + jitter;
+    // Apply jitter additively: subtract previous jitter, add new jitter
+    this.platterMesh.rotation.y += jitter - this.previousJitter;
+    this.previousJitter = jitter;
   };
 
   /**

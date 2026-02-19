@@ -35,7 +35,7 @@ export default {
 
 ### Test Structure
 
-```
+```text
 src/
 ├── systems/
 │   ├── TensionSystem.ts
@@ -115,7 +115,7 @@ export default defineConfig({
 
 ### Test Files
 
-```
+```text
 e2e/web/
 ├── smoke.spec.ts          # App loads, engine initializes, scene renders
 ├── gameplay.spec.ts       # Pattern stabilization, tension changes, game over
@@ -144,7 +144,7 @@ pnpm exec playwright test e2e/web/smoke.spec.ts --debug
 
 ### Flow Files
 
-```
+```text
 .maestro/
 ├── config.yaml            # Shared Maestro config (app ID, timeouts)
 ├── app-launch.yaml        # App starts, engine initializes, scene renders

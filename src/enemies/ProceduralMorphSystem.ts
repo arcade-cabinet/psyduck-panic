@@ -24,6 +24,7 @@ export class ProceduralMorphSystem {
   private currentTension = 0.0;
   private deviceTier: 'low' | 'mid' | 'high' = 'high';
   private morphSpeed = 1.0;
+  private meshIdCounter = 0;
 
   private constructor(scene: Scene, world: World<GameEntity>) {
     this.scene = scene;
@@ -61,7 +62,8 @@ export class ProceduralMorphSystem {
   createMorphedEnemy(trait: YukaTrait, position: Vector3): { mesh: Mesh; manager: MorphTargetManager } {
     // Base mesh: icosphere (subdivisions based on device tier)
     const subdivisions = this.deviceTier === 'low' ? 1 : this.deviceTier === 'mid' ? 2 : 3;
-    const mesh = MeshBuilder.CreateIcoSphere(`enemy_${trait}_${Date.now()}`, { radius: 0.3, subdivisions }, this.scene);
+    const meshId = this.meshIdCounter++;
+    const mesh = MeshBuilder.CreateIcoSphere(`enemy_${trait}_${meshId}`, { radius: 0.3, subdivisions }, this.scene);
     mesh.position = position;
 
     // Material: neon glow based on trait
@@ -211,7 +213,15 @@ export class ProceduralMorphSystem {
 
       // Dispose enemy if morphProgress reaches 0 (countered)
       if (entity.morphProgress <= 0 && entity.morphTarget?.mesh) {
-        entity.morphTarget.mesh.dispose();
+        const enemyMesh = entity.morphTarget.mesh as Mesh;
+        // Dispose GPU resources before mesh to prevent leaks
+        if (enemyMesh.morphTargetManager) {
+          enemyMesh.morphTargetManager.dispose();
+        }
+        if (enemyMesh.material) {
+          enemyMesh.material.dispose();
+        }
+        enemyMesh.dispose();
         this.world.remove(entity);
       }
     }
@@ -246,7 +256,15 @@ export class ProceduralMorphSystem {
     const enemies = this.world.with('enemy', 'yuka');
     for (const entity of enemies) {
       if (entity.morphTarget?.mesh) {
-        entity.morphTarget.mesh.dispose();
+        const enemyMesh = entity.morphTarget.mesh as Mesh;
+        // Dispose GPU resources before mesh to prevent leaks
+        if (enemyMesh.morphTargetManager) {
+          enemyMesh.morphTargetManager.dispose();
+        }
+        if (enemyMesh.material) {
+          enemyMesh.material.dispose();
+        }
+        enemyMesh.dispose();
       }
       this.world.remove(entity);
     }

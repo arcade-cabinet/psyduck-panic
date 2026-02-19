@@ -140,6 +140,7 @@ Output: `.app` bundle in `ios/build/`
 Defined in `eas.json`:
 
 ### Development Profile
+
 ```json
 {
   "development": {
@@ -153,6 +154,7 @@ Defined in `eas.json`:
 - Use for local testing on physical devices
 
 ### Preview Profile
+
 ```json
 {
   "preview": {
@@ -165,6 +167,7 @@ Defined in `eas.json`:
 - Use for QA and stakeholder testing
 
 ### Production Profile
+
 ```json
 {
   "production": {

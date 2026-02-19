@@ -18,34 +18,45 @@ import Foundation
 import UIKit
 import React
 
+// MARK: - Placeholder View with exported properties
+
+/// Custom UIView subclass that holds the properties exported via RCT_EXPORT_VIEW_PROPERTY
+/// in BabylonNativeViewManager.m. React Native sets these properties directly on the view
+/// returned by the view manager's view() method.
+@objc class BabylonNativeView: UIView {
+  @objc var onEngineReady: RCTDirectEventBlock?
+  @objc var antialias: Bool = true
+  @objc var stencil: Bool = true
+}
+
 @objc(BabylonNativeViewManager)
 class BabylonNativeViewManager: RCTViewManager {
-  
+
   override func view() -> UIView! {
     // TODO: Replace with MTKView + Babylon Native Metal engine
     // For now, return a placeholder view with error message
-    let placeholderView = UIView()
+    let placeholderView = BabylonNativeView()
     placeholderView.backgroundColor = UIColor.black
-    
+
     let label = UILabel()
     label.text = "Babylon Native not implemented\nFalling back to screen mode"
     label.textColor = UIColor.white
     label.textAlignment = .center
     label.numberOfLines = 0
     label.translatesAutoresizingMaskIntoConstraints = false
-    
+
     placeholderView.addSubview(label)
-    
+
     NSLayoutConstraint.activate([
       label.centerXAnchor.constraint(equalTo: placeholderView.centerXAnchor),
       label.centerYAnchor.constraint(equalTo: placeholderView.centerYAnchor),
       label.leadingAnchor.constraint(equalTo: placeholderView.leadingAnchor, constant: 20),
       label.trailingAnchor.constraint(equalTo: placeholderView.trailingAnchor, constant: -20)
     ])
-    
+
     return placeholderView
   }
-  
+
   override static func requiresMainQueueSetup() -> Bool {
     return true
   }

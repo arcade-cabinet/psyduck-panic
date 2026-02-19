@@ -67,7 +67,6 @@
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arkit</string>
-		<string>hand-tracking</string>
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<false/>
