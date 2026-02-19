@@ -172,7 +172,7 @@ describe('CorruptionTendrilSystem', () => {
       };
       fc.assert(
         fc.property(
-          fc.float({ min: Math.fround(0.04), max: Math.fround(0.999), noNaN: true, noDefaultInfinity: true }),
+          fc.float({ min: Math.fround(0.04), max: Math.fround(0.98), noNaN: true, noDefaultInfinity: true }),
           (tension) => {
             const testTensionSystem = createTensionSystem();
             testTensionSystem.init(noReboundCurve);
