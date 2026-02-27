@@ -306,6 +306,7 @@ export class CrystallineCubeBossSystem {
 
   private disposeBoss(): void {
     if (this.bossMesh) {
+      this.bossMesh.material?.dispose();
       this.bossMesh.dispose();
       this.bossMesh = null;
     }
