@@ -171,6 +171,7 @@ export class DiegeticAccessibility {
    */
   dispose(): void {
     this.stopListening();
+    Speech.stop();
     this.holdKeyCallback = null;
     DiegeticAccessibility.instance = null;
   }
